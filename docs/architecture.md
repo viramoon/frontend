@@ -4,14 +4,14 @@
 
 ## 页面与功能
 
-| app 页面职责 | 功能 | web API 组 |
-| --- | --- | --- |
-| 交易状态与受控操作组合 | trading | 交易；具体路径、权限与交互 TBD |
-| 回测任务与结果组合 | backtest | 回测；进度与结果协议 TBD |
-| 数据看板组合 | dashboard | 看板；刷新、数据时间和陈旧标识 TBD |
-| 博客阅读与受控写入组合 | blog | 博客；模型和发布权限 TBD |
+| 路由 | 功能 |
+| --- | --- |
+| /dashboard | 仪表盘读取系统状态、数据库与 finance 探测、行情新鲜度及示例回测摘要。根路径进入此页。 |
+| /trading | 交易页面入口，当前仅提供状态说明。 |
+| /backtests | 回测页面入口，示例摘要在仪表盘读取。 |
+| /blog | 博客页面入口，当前仅提供页面骨架。 |
 
-每个功能含 api / components / hooks / types 的说明。禁止功能之间互相引用；app 负责组合，features 只依赖自身和共享目录。参考 [bulletproof-react](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md)，代码与公开入口在未来 issue 明确。
+页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 校验。页面通过 src/api 的生成客户端配合 TanStack Query 访问 web；加载、请求失败和 sample 的 404 空状态分别呈现。PnL 作为服务返回的十进制文本直接显示，避免经过 Number 或 parseFloat。
 
 ## 请求、状态与刷新
 

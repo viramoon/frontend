@@ -25,7 +25,7 @@ fertile 以 git submodule 引入 finance、web、frontend；agent 是独立仓�
 
 - **发布**：只有 fertile 对外带版本号。发布时更新各子模块指针 → 集成检查 → bump `VERSION` → 打 `vX.Y.Z` → 由发版脚本自动生成 `RELEASES.md` 条目（包含子模块 PR / issue），并自动给子模块打内部 tag `fertile-vX.Y.Z`。子模块不对外发版。Maas · Ruler 只按 fertile tag 部署和回滚。规则唯一入口是 [fertile docs/release.md](https://github.com/viramoon/fertile/blob/main/docs/release.md)，本次只记录脚本设计。
 - **部署**：服务部署以 [fertile deploy/](https://github.com/viramoon/fertile/tree/main/deploy) 为唯一准绳。agent 的 deploy-map.yaml 只管 skill / prompt / 工作流分发，涉及服务只引用 fertile。
-- **契约**：finance、web 的 OpenAPI 从代码导出（Rust 侧用 utoipa），快照存放于 [fertile contracts/](https://github.com/viramoon/fertile/tree/main/contracts)，CI 比对差异；不手写契约，不手改生成客户端。web ↔ finance 走 HTTP，frontend 只调用 web。当前无代码，暂不创建假快照。
+- **契约**：finance、web 的 OpenAPI 从代码导出（Rust 侧用 utoipa），快照存放于 [fertile contracts/](https://github.com/viramoon/fertile/tree/main/contracts)，CI 比对差异；不手写契约，不手改生成客户端。web ↔ finance 走 HTTP，frontend 只调用 web。frontend 的生成输入为 openapi/web.openapi.json，openapi/web.commit 记录 web 来源。总仓库从各服务当前指针重新导出与比对。
 - **配置**：部署环境使用 `config/base.yaml` + `config/cloudbox.yaml` 或 `config/stable.yaml`，profile 与运行模式是两个独立维度。finance 的运行模式为 Backtest / Sandbox / Live；paper 与实盘是 Live 下不同账户配置。本阶段云电脑只用 IBKR paper；未来迁移专用机器的实盘需另行验证。
 - **路径与恢复**：按只有 `/home/box` 持久处理。所有运行时路径从配置读取，默认根目录位于 `/home/box` 下，不硬编码 `/srv`、`/etc`。系统级改动纳入可重复执行的初始化设计。环境约束见 [fertile ADR-001](https://github.com/viramoon/fertile/blob/main/docs/adr/ADR-001-cloud-box-network-constraints.md)。
 - **健康**：finance、web 提供 `/healthz`，区分 `live`（进程存活）与 `ready`（关键依赖可用且数据新鲜）。web/frontend 故障不影响 finance 交易核心，finance 不依赖 Cloudflare Tunnel。
