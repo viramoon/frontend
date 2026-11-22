@@ -1,3 +1,3 @@
-# 通用库
+# 公共库
 
-HTTP 客户端和 TanStack Query 的配置在 [src/api](../api/README.md)，各功能复用同一实例。未来的事件流工具可放在此目录，实时协议须先在 [架构](../../docs/architecture.md) 中明确。
+通用库在此按需组织。当前 HTTP 客户端与错误映射统一在 [api](../api/README.md) 配置。后续引入实时订阅时要区分传输连接状态和业务数据的新鲜度。

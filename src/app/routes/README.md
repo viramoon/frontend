@@ -1,5 +1,5 @@
 # 页面路由
 
-页面组合 trading / backtest / dashboard / blog 的公开入口，功能之间不能互相导入。TBD：URL、登录门禁、导航与错误页面，待需求确认；此处不创建 router 源码。
+[AppRoutes](AppRoutes.tsx) 将 /dashboard、/trading、/backtests 和 /blog 分别映射到仪表盘、交易、回测及博客。首页 / 转到仪表盘，未知路径显示找不到页面与返回入口。所有页面使用同一主导航。
 
-SPA 刷新由 web 静态托管的页面回退支持；API、健康检查和不存在的静态资源不能被页面回退吞掉。
+导航采用浏览器 History API。生产环境由 web 提供 SPA 回退，API、健康检查及缺失静态资源保留各自的 HTTP 语义。
