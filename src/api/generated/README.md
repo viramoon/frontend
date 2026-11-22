@@ -1,7 +1,13 @@
 # 生成的 web 客户端
 
-选型为 Hey API（@hey-api/openapi-ts）加 TanStack Query 插件。输入是 fertile `contracts/web.openapi.json`，输出在 `src/api/generated/`；禁止手改生成文件。README 是组织说明，不是生成产物。
+Hey API 0.99.0 从 web 的 OpenAPI 生成 TypeScript 类型、Fetch SDK 和 TanStack Query 查询选项。生成器保留此说明，其余文件仅通过脚本更新。
 
-TBD：输入快照的本地相对路径、工具锁定版本、生成命令和可重复校验，由首个接口实现 issue 确定。上游变更后更新 fertile 快照并重生成，通过差异与类型 / 集成检查；快照尚不存在时不制造空客户端。
+在 frontend 根目录执行 `pnpm install --frozen-lockfile`。更新来源时，从已取回的 web 提交实际导出契约：
 
-WebSocket / SSE 消息不在 OpenAPI 范围内，单独协议见 [architecture.md](../../../docs/architecture.md)。
+```sh
+scripts/gen-web-client.sh from-web ../web "$(git -C ../web rev-parse HEAD)"
+```
+
+[web.commit](../../../openapi/web.commit) 记录完整提交，[web.openapi.json](../../../openapi/web.openapi.json) 保留导出字节。单仓执行 `pnpm generate:client` 可离线使用已安装的生成器和冻结输入。已有总仓导出时，可运行 `scripts/gen-web-client.sh from-snapshot ../contracts/web.openapi.json <完整的web提交>`。
+
+`pnpm check:client` 在临时目录重复生成并比较整棵目录。在 fertile 的 frontend 子模块内运行 `pnpm check:client ../contracts/web.openapi.json` 还会逐字节验证总仓契约。页面使用 `src/api` 的统一入口。WebSocket / SSE 协议见 [架构说明](../../../docs/architecture.md)。
