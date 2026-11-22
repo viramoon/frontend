@@ -15,7 +15,7 @@
 
 ## 请求、状态与刷新
 
-全局只有一个 API client，由 lib 配置。Hey API（@hey-api/openapi-ts）加 TanStack Query 插件消费 fertile contracts/web.openapi.json，输出 src/api/generated，禁止手改。TanStack Query 管理服务端缓存；查询键按功能 / 资源 / 参数分组，写成功后只失效相关查询。刷新间隔、staleTime、退避和重连重拉策略 TBD，按真实数据新鲜度确定，不将缓存命中视为最新行情。
+src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件读取 openapi/web.openapi.json，写入 src/api/generated。TanStack Query 缓存系统状态和示例回测两个独立查询，staleTime 为 15 秒。行情新鲜度另由 web 根据 collector 的时间与阈值报告。
 
 客户端共享 store 只保存界面状态，不保存第二份服务端真相。价格、数量、金额展示保留协议精度；交易写超时先查状态，不自动盲重发。具体交互与权限由接口和功能需求验证。
 
