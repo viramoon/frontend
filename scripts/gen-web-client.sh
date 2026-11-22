@@ -27,8 +27,10 @@ case "$mode" in
         check_sha "$sha"
         # Export the committed tree even if the checkout has local edits.
         mkdir "$work/web"
+        sha=$(git -C "$2" rev-parse --verify "$sha^{commit}")
         git -C "$2" archive "$sha" | tar -x -C "$work/web"
-        (cd "$work/web" && cargo run --locked --quiet -- export-openapi) > "$work/web.json"
+        # The archive has no Git metadata for web/build.rs.
+        (cd "$work/web" && GITHUB_SHA="$sha" cargo run --locked --quiet -- export-openapi) > "$work/web.json"
         input="$work/web.json"
         ;;
     from-snapshot)
