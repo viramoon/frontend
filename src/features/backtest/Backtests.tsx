@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { type FormEvent, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   datasetsOptions,
@@ -52,6 +52,16 @@ function QueryFailure({ retry }: { retry: () => void }) {
 export function Backtests() {
   const [search, setSearch] = useSearchParams();
   const [cursor, setCursor] = useState<number>();
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => {
+      window.removeEventListener('online', sync);
+      window.removeEventListener('offline', sync);
+    };
+  }, []);
   const catalog = useQuery(datasetsOptions());
   const list = useQuery({
     ...listOptions({ query: { limit: 20, cursor } }),
@@ -74,6 +84,11 @@ export function Backtests() {
     <section className="backtest-page">
       <h1>回测</h1>
       <p className="page-intro">在已导入的日线数据上运行单标的均线策略。</p>
+      {!online && (
+        <p role="alert" className="job-message">
+          网络已断开。页面显示最近读取的数据，恢复连接后可刷新。
+        </p>
+      )}
       <div className="backtest-columns">
         <section className="backtest-panel" aria-labelledby="new-backtest">
           <h2 id="new-backtest">新建作业</h2>
