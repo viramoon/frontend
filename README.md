@@ -2,7 +2,7 @@
 
 fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，按 trading / backtest / dashboard / blog 功能组织，只调用 web；构建静态文件由 web 托管，不独立起服务。
 
-仪表盘从 web 读取系统状态、行情新鲜度和示例回测摘要。交易、回测和博客各有独立页面。开发流程见 [AGENTS.md](AGENTS.md)。
+`/dashboard` 显示 web 返回的系统状态、行情新鲜度和上游示例摘要。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。`/trading` 和 `/blog` 是预留页面。回测操作与异常恢复见 [运行手册](RUNBOOK.md#验证历史回测工作台)，开发流程见 [AGENTS.md](AGENTS.md)。
 
 ## 本地启动
 
@@ -14,7 +14,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-开发服务器默认将 /api 与 /healthz 代理到 127.0.0.1:8090。生产静态文件的构建、部署和故障检查见 [运行手册](RUNBOOK.md)。
+开发服务器默认将 `/api` 与 `/healthz` 代理到 `http://127.0.0.1:8090`。盒子上的 web 同样监听 `127.0.0.1:8090`，现有站点使用 `8080`，公网入口 `https://fertile.viramoon.com` 由 Ruler 管理。构建和部署验证见 [运行手册](RUNBOOK.md)。
 
 ## 系统中的位置
 

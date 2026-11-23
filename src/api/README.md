@@ -1,5 +1,7 @@
 # Web API 入口
 
-[index.ts](index.ts) 配置唯一的 Hey API 客户端，baseUrl 取页面 origin；replay 或 paper 等运行模式由服务端决定。页面使用此模块导出的 statusOptions、sampleOptions 与契约类型。生成文件位于 [generated](generated/README.md)，通过项目生成命令更新。
+[index.ts](index.ts) 配置唯一的 Hey API 客户端，baseUrl 取页面 origin。replay 或 paper 等运行模式由服务端决定。生成文件位于 [generated](generated/README.md)，来源和校验方法见 [构建说明](../../docs/build.md#更新生成客户端)。
 
-TanStack Query 全局 staleTime 为 15 秒，界面不额外重试失败的读取。系统状态每 30 秒重新获取，也可用仪表盘的刷新按钮立即重新获取两项数据。HTTP 错误保留状态码和 web 错误代码；网络异常另行显示。示例接口 404 进入空结果界面。
+仪表盘使用 `statusOptions` 和 `sampleOptions` 获取系统与示例摘要。回测工作台使用 `datasetsOptions`、`listOptions` 和 `detailOptions` 读取目录、作业列表和详情。写入通过 `submit` 提交 `POST /api/v1/backtests`，`byKey` 调用 `GET /api/v1/backtests/by-key` 确认原提交。两者都带临时 Bearer 令牌与同一 `Idempotency-Key`。
+
+TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由页面提示和提供重新读取。HTTP 错误保留状态码与 web 错误代码。示例接口的 404 显示空结果。提交或确认请求的客户端超时为 10 秒。只有按键查询返回 `404 job_not_found` 时，页面才提供同键同参数重试。[操作与状态说明](../../RUNBOOK.md#验证历史回测工作台)

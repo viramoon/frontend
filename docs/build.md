@@ -8,11 +8,12 @@ pnpm install --frozen-lockfile
 pnpm check:client
 pnpm typecheck
 pnpm lint
+pnpm format:check
 pnpm test
 pnpm build
 ```
 
-运行 `pnpm dev` 可从浏览器打开开发服务器。Vite 将 /api 和 /healthz 代理给本机 web。如需连接另一个本地实例，设置 `WEB_PROXY_TARGET=http://127.0.0.1:18080` 后再启动 Vite。生产构建使用同源相对路径，浏览器调用托管页面的 web。
+运行 `pnpm dev` 可从浏览器打开开发服务器。Vite 将 `/api` 和 `/healthz` 默认代理到 `http://127.0.0.1:8090`。测试另一个隔离实例时，可用 `WEB_PROXY_TARGET=http://127.0.0.1:18090 pnpm dev`。生产构建使用同源相对路径，浏览器调用托管页面的 web。
 
 ## 更新生成客户端
 
@@ -27,5 +28,7 @@ pnpm check:client
 ## 将 dist 交给 web
 
 `pnpm build` 产出 dist/index.html 和 dist/assets 中带摘要的脚本与样式。将完整 dist 作为同一批构建交给 web 的 WEB_STATIC_ROOT。web 对首页和 SPA 回落使用 no-cache，对带摘要的资源使用一年 immutable 缓存，缺失的资源返回 404。代码库只保存输入、源码和锁文件。
+
+fertile 的 web 源站监听 `127.0.0.1:8090`，现有站点使用 `8080`。Ruler 管理 `https://fertile.viramoon.com` 的入口、路由与验收，具体部署以 fertile 的服务清单为准。
 
 只有 fertile 对外发版。Ruler 使用总仓库的部署入口选择匹配的 web 和静态资源，检查后整体切换或回滚。详见 [fertile 发版规则](https://github.com/viramoon/fertile/blob/main/docs/release.md)。
