@@ -2,15 +2,28 @@ import { QueryClient } from '@tanstack/react-query';
 import { client } from './generated/client.gen';
 
 export {
+  datasetsOptions,
+  detailOptions,
+  listOptions,
   sampleOptions,
   statusOptions,
 } from './generated/@tanstack/react-query.gen';
-export type { BacktestSummary, SystemStatus } from './generated/types.gen';
+export { byKey, submit } from './generated/sdk.gen';
+export type {
+  BacktestSummary,
+  Dataset,
+  Job,
+  JobRequest,
+  JobStatus,
+  ResearchReport,
+  SystemStatus,
+} from './generated/types.gen';
 
 export class WebRequestError extends Error {
   constructor(
     readonly status: number | undefined,
     message: string,
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'WebRequestError';
@@ -26,7 +39,7 @@ client.interceptors.error.use((error, response) => {
       return error;
     return new WebRequestError(undefined, '网络连接失败');
   }
-  const suffix =
+  const code =
     typeof error === 'object' &&
     error !== null &&
     'error' in error &&
@@ -34,11 +47,12 @@ client.interceptors.error.use((error, response) => {
     error.error !== null &&
     'code' in error.error &&
     typeof error.error.code === 'string'
-      ? ' · ' + error.error.code
-      : '';
+      ? error.error.code
+      : undefined;
   return new WebRequestError(
     response.status,
-    'HTTP ' + response.status + suffix,
+    'HTTP ' + response.status + (code ? ' · ' + code : ''),
+    code,
   );
 });
 

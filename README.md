@@ -14,7 +14,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-开发服务器默认将 /api 与 /healthz 代理到 127.0.0.1:8080。生产静态文件的构建、部署和故障检查见 [运行手册](RUNBOOK.md)。
+开发服务器默认将 /api 与 /healthz 代理到 127.0.0.1:8090。生产静态文件的构建、部署和故障检查见 [运行手册](RUNBOOK.md)。
 
 ## 系统中的位置
 

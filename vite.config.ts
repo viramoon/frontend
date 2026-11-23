@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-const target = process.env.WEB_PROXY_TARGET ?? 'http://127.0.0.1:8080';
+const target = process.env.WEB_PROXY_TARGET ?? 'http://127.0.0.1:8090';
 
 export default defineConfig({
   plugins: [react()],

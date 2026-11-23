@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { detail, list, live, marketStatus, type Options, ready, sample, status, submit } from '../sdk.gen';
-import type { DetailData, DetailError, DetailResponse, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse } from '../types.gen';
+import { byKey, datasets, detail, list, live, marketStatus, type Options, ready, sample, status, submit } from '../sdk.gen';
+import type { ByKeyData, ByKeyError, ByKeyResponse, DatasetsData, DatasetsError, DatasetsResponse, DetailData, DetailError, DetailResponse, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -123,6 +123,36 @@ export const submitMutation = (options?: Partial<Options<SubmitData>>): UseMutat
     };
     return mutationOptions;
 };
+
+export const byKeyQueryKey = (options: Options<ByKeyData>) => createQueryKey('byKey', options);
+
+export const byKeyOptions = (options: Options<ByKeyData>) => queryOptions<ByKeyResponse, ByKeyError, ByKeyResponse, ReturnType<typeof byKeyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await byKey({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: byKeyQueryKey(options)
+});
+
+export const datasetsQueryKey = (options?: Options<DatasetsData>) => createQueryKey('datasets', options);
+
+export const datasetsOptions = (options?: Options<DatasetsData>) => queryOptions<DatasetsResponse, DatasetsError, DatasetsResponse, ReturnType<typeof datasetsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await datasets({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: datasetsQueryKey(options)
+});
 
 export const sampleQueryKey = (options?: Options<SampleData>) => createQueryKey('sample', options);
 

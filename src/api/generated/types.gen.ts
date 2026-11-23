@@ -17,6 +17,7 @@ export type BacktestSummary = {
      * 精确十进制字符串，禁止 JSON number。
      */
     pnl: string;
+    research?: null | ResearchReport;
     run_id: string;
     start: string;
     strategy: string;
@@ -24,10 +25,38 @@ export type BacktestSummary = {
     total_positions: number;
 };
 
+export type BlockedOrder = {
+    bar_volume: string;
+    execution_session: string;
+    reason: string;
+    requested_shares: number;
+    signal_session: string;
+};
+
 export type Check = {
     name: string;
     ok: boolean;
     required: boolean;
+};
+
+export type Coverage = 'full' | 'insufficient';
+
+export type Dataset = {
+    asset_type: string;
+    calendar: string;
+    corporate_actions: string;
+    data_kind: string;
+    first_session: string;
+    instrument: string;
+    last_session: string;
+    observations: number;
+    price_basis: string;
+    source: string;
+    source_sha256: string;
+};
+
+export type DatasetList = {
+    items: Array<Dataset>;
 };
 
 export type DbStatus = {
@@ -42,6 +71,27 @@ export type ErrorBody = {
 export type ErrorDetail = {
     code: string;
     message: string;
+};
+
+export type ExecutionAudit = {
+    blocked_insufficient_cash: number;
+    blocked_insufficient_volume: number;
+    blocked_zero_volume: number;
+    fills: number;
+    recent_blocked: Array<BlockedOrder>;
+    recent_fills: Array<Fill>;
+    zero_volume_bars: number;
+};
+
+export type Fill = {
+    commission: string;
+    executed_at: string;
+    execution_session: string;
+    order_id: string;
+    price: string;
+    shares: number;
+    side: string;
+    signal_session: string;
 };
 
 export type FinanceStatus = {
@@ -102,13 +152,46 @@ export type MarketSummary = {
     updated_at?: string | null;
 };
 
+export type Metrics = {
+    /**
+     * Positive peak-to-trough percent, exact decimal text.
+     */
+    max_drawdown_pct: string;
+    /**
+     * Percent, exact decimal text.
+     */
+    return_pct: string;
+};
+
 export type Page = {
     items: Array<Job>;
     next_cursor?: number | null;
 };
 
+export type ResearchReport = {
+    actual_end: string;
+    actual_start: string;
+    audit: ExecutionAudit;
+    commission_per_order: string;
+    dataset: Dataset;
+    ending_equity: string;
+    execution: string;
+    initial_equity: string;
+    metrics?: null | Metrics;
+    observations: number;
+    performance_start: string;
+    requested_end: string;
+    requested_start: string;
+    risk_free_rate: string;
+    slippage_bps: number;
+    warmup_sessions: number;
+    windows: Array<Window>;
+};
+
 export type StrategyParams = {
-    [key: string]: never;
+    fast_period?: number | null;
+    shares?: number | null;
+    slow_period?: number | null;
 };
 
 export type SystemStatus = {
@@ -122,6 +205,23 @@ export type WebStatus = {
     commit: string;
     started_at: string;
     version: string;
+};
+
+export type Window = {
+    actual_end?: string | null;
+    actual_start?: string | null;
+    actual_years?: string | null;
+    /**
+     * First supported date counted in the calendar totals.
+     */
+    calendar_start: string;
+    coverage: Coverage;
+    expected_sessions: number;
+    metrics?: null | Metrics;
+    missing_pct?: string | null;
+    missing_sessions: number;
+    requested_start: string;
+    requested_years: number;
 };
 
 export type ListData = {
@@ -187,6 +287,58 @@ export type SubmitResponses = {
 };
 
 export type SubmitResponse = SubmitResponses[keyof SubmitResponses];
+
+export type ByKeyData = {
+    body?: never;
+    headers: {
+        /**
+         * Exact attempted submission key
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/backtests/by-key';
+};
+
+export type ByKeyErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type ByKeyError = ByKeyErrors[keyof ByKeyErrors];
+
+export type ByKeyResponses = {
+    200: Accepted;
+};
+
+export type ByKeyResponse = ByKeyResponses[keyof ByKeyResponses];
+
+export type DatasetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/backtests/datasets';
+};
+
+export type DatasetsErrors = {
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type DatasetsError = DatasetsErrors[keyof DatasetsErrors];
+
+export type DatasetsResponses = {
+    200: DatasetList;
+};
+
+export type DatasetsResponse = DatasetsResponses[keyof DatasetsResponses];
 
 export type SampleData = {
     body?: never;

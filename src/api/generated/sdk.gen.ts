@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DetailData, DetailErrors, DetailResponses, ListData, ListErrors, ListResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, ReadyData, ReadyErrors, ReadyResponses, SampleData, SampleErrors, SampleResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses } from './types.gen';
+import type { ByKeyData, ByKeyErrors, ByKeyResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DetailData, DetailErrors, DetailResponses, ListData, ListErrors, ListResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, ReadyData, ReadyErrors, ReadyResponses, SampleData, SampleErrors, SampleResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -29,6 +29,14 @@ export const submit = <ThrowOnError extends boolean = false>(options: Options<Su
         ...options.headers
     }
 });
+
+export const byKey = <ThrowOnError extends boolean = false>(options: Options<ByKeyData, ThrowOnError>): RequestResult<ByKeyResponses, ByKeyErrors, ThrowOnError> => (options.client ?? client).get<ByKeyResponses, ByKeyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/backtests/by-key',
+    ...options
+});
+
+export const datasets = <ThrowOnError extends boolean = false>(options?: Options<DatasetsData, ThrowOnError>): RequestResult<DatasetsResponses, DatasetsErrors, ThrowOnError> => (options?.client ?? client).get<DatasetsResponses, DatasetsErrors, ThrowOnError>({ url: '/api/v1/backtests/datasets', ...options });
 
 export const sample = <ThrowOnError extends boolean = false>(options?: Options<SampleData, ThrowOnError>): RequestResult<SampleResponses, SampleErrors, ThrowOnError> => (options?.client ?? client).get<SampleResponses, SampleErrors, ThrowOnError>({ url: '/api/v1/backtests/sample', ...options });
 
