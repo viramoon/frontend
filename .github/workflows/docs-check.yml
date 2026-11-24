@@ -100,7 +100,11 @@ jobs:
               if name in gitlinks:
                   continue
               path = root / name
-              if path.suffix in {".yaml", ".yml"}:
+              if name == "pnpm-lock.yaml":
+                  # pnpm 12 writes its package manager lock and project lock as two YAML documents.
+                  documents = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+                  assert documents and all(isinstance(doc, dict) and "lockfileVersion" in doc for doc in documents), name
+              elif path.suffix in {".yaml", ".yml"}:
                   yaml.safe_load(path.read_text(encoding="utf-8"))
               if path.suffix == ".md":
                   content = path.read_text(encoding="utf-8")

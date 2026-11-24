@@ -1,5 +1,3 @@
-# dashboard api
+# 仪表盘查询
 
-封装本功能的 web 查询 / 变更，复用 Hey API 生成产物与全局唯一 client；不直接连接 finance，不新建请求实例。
-
-TBD：行情与业务看板的具体api结构，待功能 issue 和 web 接口确认；当前只有职责说明。
+[Dashboard](../Dashboard.tsx) 通过全局 [api](../../../api/README.md) 导出的 statusOptions 与 sampleOptions 读取 web。系统状态与示例回测分别缓存、加载和报告错误。

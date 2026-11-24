@@ -1,28 +1,28 @@
 # frontend 架构
 
-采用 React + TypeScript + Vite 单页应用。frontend 是 fertile submodule，只调用 web 的交易、回测、看板和博客 API，不直接连接 finance。产物由 web（axum）托管，不单独起服务，也不提供独立 service.yaml 或 /healthz。
+采用 React + TypeScript + Vite 单页应用。frontend 是 fertile submodule，通过 web 读取系统与行情状态并提交回测。web（axum）同源托管静态产物与 API，使用 `127.0.0.1:8090`。Ruler 管理公网入口 `https://fertile.viramoon.com`，现有站点使用 `8080`。
 
 ## 页面与功能
 
-| app 页面职责 | 功能 | web API 组 |
-| --- | --- | --- |
-| 交易状态与受控操作组合 | trading | 交易；具体路径、权限与交互 TBD |
-| 回测任务与结果组合 | backtest | 回测；进度与结果协议 TBD |
-| 数据看板组合 | dashboard | 看板；刷新、数据时间和陈旧标识 TBD |
-| 博客阅读与受控写入组合 | blog | 博客；模型和发布权限 TBD |
+| 路由 | 功能 |
+| --- | --- |
+| /dashboard | 仪表盘读取系统状态、数据库与 finance 探测、行情新鲜度及示例回测摘要。根路径进入此页。 |
+| /trading | 交易页面入口，当前仅提供状态说明。 |
+| /backtests | 历史回测工作台。读取已导入的标的与日期覆盖，提交单标的均线作业，浏览队列、结果、绩效覆盖和成交审计。 |
+| /blog | 博客页面入口，当前仅提供页面骨架。 |
 
-每个功能含 api / components / hooks / types 的说明。禁止功能之间互相引用；app 负责组合，features 只依赖自身和共享目录。参考 [bulletproof-react](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md)，代码与公开入口在未来 issue 明确。
+页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 校验。页面通过 [src/api](../src/api/README.md) 的生成客户端配合 TanStack Query 访问 web。仪表盘将加载、请求失败和示例摘要为空分别呈现。盈亏作为服务返回的十进制文本直接显示，避免经过 Number 或 parseFloat。
 
 ## 请求、状态与刷新
 
-全局只有一个 API client，由 lib 配置。Hey API（@hey-api/openapi-ts）加 TanStack Query 插件消费 fertile contracts/web.openapi.json，输出 src/api/generated，禁止手改。TanStack Query 管理服务端缓存；查询键按功能 / 资源 / 参数分组，写成功后只失效相关查询。刷新间隔、staleTime、退避和重连重拉策略 TBD，按真实数据新鲜度确定，不将缓存命中视为最新行情。
+src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从 `openapi/web.openapi.json` 生成客户端，`openapi/web.commit` 记录导出契约的 web 提交。查询结果默认在 15 秒内视为新鲜。系统状态每 30 秒刷新，作业列表每 5 秒刷新，排队或运行中的详情每 2 秒刷新。行情新鲜度由 web 根据采集器的时间和阈值报告。
 
-客户端共享 store 只保存界面状态，不保存第二份服务端真相。价格、数量、金额展示保留协议精度；交易写超时先查状态，不自动盲重发。具体交互与权限由接口和功能需求验证。
+工作台使用服务端标的和日期覆盖验证请求，提交与按幂等键查询使用临时 Bearer 令牌。响应未知时查询原提交，服务确认该键没有作业后才提供同键重试。未确认请求的参数与键只存于浏览器会话，令牌仅随授权请求发送。排队、运行、业务失败、作业超时和浏览器离线分别显示。数据来源、实际覆盖、模拟成本和审计随成功结果显示。操作步骤与当前研究限制见 [运行手册](../RUNBOOK.md#验证历史回测工作台)。
 
 ## 实时消息与陈旧提示
 
 WebSocket / SSE 不在 OpenAPI 范围内，消息协议单独约定。TBD：选择 WS 或 SSE、消息版本、事件类型、标的 / 频道、精确数值编码、事件时间与接收时间单位、序列号 / 恢复游标、快照与增量、错误和重连恢复语义。以上只是设计字段，不创建假消息 schema。
 
-界面显示数据来源时间、连接状态和“行情陈旧”提示；缺口、断线或超阈值时保留最后更新时间，受影响操作应按权限与风控规则限制。阈值、告警样式和恢复交互 TBD；是否可交易最终由 finance 风控决定，UI 不能用刷新清除错误来宣称恢复。
+仪表盘使用轮询更新行情源、更新时间和陈旧标的统计。回测页在浏览器离线时保留最近读取的数据并显示离线提示，恢复后支持重新读取。交易执行、实时订阅和风控交互留给后续实现。
 
 构建、托管与 tag 追溯见 [build.md](build.md)，系统约定见 [README](README.md)。

@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+src/api/generated
+openapi/*.json
+pnpm-lock.yaml
+*.md
+*.sh
+.github/workflows/docs-check.yml
+.github/ISSUE_TEMPLATE/

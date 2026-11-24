@@ -1,5 +1,7 @@
-# API 生成边界
+# Web API 入口
 
-[generated](generated/README.md) 由 Hey API 从 fertile contracts/web.openapi.json 生成，包含所选 TanStack Query 插件产物。运行时配置统一由 [lib](../lib/README.md) 注入，整个应用只有一个 API client 实例。
+[index.ts](index.ts) 配置唯一的 Hey API 客户端，baseUrl 取页面 origin。replay 或 paper 等运行模式由服务端决定。生成文件位于 [generated](generated/README.md)，来源和校验方法见 [构建说明](../../docs/build.md#更新生成客户端)。
 
-本层不直接连接 finance，不手写另一套协议或在功能里创建请求实例。TBD：生成器版本、具体命令与输出结构，待真实 web 快照可用后验证。
+仪表盘使用 `statusOptions` 和 `sampleOptions` 获取系统与示例摘要。回测工作台使用 `datasetsOptions`、`listOptions` 和 `detailOptions` 读取目录、作业列表和详情。写入通过 `submit` 提交 `POST /api/v1/backtests`，`byKey` 调用 `GET /api/v1/backtests/by-key` 确认原提交。两者都带临时 Bearer 令牌与同一 `Idempotency-Key`。
+
+TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由页面提示和提供重新读取。HTTP 错误保留状态码与 web 错误代码。示例接口的 404 显示空结果。提交或确认请求的客户端超时为 10 秒。只有按键查询返回 `404 job_not_found` 时，页面才提供同键同参数重试。[操作与状态说明](../../RUNBOOK.md#验证历史回测工作台)

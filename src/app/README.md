@@ -1,5 +1,5 @@
-# 应用组合层
+# 应用组合
 
-负责 router、provider、页面和顶层错误边界；页面只组合 features 与共享 UI，不重复实现功能请求。路由说明见 [routes](routes/README.md)。
+[AppRoutes](routes/AppRoutes.tsx) 提供主导航及页面路由。[main.tsx](../main.tsx) 安装 BrowserRouter、QueryClientProvider 和 [样式](styles.css)。测试可传独立 QueryClient 与内存路由。
 
-统一挂载 TanStack Query provider 和唯一 API client，鉴权与公共配置由共享边界输入。TBD：页面路径、权限门禁、布局与 provider 顺序，由具体功能 issue 确定。
+移动端导航与桌面使用相同链接，当前页有 aria-current。键盘可从页首跳至主内容，减少动态效果的系统设置会停用加载指示动画。

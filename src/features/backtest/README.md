@@ -1,5 +1,5 @@
-# backtest 功能
+# 回测
 
-负责回测任务、进度与结果；页面由 app 组合，不导入其他功能。只通过全局唯一 client 调用 web 的对应接口，具体路由、权限和交互 TBD，由独立功能 issue 确认。
+[Backtests](Backtests.tsx) 是 /backtests 的历史数据工作台。选择已导入标的、日期和均线参数，临时输入提交令牌，提交并查看作业队列、状态和审计结果。在未知响应时先核对原提交，再按确认结果操作。浏览器只在会话中保存未确认请求的参数和幂等键。
 
-[api](api/README.md) 封装查询边界，[components](components/README.md) 放专属 UI，[hooks](hooks/README.md) 组合状态，[types](types/README.md) 放专属类型。本次无实现。
+示例回测继续显示在仪表盘。交易和博客仍是未接入的入口。

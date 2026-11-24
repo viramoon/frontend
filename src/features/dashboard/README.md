@@ -1,5 +1,5 @@
-# dashboard 功能
+# 仪表盘
 
-负责行情与业务看板；页面由 app 组合，不导入其他功能。只通过全局唯一 client 调用 web 的对应接口，具体路由、权限和交互 TBD，由独立功能 issue 确认。
+[Dashboard](Dashboard.tsx) 通过 [api](../../api/README.md) 的查询读取系统状态与示例回测，分别处理加载、HTTP 错误和示例 404。状态面板显示 web 版本、提交、启动时间，数据库及 finance 延迟，熔断状态，行情来源、标的数量与陈旧数。业务时间以 UTC 展示，盈亏和币种直接使用接口文本。
 
-[api](api/README.md) 封装查询边界，[components](components/README.md) 放专属 UI，[hooks](hooks/README.md) 组合状态，[types](types/README.md) 放专属类型。本次无实现。
+浏览器将 JSON 数字解析为 JavaScript number。超过安全整数范围的计数显示“超出精确显示范围”，避免展示已舍入的值。查询数据、错误反馈及测试见 [架构](../../../docs/architecture.md) 和 [验收](../../testing/README.md)。
