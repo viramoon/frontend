@@ -6,6 +6,11 @@ const blockedReasons: Record<string, string> = {
   insufficient_cash: '模拟现金不足',
 };
 
+const coverageReasons = new Map([
+  ['calendar_out_of_range', '请求区间超出交易日历支持范围'],
+  ['calendar_unavailable', '交易日历不可用'],
+]);
+
 export function ResearchResult({ summary }: { summary: BacktestSummary }) {
   const report = summary.research;
   if (!report) {
@@ -38,16 +43,21 @@ export function ResearchResult({ summary }: { summary: BacktestSummary }) {
           </div>
           <div>
             <dt>净值变动</dt>
-            <dd>{report.metrics ? `${report.metrics.return_pct}%` : '—'}</dd>
+            <dd>
+              {report.metrics ? `${report.metrics.return_pct}%` : '不可用'}
+            </dd>
           </div>
           <div>
             <dt>最大回撤</dt>
             <dd>
-              {report.metrics ? `${report.metrics.max_drawdown_pct}%` : '—'}
+              {report.metrics
+                ? `${report.metrics.max_drawdown_pct}%`
+                : '不可用'}
             </dd>
           </div>
         </dl>
       </div>
+      {!report.metrics && <p className="job-note">服务未提供整体绩效指标。</p>}
       <dl className="research-facts">
         <div>
           <dt>数据来源</dt>
@@ -123,36 +133,103 @@ function Coverage({ report }: { report: ResearchReport }) {
             </tr>
           </thead>
           <tbody>
-            {report.windows.map((window) => (
-              <tr key={window.requested_years}>
-                <th scope="row">
-                  {window.requested_years} 年 ·{' '}
-                  {window.coverage === 'full' ? '覆盖完整' : '覆盖不足'}
-                  <small>起点 {window.requested_start}</small>
-                </th>
-                <td>
-                  {window.actual_start && window.actual_end
-                    ? `${window.actual_start} 至 ${window.actual_end}`
-                    : '无覆盖'}
-                  {window.actual_years && (
-                    <small>约 {window.actual_years} 年</small>
-                  )}
-                </td>
-                <td>
-                  {window.missing_sessions} / {window.expected_sessions}
-                  {window.missing_pct && (
-                    <small>缺失 {window.missing_pct}%</small>
-                  )}
-                </td>
-                <td>
-                  {window.metrics ? `${window.metrics.return_pct}%` : '—'}
-                </td>
-              </tr>
+            {report.windows.map((window, index) => (
+              <CoverageRow
+                key={
+                  window.window ??
+                  (window.requested_years != null
+                    ? `${window.requested_years}y`
+                    : index)
+                }
+                window={window}
+              />
             ))}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function dateRange(start?: string | null, end?: string | null) {
+  if (start && end) return `${start} 至 ${end}`;
+  if (start) return `起点 ${start}`;
+  if (end) return `终点 ${end}`;
+}
+
+function CoverageRow({
+  window,
+}: {
+  window: ResearchReport['windows'][number];
+}) {
+  const {
+    actual_end,
+    actual_start,
+    actual_years,
+    calendar_diagnostic,
+    calendar_end,
+    calendar_start,
+    coverage,
+    coverage_reason,
+    expected_sessions,
+    label,
+    metrics,
+    missing_pct,
+    missing_sessions,
+    observations,
+    requested_start,
+    requested_years,
+    rf_source,
+  } = window;
+  const windowName =
+    window.window === 'longest_sample' || label === 'longest_sample'
+      ? '最长样本'
+      : label ||
+        window.window ||
+        (requested_years != null ? `${requested_years} 年` : '窗口');
+  const full = coverage === 'full';
+  const calendarRange = dateRange(calendar_start, calendar_end);
+  const reason = coverage_reason
+    ? (coverageReasons.get(coverage_reason) ?? coverage_reason)
+    : full
+      ? '服务未提供窗口指标'
+      : '样本未满足窗口覆盖要求';
+
+  return (
+    <tr>
+      <th scope="row">
+        {windowName} · {full ? '覆盖完整' : '覆盖不足'}
+        {requested_start && <small>请求起点 {requested_start}</small>}
+      </th>
+      <td>
+        {dateRange(actual_start, actual_end) ?? '日期未提供'}
+        {observations != null && (
+          <small>实际观测 {observations} 个交易日</small>
+        )}
+        {actual_years != null && <small>约 {actual_years} 年</small>}
+      </td>
+      <td>
+        {missing_sessions == null && expected_sessions == null
+          ? '不可用'
+          : `${missing_sessions ?? '未提供'} / ${expected_sessions ?? '未提供'}`}
+        {missing_pct != null && <small>缺失 {missing_pct}%</small>}
+        {calendarRange && <small>统计日历 {calendarRange}</small>}
+      </td>
+      <td>
+        {full && metrics ? (
+          <>
+            {metrics.return_pct}%
+            {rf_source && <small>无风险利率来源 {rf_source}</small>}
+          </>
+        ) : (
+          <>
+            不可用
+            <small>{reason}</small>
+            {calendar_diagnostic && <small>{calendar_diagnostic}</small>}
+          </>
+        )}
+      </td>
+    </tr>
   );
 }
 

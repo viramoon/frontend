@@ -212,16 +212,44 @@ export type Window = {
     actual_start?: string | null;
     actual_years?: string | null;
     /**
+     * Calendar name, attempted dates, and construction error when unavailable.
+     */
+    calendar_diagnostic?: string | null;
+    /**
+     * Upper date bound used for the calendar totals.
+     */
+    calendar_end?: string | null;
+    /**
      * First supported date counted in the calendar totals.
      */
-    calendar_start: string;
+    calendar_start?: string | null;
     coverage: Coverage;
-    expected_sessions: number;
-    metrics?: null | Metrics;
+    /**
+     * Reason reported when the calendar cannot cover the requested dates.
+     */
+    coverage_reason?: string | null;
+    expected_sessions?: number | null;
+    label?: string | null;
+    metrics?: null | WindowMetrics;
     missing_pct?: string | null;
-    missing_sessions: number;
-    requested_start: string;
-    requested_years: number;
+    missing_sessions?: number | null;
+    observations?: number | null;
+    requested_start?: string | null;
+    requested_years?: number | null;
+    rf_source?: string | null;
+    /**
+     * Window identifier (50y, 10y, 5y, longest_sample).
+     */
+    window?: string | null;
+};
+
+export type WindowMetrics = {
+    cagr_pct?: string | null;
+    max_drawdown_pct: string;
+    return_pct: string;
+    sharpe?: string | null;
+    turnover_pct?: string | null;
+    volatility_pct?: string | null;
 };
 
 export type ListData = {
