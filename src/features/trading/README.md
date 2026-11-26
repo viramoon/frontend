@@ -1,3 +1,3 @@
 # 交易
 
-[Trading](Trading.tsx) 对应 /trading，当前为交易记录的页面占位。账户、持仓或订单操作需由后续交易功能与 web 契约明确。
+`/trading` 是只读市场微观结构入口。U2 对接场所深度、盘口、逐笔与衍生品指标。[Trading](Trading.tsx) · [页面地图](../../../docs/architecture.md#页面与功能)

@@ -1,3 +1,3 @@
 # 功能页面
 
-[仪表盘](dashboard/README.md) 显示系统状态和示例回测。其余三个路由已有各自的页面入口：[交易](trading/README.md)、[回测](backtest/README.md)、[博客](blog/README.md)。不同功能之间的组合由 [app](../app/README.md) 完成。
+行情终端的界面和 fixture 同属 market 功能。web 系统状态及示例回测由 dashboard 功能维护。交易、回测、博客各有独立入口，其他 v1 页面在 app 层提供骨架。功能之间由 app 组合。[行情终端](market/README.md) · [系统状态](dashboard/README.md) · [交易](trading/README.md) · [回测](backtest/README.md) · [博客](blog/README.md) · [应用组合](../app/README.md)
