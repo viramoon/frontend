@@ -126,6 +126,12 @@ it('loads W3 alerts, follows the exact cursor, and acknowledges through the gene
   };
   const { fetch, unexpected } = mockWeb((url, request) => {
     if (url.pathname === capabilities) return Response.json(admin);
+    if (url.pathname === '/api/v1/backup/status')
+      return Response.json({
+        state: 'unavailable',
+        alert: true,
+        degraded: false,
+      });
     if (url.pathname === alerts && request.method === 'GET') {
       return Response.json(
         url.searchParams.has('cursor')
@@ -164,7 +170,7 @@ it('loads W3 alerts, follows the exact cursor, and acknowledges through the gene
   const backup = within(
     screen.getByRole('region', { name: 'Drive 恢复水位事件' }),
   );
-  expect(backup.getByText('恢复水位待 W4 核验')).toBeVisible();
+  expect(backup.getByText('恢复水位当前无法核验')).toBeVisible();
   expect(backup.queryByText('持续中')).not.toBeInTheDocument();
   expect(document.querySelector('[data-fixture-seed]')).toBeNull();
   expect(
@@ -364,14 +370,14 @@ it('requires notification capability and exchanges a write-only admin token for 
   expect(writes[0].headers.get('Authorization')).toBe('Bearer ' + marker);
   expect(writes[0].headers.get('Origin')).toBe(location.origin);
   expect(client.getMutationCache().getAll()).toHaveLength(0);
-  expect(JSON.stringify(client.getQueryData(['u4-access']))).not.toContain(
-    csrf,
-  );
+  expect(
+    JSON.stringify(client.getQueryData(['u4-access', 'notifications'])),
+  ).not.toContain(csrf);
   expect(container.innerHTML).not.toContain(marker);
   expect(unexpected).toEqual([]);
 });
 
-it('keeps production W4 integration and Drive displays unready while reading W3 mail health', async () => {
+it('uses live W4 catalogue and status routes while reading W3 mail health', async () => {
   const liveSystem: SystemStatus = {
     web: { version: '0.0.0', commit: 'synthetic-web', started_at: time },
     database: { ok: true },
@@ -390,6 +396,24 @@ it('keeps production W4 integration and Drive displays unready while reading W3 
     },
   };
   const { fetch, unexpected } = mockWeb((url) => {
+    if (url.pathname === capabilities)
+      return Response.json({
+        ...admin,
+        products: ['notifications', 'integrations'],
+      });
+    if (
+      url.pathname === '/api/v1/integrations' ||
+      url.pathname === '/api/v1/integrations/catalog'
+    )
+      return Response.json([]);
+    if (url.pathname === '/api/v1/backup/status')
+      return Response.json({
+        state: 'disabled',
+        alert: false,
+        degraded: false,
+      });
+    if (url.pathname === '/api/v1/quality/gaps')
+      return Response.json({ state: 'available', items: [], coverage: [] });
     if (url.pathname === '/api/v1/system/status')
       return Response.json(liveSystem);
     if (url.pathname === '/api/v1/backtests/sample')
@@ -402,21 +426,30 @@ it('keeps production W4 integration and Drive displays unready while reading W3 
   settings.focus();
   await user.keyboard('{Enter}');
   expect(settings).toHaveAttribute('aria-current', 'page');
-  expect(screen.getByText('接口未就绪（待 W4）')).toBeVisible();
+  expect(await screen.findByText('暂无可配置的接口。')).toBeVisible();
   expect(
     screen.queryByRole('heading', { name: 'IBKR paper' }),
   ).not.toBeInTheDocument();
-  expect(fetch).not.toHaveBeenCalled();
+  expect(
+    fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
+  ).toContain('/api/v1/integrations/catalog');
   await user.click(screen.getByRole('link', { name: '系统' }));
   const drive = within(
-    screen.getByRole('region', { name: 'Google Drive 备份' }),
+    await screen.findByRole('region', { name: 'Google Drive 备份' }),
   );
-  expect(drive.getByText('接口未就绪（待 W4）')).toBeVisible();
-  expect(drive.queryByText('最后可恢复到')).not.toBeInTheDocument();
+  expect(drive.getByText('异地备份已关闭')).toBeVisible();
+  expect(drive.getByText('最后可恢复到')).toBeVisible();
+  expect(drive.queryByRole('alert')).not.toBeInTheDocument();
   const mail = within(screen.getByRole('region', { name: '邮件投递状态' }));
   expect(await mail.findByText('邮件渠道 · 降级')).toBeVisible();
   expect(mail.getByText('中继拒绝')).toBeVisible();
   expect(document.querySelector('[data-fixture-seed]')).toBeNull();
-  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  await waitFor(() =>
+    expect(
+      fetch.mock.calls.some(
+        ([request]) => new URL(request.url).pathname === '/api/v1/quality/gaps',
+      ),
+    ).toBe(true),
+  );
   expect(unexpected).toEqual([]);
 });

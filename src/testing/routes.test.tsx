@@ -170,7 +170,8 @@ describe('终端路由', () => {
           ),
         ),
       );
-      mount('/system');
+      // The legacy fixture copy is checked alongside the existing system error and sample states.
+      mount('/system', true);
       expect(
         screen.getByRole('heading', { name: '系统', level: 1 }),
       ).toBeVisible();

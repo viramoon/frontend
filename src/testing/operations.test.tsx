@@ -523,14 +523,14 @@ describe('U4 系统与备份', () => {
     ]);
   });
 
-  const backup: DriveBackup = {
+  const backup = {
     state: 'verified',
     observedAt: '2000-01-03T12:00:00.000Z',
     lastRecoverableAt: '2000-01-03T11:00:00.000Z',
     lastFullAt: '2000-01-03T03:00:00.000Z',
     lastHourlyAt: '2000-01-03T11:55:00.000Z',
     lastDrill: null,
-  };
+  } satisfies DriveBackup;
 
   it('warns strictly after one hour of verified-point age, irrespective of a newer hourly upload', () => {
     const { rerender } = render(

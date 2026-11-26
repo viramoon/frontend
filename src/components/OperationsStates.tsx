@@ -80,6 +80,7 @@ const errors: Record<OperationError['code'], string> = {
   invalid: '配置不符合允许的范围。',
   unavailable: '操作暂不可用，请刷新状态。',
   forbidden: '当前会话没有操作权限。',
+  uncertain: '写入结果待确认。请核对已刷新的配置、活动版本或测试记录。',
 };
 
 export function FixtureNotice() {
@@ -94,7 +95,7 @@ export function UtcTime({ value }: { value: string | null }) {
   if (!value) return <>未知</>;
   return (
     <time dateTime={value}>
-      {value.replace('T', ' ').replace(/(?:\.\d+)?Z$/, ' UTC')}
+      {value.replace('T', ' ').replace(/(?:\.0+)?Z$/, ' UTC')}
     </time>
   );
 }
@@ -182,8 +183,4 @@ export function useOperation(refresh: () => Promise<unknown>) {
   }
 
   return { pending, error, message, run };
-}
-
-export function W4Unavailable() {
-  return <DataState kind="empty" title="接口未就绪（待 W4）" />;
 }

@@ -1,8 +1,12 @@
-import { bearerAuth, WebRequestError } from './index';
+import { WebRequestError } from './index';
+import {
+  adminMutationHeaders,
+  privateOptions as options,
+  privateRequest as request,
+  requestStatus as status,
+} from './adminWeb';
 import {
   ackAlert,
-  capabilities,
-  createSession,
   getAlert,
   getChannelTest,
   getRule,
@@ -18,75 +22,16 @@ import type {
 } from './generated/types.gen';
 import {
   OperationError,
+  isBackupOverdue,
+  backupAgeNs,
+  type DriveBackup,
   type Alert,
   type AlertsAdapter,
   type Delivery,
   type NotificationRule,
   type NotificationsAdapter,
 } from './operations';
-
-const options = {
-  throwOnError: true,
-  cache: 'no-store',
-  credentials: 'same-origin',
-} as const;
-
-function status(error: unknown) {
-  return error instanceof WebRequestError ? error.status : undefined;
-}
-
-async function request<T>(run: () => Promise<T>): Promise<T> {
-  try {
-    return await run();
-  } catch (error) {
-    if (error instanceof OperationError) throw error;
-    switch (status(error)) {
-      case 401:
-      case 403:
-        throw new OperationError('forbidden');
-      case 409:
-      case 428:
-        throw new OperationError('conflict');
-      case 422:
-        throw new OperationError('invalid');
-      default:
-        throw new OperationError('unavailable');
-    }
-  }
-}
-
-const readCapabilities = (signal?: AbortSignal) =>
-  capabilities({ ...options, signal }).then(({ data }) => data);
-
-export async function hasNotificationAccess(signal?: AbortSignal) {
-  return request(async () => {
-    const data = await readCapabilities(signal);
-    return data.subject === 'admin' && data.products.includes('notifications');
-  });
-}
-
-export async function openNotificationSession(token: string) {
-  await request(() =>
-    createSession({
-      ...options,
-      auth: bearerAuth(token),
-      headers: { Origin: window.location.origin },
-      signal: AbortSignal.timeout(10_000),
-    }),
-  );
-}
-
-async function mutationHeaders() {
-  const data = await readCapabilities(AbortSignal.timeout(10_000));
-  if (
-    data.subject !== 'admin' ||
-    !data.products.includes('notifications') ||
-    !data.csrf_token
-  ) {
-    throw new OperationError('forbidden');
-  }
-  return { Origin: window.location.origin, 'X-CSRF-Token': data.csrf_token };
-}
+import { webRecovery } from './recoveryWeb';
 
 async function allPages<T>(
   read: (
@@ -119,21 +64,29 @@ function deliveryView(delivery: ChannelTestDelivery): Delivery {
   };
 }
 
-function alertView(alert: WebAlert): Alert {
-  // A recorded backup signal is historical evidence while W4 has no live watermark.
+function alertView(alert: WebAlert, backup: DriveBackup | null): Alert {
+  const backupEvent = alert.condition === 'backup_stale';
   const active =
     alert.phase === 'recovered'
       ? false
-      : alert.condition === 'backup_stale' ||
-          alert.disposition === 'observed' ||
-          alert.disposition === 'ignored'
-        ? null
-        : true;
+      : backupEvent
+        ? backup?.state === 'disabled'
+          ? false
+          : backup && backupAgeNs(backup) !== null
+            ? isBackupOverdue(backup)
+            : null
+        : alert.disposition === 'observed' || alert.disposition === 'ignored'
+          ? null
+          : true;
   return {
     id: alert.id,
     condition: alert.condition,
     severity: alert.severity,
     active,
+    inactiveReason:
+      backupEvent && backup?.state === 'disabled'
+        ? 'backup_disabled'
+        : undefined,
     observedAt: alert.observed_at,
     acknowledgedAt: alert.acknowledged_at ?? null,
     silencedUntil: null,
@@ -162,11 +115,17 @@ export const webAlerts: AlertsAdapter = {
           ({ data }) => data,
         ),
       );
-      return alerts.map(alertView);
+      const backup = alerts.some(
+        (alert) =>
+          alert.condition === 'backup_stale' && alert.phase === 'triggered',
+      )
+        ? await webRecovery.backup(signal).catch(() => null)
+        : null;
+      return alerts.map((alert) => alertView(alert, backup));
     }),
   acknowledge: (id) =>
     request(async () => {
-      const headers = await mutationHeaders();
+      const headers = await adminMutationHeaders('notifications');
       try {
         await ackAlert({
           ...options,
@@ -204,7 +163,7 @@ export const webNotifications: NotificationsAdapter = {
     request(async () => {
       if (!Number.isSafeInteger(revision) || revision < 1)
         throw new OperationError('invalid');
-      const headers = await mutationHeaders();
+      const headers = await adminMutationHeaders('notifications');
       const path = { id };
       const { data: current } = await getRule({ ...options, path });
       if (current.revision !== revision) throw new OperationError('conflict');
@@ -244,7 +203,7 @@ export const webNotifications: NotificationsAdapter = {
     }),
   startEmailTest: (key) =>
     request(async () => {
-      const headers = await mutationHeaders();
+      const headers = await adminMutationHeaders('notifications');
       await startChannelTest({
         ...options,
         path: { id: 'email' },

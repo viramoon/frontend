@@ -18,4 +18,4 @@ U2a 覆盖十二个自选标的、SPY 的 L1 限制、marketDataType 与独立�
 
 研究工作台用例在正式路由中验证两条 YAML 入口、行列诊断、精确十进制结果、只读研究、因子衰减和按键恢复。额外覆盖 YAML 非字符串键、数值精度与字段路径、等价格式下的错误定位，以及使用生产查询配置从离线空缓存加载目录、报告与作业。通过假响应模拟提交结果丢失和重试，逐例断言 fixture 页面没有发起 HTTP 请求。[研究工作台测试](research.test.tsx)
 
-U4 的正式路由用模拟 HTTP 验证 W3 的生成客户端、管理员会话、规则、确认、测试邮件和 W4 未就绪状态。候选版本、凭据与 Drive 水位使用显式注入的合成适配器测试。 [W3 接线用例](operations-web.test.tsx) · [合成状态用例](operations.test.tsx) · [U4 离线复测](../../RUNBOOK.md#离线验证设置通知与系统页)
+U4 正式路由用模拟同源 HTTP 验证 W3/W4 的生成客户端、管理员会话、测试邮件、集成配置与版本操作，以及精确水位和缺口。候选版本、凭据与恢复状态也使用显式注入的合成适配器测试。[W3 用例](operations-web.test.tsx) · [W4 用例](integrations-web.test.tsx) · [合成用例](operations.test.tsx)

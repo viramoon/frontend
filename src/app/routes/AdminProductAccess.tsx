@@ -1,28 +1,30 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FormEvent, ReactNode } from 'react';
-import {
-  hasNotificationAccess,
-  openNotificationSession,
-} from '../../api/notificationsWeb';
+import { hasAdminProduct, openAdminSession } from '../../api/adminWeb';
+import type { Product } from '../../api/generated/types.gen';
 import { OperationError } from '../../api/operations';
 import {
   OperationsReadState,
   useOperation,
 } from '../../components/OperationsStates';
 
-export function NotificationAccess({
+export function AdminProductAccess({
   title,
   children,
   resetTest,
+  product,
+  heading: Heading = 'h1',
 }: {
   title: string;
   children: ReactNode;
-  resetTest: () => void;
+  resetTest?: () => void;
+  product: Product;
+  heading?: 'h1' | 'h2';
 }) {
   const client = useQueryClient();
   const access = useQuery({
-    queryKey: ['u4-access'],
-    queryFn: ({ signal }) => hasNotificationAccess(signal),
+    queryKey: ['u4-access', product],
+    queryFn: ({ signal }) => hasAdminProduct(product, signal),
     staleTime: 0,
     refetchInterval: 30_000,
   });
@@ -37,10 +39,14 @@ export function NotificationAccess({
     input.value = '';
     void run(async () => {
       if (!token) throw new OperationError('invalid');
-      await openNotificationSession(token);
+      await openAdminSession(token);
       client.removeQueries({ queryKey: ['u4', 'web'] });
-      resetTest();
-    }, '会话请求已完成，请核对通知权限。');
+      resetTest?.();
+      await client.invalidateQueries({
+        queryKey: ['u4-access'],
+        refetchType: 'none',
+      });
+    }, '会话请求已完成，请核对权限。');
   }
 
   if (access.data && !access.isError) return children;
@@ -49,7 +55,7 @@ export function NotificationAccess({
       className="operations-page"
       aria-labelledby="notification-access-title"
     >
-      <h1 id="notification-access-title">{title}</h1>
+      <Heading id="notification-access-title">{title}</Heading>
       {access.isPending || access.isError ? (
         <OperationsReadState
           failed={access.isError}
@@ -57,7 +63,7 @@ export function NotificationAccess({
         />
       ) : (
         <div className="operations-card">
-          <p>查看和管理通知需要 web 管理员会话。</p>
+          <p>此页面需要 web 管理员会话。</p>
           <form
             className="operations-actions"
             onSubmit={login}

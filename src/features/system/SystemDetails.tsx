@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statusOptions } from '../../api';
 import {
-  backupAgeMs,
+  backupAgeNs,
   isBackupOverdue,
   type DriveBackup,
   type OperationsAdapter,
@@ -15,11 +15,10 @@ import {
   FixtureNotice,
   OperationsReadState,
   UtcTime,
-  W4Unavailable,
 } from '../../components/OperationsStates';
 
 export function DriveWatermark({ backup }: { backup: DriveBackup }) {
-  if (backup.state === 'disabled') {
+  if (backup.state === 'disabled' || backup.state === 'unavailable') {
     return (
       <section
         className="operations-card"
@@ -27,7 +26,9 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
         aria-labelledby="drive-backup-title"
       >
         <h3 id="drive-backup-title">Google Drive 备份</h3>
-        <p>异地备份已关闭</p>
+        <p>
+          {backup.state === 'disabled' ? '异地备份已关闭' : '备份状态不可用'}
+        </p>
         <dl className="operations-fields">
           <dt>最后可恢复到</dt>
           <dd>未知</dd>
@@ -37,10 +38,11 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
   }
   const { observedAt, lastRecoverableAt, lastFullAt, lastHourlyAt, lastDrill } =
     backup;
-  const age = backupAgeMs(backup);
+  const age = backupAgeNs(backup);
   const overdue = isBackupOverdue(backup);
   // Round up so an overdue fraction of a second never looks on time.
-  const ageSeconds = age === null ? null : Math.ceil(age / 1000);
+  const ageSeconds =
+    age === null ? null : (age + 999_999_999n) / 1_000_000_000n;
 
   return (
     <section
@@ -57,7 +59,7 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
         <dt>恢复点年龄</dt>
         <dd>
           {ageSeconds !== null
-            ? `${Math.floor(ageSeconds / 60)} 分 ${ageSeconds % 60} 秒`
+            ? `${ageSeconds / 60n} 分 ${ageSeconds % 60n} 秒`
             : '未知'}
         </dd>
         <dt>观测时间</dt>
@@ -78,6 +80,12 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
             <>
               {lastDrill.passed ? '通过' : '失败'} ·{' '}
               <UtcTime value={lastDrill.finishedAt} />
+              {lastDrill.recoverableAt && (
+                <>
+                  {' '}
+                  · 恢复至 <UtcTime value={lastDrill.recoverableAt} />
+                </>
+              )}
             </>
           ) : (
             '暂无记录'
@@ -255,49 +263,35 @@ export function WebSystemDetails() {
   const health = system.isSuccess ? system.data.notifications : undefined;
 
   return (
-    <section className="operations-section" aria-labelledby="operations-system">
-      <h2 id="operations-system">运行与恢复</h2>
-      <div className="operations-grid operations-section">
-        <section
-          className="operations-card"
-          id="drive-backup"
-          aria-labelledby="drive-backup-title"
-        >
-          <h3 id="drive-backup-title">Google Drive 备份</h3>
-          <W4Unavailable />
-        </section>
-        <section className="operations-card" aria-labelledby="system-email">
-          <h3 id="system-email">邮件投递状态</h3>
-          {health ? (
-            <>
-              <p>邮件渠道 · {emailHealth[health.state]}</p>
-              <dl className="operations-fields">
-                <dt>最近尝试</dt>
-                <dd>
-                  <UtcTime value={health.last_attempt_at ?? null} />
-                </dd>
-                <dt>最近结果</dt>
-                <dd>
-                  {health.last_outcome
-                    ? attemptLabels[health.last_outcome]
-                    : '未知'}
-                </dd>
-                <dt>最近中继接受</dt>
-                <dd>
-                  <UtcTime value={health.last_accepted_at ?? null} />
-                </dd>
-              </dl>
-            </>
-          ) : (
-            <p>{system.isPending ? '正在读取邮件状态…' : '邮件状态不可用'}</p>
-          )}
-          <Link to="/settings/notifications">打开通知设置</Link>
-        </section>
-      </div>
-      <section aria-labelledby="quality-heading">
-        <h3 id="quality-heading">数据质量</h3>
-        <p>后续 U2 将接入实际分区水位与数据缺口。</p>
-      </section>
+    <section
+      className="operations-card operations-section"
+      aria-labelledby="system-email"
+    >
+      <h2 id="system-email">邮件投递状态</h2>
+      {health ? (
+        <>
+          <p>邮件渠道 · {emailHealth[health.state]}</p>
+          <dl className="operations-fields">
+            <dt>最近尝试</dt>
+            <dd>
+              <UtcTime value={health.last_attempt_at ?? null} />
+            </dd>
+            <dt>最近结果</dt>
+            <dd>
+              {health.last_outcome
+                ? attemptLabels[health.last_outcome]
+                : '未知'}
+            </dd>
+            <dt>最近中继接受</dt>
+            <dd>
+              <UtcTime value={health.last_accepted_at ?? null} />
+            </dd>
+          </dl>
+        </>
+      ) : (
+        <p>{system.isPending ? '正在读取邮件状态…' : '邮件状态不可用'}</p>
+      )}
+      <Link to="/settings/notifications">打开通知设置</Link>
     </section>
   );
 }

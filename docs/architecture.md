@@ -13,10 +13,10 @@
 | `/strategies`、`/strategies/:id` | 合成策略目录、登记版本和只读研究详情。上传 YAML 或选择登记版本后查看编译预览、行列诊断和配置回测表单。 | W2b · 策略目录、版本、校验与不可变配置引用 |
 | `/factors` | 合成因子定义、版本选用状态、训练/验证/样本外覆盖与 IC 衰减，显示费前、费后和等权基准。 | W2b · 因子目录与版本评价报告 |
 | `/backtests` | 历史工作台通过 `?job=` 查看均线作业。配置工作台使用 `?view=strategy` 查看合成作业、按键找回，使用 `?run=` 查看运行清单、基准与模拟成交账本。 | W2b · 配置作业提交、列表、详情、按键查询和回放数据集 |
-| `/settings/integrations` | 明确显示接口未就绪。 | W4 提供实际连接、测试证据、启用和回滚 |
-| `/alerts` | 通过 W3 `/alerts`、`/alerts/{id}` 和 `/alerts/{id}/ack` 展示告警、投递与确认。 | 主动静默待 web 契约，Drive 恢复水位由 W4 提供 |
+| `/settings/integrations` | 通过 W4 目录和版本接口管理草稿、凭据、候选测试、启用和回滚。 | 实际探测以生产者可用性、权限与证据为准 |
+| `/alerts` | 通过 W3 展示告警、投递与确认。Drive 持续告警由 W4 恢复水位核验。 | 主动静默待 web 契约 |
 | `/settings/notifications` | 使用 W3 `/notification-rules` 与 `/notification-channels/email/tests` 读取、更新已有规则并测试邮件。 | 收件地址与 SMTP 配置由 web 部署管理 |
-| `/system` | 保留系统、行情采集状态及示例回测，显示 W3 通知健康。Drive 恢复水位显示接口未就绪。 | W4 提供 T2b 备份摘要，U2 提供分区水位和缺口 |
+| `/system` | 保留系统、行情采集状态及示例回测，显示 W3 通知健康。管理员可通过 W4 查看 Drive 恢复点、采集水位与缺口。 | 备份与 F3 质量数据由部署发布 |
 | `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
 表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 方案 §E2 中各页面依赖的能力和草案路径，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
@@ -31,7 +31,7 @@ market feature 的合成行情保留十进制源字符串。图表仅在传入 L
 
 ## 请求、状态与刷新
 
-src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从锁定的 OpenAPI 生成客户端。U4 使用 web `4c966be225133372ebb5e4eccc64cf6028288c4e` 的 W3 契约。W4 前正式路由显示未就绪，合成适配器仅供离线用例。[U4 适配层](../src/api/README.md#u4-适配层)
+src/api 配置唯一的同源 web client。Hey API 与 TanStack Query 插件从 `openapi/web.commit` 锁定的 OpenAPI 生成客户端。U4 通过同一客户端接入 W3 通知与 W4 集成和恢复状态，U4 合成适配器仅用于显式注入的离线用例。[U4 适配层](../src/api/README.md#u4-适配层)
 
 查询结果默认在 15 秒内视为新鲜。系统状态每 30 秒刷新，作业列表每 5 秒刷新，排队或运行中的详情每 2 秒刷新。行情新鲜度由 web 根据采集器的时间和阈值报告。
 

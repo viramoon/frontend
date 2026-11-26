@@ -49,7 +49,7 @@ function AlertCard({
         </span>{' '}
         {active === null
           ? condition === 'backup_stale'
-            ? '恢复水位待 W4 核验'
+            ? '恢复水位当前无法核验'
             : '未触发'
           : active
             ? '持续中'

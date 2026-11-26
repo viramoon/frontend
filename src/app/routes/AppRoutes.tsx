@@ -13,7 +13,8 @@ import {
 } from 'react-router-dom';
 import type { OperationsAdapter } from '../../api/operations';
 import { webAlerts, webNotifications } from '../../api/notificationsWeb';
-import { W4Unavailable } from '../../components/OperationsStates';
+import { webIntegrations } from '../../api/integrationsWeb';
+import { webRecovery } from '../../api/recoveryWeb';
 import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
@@ -22,13 +23,15 @@ import {
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
 import { Integrations } from '../../features/integrations/Integrations';
+import { WebIntegrations } from '../../features/integrations/WebIntegrations';
 import { Alerts } from '../../features/notifications/Alerts';
 import { Notifications } from '../../features/notifications/Notifications';
 import {
   SystemDetails,
   WebSystemDetails,
 } from '../../features/system/SystemDetails';
-import { NotificationAccess } from './NotificationAccess';
+import { WebRecovery } from '../../features/system/WebRecovery';
+import { AdminProductAccess } from './AdminProductAccess';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
 import type { ResearchAdapter } from '../../features/research/adapter';
 import { FactorCatalog } from '../../features/research/FactorCatalog';
@@ -123,11 +126,9 @@ function BacktestRoute({ adapter, submission }: ResearchProps) {
 export function AppRoutes({
   research = fixtureResearch,
   operations,
-  w4 = operations,
 }: {
   research?: ResearchAdapter;
   operations?: OperationsAdapter;
-  w4?: Pick<OperationsAdapter, 'integrations' | 'readSystem'>;
 } = {}) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -244,19 +245,16 @@ export function AppRoutes({
           <Route
             path="/settings/integrations"
             element={
-              w4 ? (
-                <Integrations
-                  adapter={w4.integrations}
-                  fixture={Boolean(operations)}
-                />
+              operations ? (
+                <Integrations adapter={operations.integrations} fixture />
               ) : (
-                <section
-                  className="operations-page"
-                  aria-labelledby="integrations-title"
+                <AdminProductAccess
+                  title="接口设置"
+                  product="integrations"
+                  resetTest={resetTest}
                 >
-                  <h1 id="integrations-title">接口设置</h1>
-                  <W4Unavailable />
-                </section>
+                  <WebIntegrations adapter={webIntegrations} />
+                </AdminProductAccess>
               )
             }
           />
@@ -266,9 +264,13 @@ export function AppRoutes({
               operations ? (
                 alerts
               ) : (
-                <NotificationAccess title="事件" resetTest={resetTest}>
+                <AdminProductAccess
+                  title="事件"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
                   {alerts}
-                </NotificationAccess>
+                </AdminProductAccess>
               )
             }
           />
@@ -278,9 +280,13 @@ export function AppRoutes({
               operations ? (
                 notifications
               ) : (
-                <NotificationAccess title="通知设置" resetTest={resetTest}>
+                <AdminProductAccess
+                  title="通知设置"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
                   {notifications}
-                </NotificationAccess>
+                </AdminProductAccess>
               )
             }
           />
@@ -289,13 +295,20 @@ export function AppRoutes({
             element={
               <>
                 <SystemOverview standalone />
-                {w4 ? (
-                  <SystemDetails
-                    read={w4.readSystem}
-                    fixture={Boolean(operations)}
-                  />
+                {operations ? (
+                  <SystemDetails read={operations.readSystem} fixture />
                 ) : (
-                  <WebSystemDetails />
+                  <>
+                    <WebSystemDetails />
+                    <AdminProductAccess
+                      title="备份与采集质量"
+                      product="integrations"
+                      heading="h2"
+                      resetTest={resetTest}
+                    >
+                      <WebRecovery adapter={webRecovery} />
+                    </AdminProductAccess>
+                  </>
                 )}
               </>
             }
