@@ -112,17 +112,20 @@ export function MarketDepth({
   timeZone: DisplayTimeZone;
   detailRange: DetailDateRange;
 }) {
+  const { availableFrom } = source;
+  if (!availableFrom) return null;
+
   const { state, advance, next } = depth;
   const inRange =
     state.kind === 'current' &&
-    includesDetailTime(detailRange, state.asOf, source.availableFrom);
+    includesDetailTime(detailRange, state.asOf, availableFrom);
   return (
     <section className="market-depth" aria-label="盘口深度">
       <h3>盘口深度</h3>
       <p>
         {source.instrument} · {source.venue} 场所深度
       </p>
-      <DetailPanelData availableFrom={source.availableFrom} range={detailRange}>
+      <DetailPanelData availableFrom={availableFrom} range={detailRange}>
         <div className="market-book-status" aria-live="polite">
           {state.kind === 'current' ? (
             inRange ? (

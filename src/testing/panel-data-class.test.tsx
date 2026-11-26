@@ -146,6 +146,29 @@ describe('U5 面板数据类别', () => {
     }
   });
 
+  it('explains collection coverage when only the exclusive end date is set', () => {
+    mountTrading();
+    choose('AAPL.XNAS');
+
+    setDetailDates('', '2026-11-18');
+    for (const panel of [depth(), prints()]) {
+      expect(panel.getByText(beforeCollection)).toBeVisible();
+      expect(panel.queryByRole('table')).toBeNull();
+    }
+
+    setDetailDates('', '2026-11-19');
+    expect(depth().getByText(beforeCollection)).toBeVisible();
+    expect(depth().getByRole('table', { name: '场所订单簿' })).toBeVisible();
+    expect(prints().getByText(beforeCollection)).toBeVisible();
+    expect(prints().getByRole('table', { name: '逐笔成交' })).toBeVisible();
+
+    setDetailDates('', '');
+    for (const panel of [depth(), prints()]) {
+      expect(panel.queryByText(beforeCollection)).toBeNull();
+      expect(panel.getByRole('table')).toBeVisible();
+    }
+  });
+
   it('reads separate stream start dates and updates them when the venue or product changes', () => {
     mountTrading();
     const derivatives = within(
@@ -155,6 +178,7 @@ describe('U5 面板数据类别', () => {
     setDetailDates('', '2026-11-18');
     expectDetailLabel(depth(), '2026-11-17');
     expectDetailLabel(prints(), '2026-11-18');
+    expect(depth().getByText(beforeCollection)).toBeVisible();
     expect(depth().getByText('该区间没有返回盘口快照')).toBeVisible();
     expect(prints().getByText(beforeCollection)).toBeVisible();
 
@@ -162,15 +186,44 @@ describe('U5 面板数据类别', () => {
     fireEvent.change(venue, { target: { value: 'binance-spot' } });
     expect(quotes().getByText('Binance 已由部署配置关闭')).toBeVisible();
     expect(quotes().queryByRole('region', { name: '盘口深度' })).toBeNull();
-    expect(prints().getByText('（可用起点未知）')).toBeVisible();
+    expect(screen.queryByRole('region', { name: '已成交记录' })).toBeNull();
+    expect(screen.queryByText('数据类别 · 订单簿细节')).toBeNull();
+    expect(screen.queryByLabelText('起始日期')).toBeNull();
     fireEvent.click(
       screen.getByRole('checkbox', { name: '启用 Binance 合成回放' }),
     );
     expectDetailLabel(depth(), '2026-11-16');
+    expectDetailLabel(prints(), '2026-11-18');
+    expect(quotes().getByText('Fixture · 示例数据')).toBeVisible();
     expect(depth().getByText('该区间没有返回盘口快照')).toBeVisible();
     fireEvent.change(venue, { target: { value: 'binance-perp' } });
     expectDetailLabel(depth(), '2026-11-18');
     expect(depth().getByText(beforeCollection)).toBeVisible();
+  });
+
+  it('keeps L1 visible and hides details when their collection starts are missing', () => {
+    render(
+      <MarketTerminal
+        trading
+        adapter={{
+          ...fixtureAdapter,
+          read(request) {
+            const reading = fixtureAdapter.read(request);
+            if (!hasReading(reading) || !reading.book) return reading;
+            return {
+              ...reading,
+              book: { ...reading.book, availableFrom: undefined },
+              tradesAvailableFrom: undefined,
+            };
+          },
+        }}
+      />,
+    );
+    expect(quotes().getByRole('table', { name: 'L1 最优报价' })).toBeVisible();
+    expect(quotes().queryByRole('region', { name: '盘口深度' })).toBeNull();
+    expect(screen.queryByRole('region', { name: '已成交记录' })).toBeNull();
+    expect(screen.queryByText('数据类别 · 订单簿细节')).toBeNull();
+    expect(screen.queryByLabelText('起始日期')).toBeNull();
   });
 
   it('compares UTC day boundaries even when the market timezone displays the previous day', () => {

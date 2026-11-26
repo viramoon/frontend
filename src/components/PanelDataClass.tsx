@@ -5,7 +5,7 @@ export type DetailDateRange = { start: string; end: string };
 
 type DataClassProps =
   | { kind: 'price-volume' }
-  | { kind: 'detail'; availableFrom?: string };
+  | { kind: 'detail'; availableFrom: string };
 
 export function DataClassLabel(props: DataClassProps) {
   return (
@@ -15,15 +15,10 @@ export function DataClassLabel(props: DataClassProps) {
       ) : (
         <>
           <span>数据类别 · 订单簿细节</span>
-          {props.availableFrom ? (
-            <>
-              （自{' '}
-              <time dateTime={props.availableFrom}>{props.availableFrom}</time>{' '}
-              起）
-            </>
-          ) : (
-            '（可用起点未知）'
-          )}
+          （自 <time dateTime={props.availableFrom}>
+            {props.availableFrom}
+          </time>{' '}
+          起）
         </>
       )}
     </p>
@@ -42,13 +37,11 @@ function isUtcDate(value: string) {
 export function includesDetailTime(
   { start, end }: DetailDateRange,
   time: string,
-  availableFrom?: string,
+  availableFrom: string,
 ) {
   const day = time.slice(0, 10);
   return (
-    (!availableFrom || availableFrom <= day) &&
-    (!start || start <= day) &&
-    (!end || day < end)
+    availableFrom <= day && (!start || start <= day) && (!end || day < end)
   );
 }
 
@@ -57,7 +50,7 @@ export function DetailPanelData({
   range: { start, end },
   children,
 }: {
-  availableFrom?: string;
+  availableFrom: string;
   range: DetailDateRange;
   children: ReactNode;
 }) {
@@ -65,8 +58,9 @@ export function DetailPanelData({
     (start && !isUtcDate(start)) ||
     (end && !isUtcDate(end)) ||
     (start && end && start >= end);
-  const beforeCollection = availableFrom && end && end <= availableFrom;
-  const partial = availableFrom && start && start < availableFrom;
+  const beforeCollection = end && end <= availableFrom;
+  // A blank start is unbounded if an end was set. Two blanks clear the filter.
+  const partial = start ? start < availableFrom : !!end;
   return (
     <>
       <DataClassLabel kind="detail" availableFrom={availableFrom} />
@@ -83,7 +77,7 @@ export function DetailPanelData({
             <DataState
               kind="empty"
               title="采集开始前无细节数据"
-              detail="采集起点之后的日期仍按返回样本显示。"
+              detail="采集起点及以后的返回样本按所选区间显示。"
             />
           )}
           {children}

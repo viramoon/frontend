@@ -166,7 +166,7 @@ export function MarketQuotes({
 }
 
 export function TradePrints({
-  reading,
+  reading: quoted,
   instrument,
   timeZone,
   detailRange,
@@ -176,9 +176,10 @@ export function TradePrints({
   timeZone: DisplayTimeZone;
   detailRange: DetailDateRange;
 }) {
-  const quoted = hasReading(reading) ? reading : undefined;
-  const prints = quoted?.trades?.filter(({ time }) =>
-    includesDetailTime(detailRange, time, quoted.tradesAvailableFrom),
+  if (!hasReading(quoted) || !quoted.tradesAvailableFrom) return null;
+  const { tradesAvailableFrom } = quoted;
+  const prints = quoted.trades?.filter(({ time }) =>
+    includesDetailTime(detailRange, time, tradesAvailableFrom),
   );
   let first = prints?.[0]?.time ?? '';
   let last = first;
@@ -191,17 +192,12 @@ export function TradePrints({
   return (
     <section className="market-panel market-trades" aria-label="已成交记录">
       <h2>已成交记录</h2>
-      {quoted && (
-        <p className="market-quote-label">
-          {quoted.instrument} · {quoted.venue} {quoted.product}
-          {quoted.availability === 'stale' && ' · 陈旧'}
-        </p>
-      )}
-      <DetailPanelData
-        availableFrom={quoted?.tradesAvailableFrom}
-        range={detailRange}
-      >
-        {prints?.length && quoted ? (
+      <p className="market-quote-label">
+        {quoted.instrument} · {quoted.venue} {quoted.product}
+        {quoted.availability === 'stale' && ' · 陈旧'}
+      </p>
+      <DetailPanelData availableFrom={tradesAvailableFrom} range={detailRange}>
+        {prints?.length ? (
           <>
             <p className="market-quote-label">
               样本覆盖 ·{' '}

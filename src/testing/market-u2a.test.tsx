@@ -206,6 +206,7 @@ describe('U2a 行情终端', () => {
       instrument: 'AAPL.XNAS',
       venue: 'Nasdaq',
       timeliness: '回放',
+      availableFrom: '2026-11-18',
       subscribe(emit) {
         emitters.push(emit);
         return unsubscribe;

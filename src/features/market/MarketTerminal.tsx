@@ -196,9 +196,8 @@ export function MarketTerminal({
   const unavailable = hasReading(reading) ? undefined : reading.availability;
   const history =
     quoted && !trading ? adapter.history(request, prefs.period) : undefined;
-  const depth = useMarketDepth(
-    selected?.kind === 'l1-only' ? undefined : quoted?.book,
-  );
+  const book = selected?.kind === 'l1-only' ? undefined : quoted?.book;
+  const depth = useMarketDepth(book?.availableFrom ? book : undefined);
   const pinnedDepth = adapter.budget.pinnedDepth;
   const pinned = prefs.pinned.slice(0, pinnedDepth);
   const eligible = selected?.kind === 'nasdaq' ? selected.id : undefined;
@@ -326,8 +325,8 @@ export function MarketTerminal({
         </aside>
         <div className="market-centre">
           {selected.kind !== 'l1-only' &&
-            (quoted?.book ||
-              (trading && (quoted?.trades || quoted?.tradesAvailableFrom))) && (
+            (book?.availableFrom ||
+              (trading && quoted?.tradesAvailableFrom)) && (
               <fieldset className="market-panel market-detail-range">
                 <legend>
                   {trading
