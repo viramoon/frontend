@@ -21,12 +21,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      - name: Check Git blobs for restricted data and captures
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          node scripts/check-data-guard.mjs --range "$BASE_SHA" HEAD
-          node --test --test-isolation=none scripts/check-data-guard.test.mjs
       - name: Install pinned pnpm
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - id: store
@@ -36,6 +30,12 @@ jobs:
           path: ${{ steps.store.outputs.path }}
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm install --frozen-lockfile
+      - name: Check Git blobs for restricted data and captures
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          node scripts/check-data-guard.mjs --range "$BASE_SHA" HEAD
+          node --test --test-isolation=none scripts/check-data-guard.test.mjs
       - run: pnpm check:client
       - run: pnpm typecheck
       - run: pnpm lint

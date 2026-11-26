@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   copyFileSync,
   mkdirSync,
@@ -12,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const marker = 'SYNTHETIC_BODY_MUST_NOT_APPEAR_IN_DIAGNOSTICS';
@@ -54,12 +56,20 @@ async function repository(t) {
   await git('config', 'core.hooksPath', '.githooks');
   for (const path of [
     'scripts/check-data-guard.mjs',
+    'scripts/data-guard-actions.mjs',
     '.githooks/pre-commit',
     '.githooks/pre-push',
   ]) {
     mkdirSync(dirname(join(cwd, path)), { recursive: true });
     copyFileSync(new URL(`../${path}`, import.meta.url), join(cwd, path));
   }
+  mkdirSync(join(cwd, 'node_modules'));
+  write('.git/info/exclude', '/node_modules/\n');
+  symlinkSync(
+    fileURLToPath(new URL('../node_modules/js-yaml', import.meta.url)),
+    join(cwd, 'node_modules/js-yaml'),
+    'dir',
+  );
 
   write('README.md', 'Synthetic test repository\n');
   await git('add', 'README.md');
@@ -196,6 +206,219 @@ test('staged policy blocks artifact uploads regardless of YAML uses key quoting'
       );
     });
   }
+});
+
+test('staged policy blocks named and renamed XPM images and unknown file types', async (t) => {
+  const { git, write, run } = await repository(t);
+  const xpm = `/* XPM */\n/* ${marker} */\nstatic char * image[] = {\n"2 1 2 1",\n". c #000000",\n"+ c #ffffff",\n".+"};\n`;
+  const rejected = [
+    ['picture.xpm', xpm, 'restricted-format'],
+    ['picture.txt', xpm, 'media-content'],
+    ['payload.unknown', marker, 'unclassified-text'],
+  ];
+  for (const [path, content] of rejected) write(path, content);
+  await git('add', ...rejected.map(([path]) => path));
+  const guard = await run(process.execPath, [
+    'scripts/check-data-guard.mjs',
+    '--staged',
+  ]);
+  for (const [path, , rule] of rejected) {
+    await t.test(path, () => {
+      checkRejected(guard, rule);
+      assert.ok(guard.stderr.includes(`${rule} ${JSON.stringify(path)}`));
+    });
+  }
+});
+
+test('staged and range checks reject artifact uploads in a local action outside .github', async (t) => {
+  const { git, write, run, base } = await repository(t);
+  const workflow = '.github/workflows/report.yml';
+  const action = 'tools/report/action.yaml';
+  write(
+    workflow,
+    'jobs:\n  main:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./tools/report\n',
+  );
+  write(
+    action,
+    `name: ${marker}\nruns:\n  using: composite\n  steps:\n    - "uses": "actions/\\u0075pload-artifact@v4"\n`,
+  );
+  await git('add', workflow, action);
+  await t.test('staged local action', async () => {
+    const result = await run('./.githooks/pre-commit', []);
+    checkRejected(result, 'artifact-upload');
+    assert.ok(
+      result.stderr.includes(`artifact-upload ${JSON.stringify(action)}`),
+    );
+  });
+  await git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    'commit',
+    '-qm',
+    'Add synthetic upload action',
+  );
+  await t.test('committed local action', async () => {
+    const result = await run(process.execPath, [
+      'scripts/check-data-guard.mjs',
+      '--range',
+      base,
+      'HEAD',
+    ]);
+    checkRejected(result, 'artifact-upload');
+    assert.ok(
+      result.stderr.includes(`artifact-upload ${JSON.stringify(action)}`),
+    );
+  });
+});
+
+test('the allowlist approves only the registered path and staged SHA-256', async (t) => {
+  const { git, write, run } = await repository(t);
+  const icon = 'public/synthetic.png';
+  const otherPath = 'public/copy.png';
+  const allowlist = 'scripts/data-guard-allowlist.json';
+  const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  write(icon, bytes);
+  write(
+    allowlist,
+    JSON.stringify([
+      { path: icon, sha256, source: 'Synthetic bytes for a policy test' },
+    ]),
+  );
+  await git('add', icon, allowlist);
+
+  write(icon, Buffer.from(marker));
+  write(allowlist, '[]');
+  const staged = await run('./.githooks/pre-commit', []);
+  assert.equal(staged.status, 0, staged.stderr);
+
+  await git('add', icon);
+  const changed = await run('./.githooks/pre-commit', []);
+  checkRejected(changed, 'allowlist-digest');
+  assert.ok(
+    changed.stderr.includes(`allowlist-digest ${JSON.stringify(icon)}`),
+  );
+
+  write(icon, bytes);
+  write(otherPath, bytes);
+  await git('add', icon, otherPath);
+  const copied = await run('./.githooks/pre-commit', []);
+  checkRejected(copied, 'restricted-format');
+  assert.ok(
+    copied.stderr.includes(`restricted-format ${JSON.stringify(otherPath)}`),
+  );
+
+  await git('restore', '--staged', otherPath);
+  await git('add', allowlist);
+  const removed = await run('./.githooks/pre-commit', []);
+  checkRejected(removed, 'restricted-format');
+  assert.ok(
+    removed.stderr.includes(`restricted-format ${JSON.stringify(icon)}`),
+  );
+});
+
+test('local workflow and nested action references resolve against each Git snapshot', async (t) => {
+  const { git, write, run } = await repository(t);
+  const workflow = '.github/workflows/main.yml';
+  const reusable = '.github/workflows/reuse.yaml';
+  const wrapper = 'tools/report/action.yml';
+  const leaf = 'tools/leaf/action.yaml';
+  const leafBody = `name: ${marker}\nruns:\n  using: composite\n  steps:\n    # Replaced actions/upload-artifact@v4 with a local check.\n    - run: 'true'\n      shell: bash\n`;
+  write(
+    workflow,
+    'on: push\njobs:\n  report:\n    uses: ./.github/workflows/reuse.yaml\n',
+  );
+  write(
+    reusable,
+    'on: workflow_call\njobs:\n  report:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./tools/report\n',
+  );
+  write(
+    wrapper,
+    'runs:\n  using: composite\n  steps:\n    - uses: ./tools/leaf\n',
+  );
+  write(leaf, leafBody);
+  await git('add', workflow, reusable, wrapper);
+
+  const unstaged = await run('./.githooks/pre-commit', []);
+  checkRejected(unstaged, 'local-action-reference');
+  assert.ok(
+    unstaged.stderr.includes(
+      `local-action-reference ${JSON.stringify(wrapper)}`,
+    ),
+  );
+  await git('add', leaf);
+  await git('commit', '-qm', 'Add clean local action graph');
+  const clean = await git('rev-parse', 'HEAD');
+
+  write(leaf, `runs: [${marker}\n`);
+  await git('add', leaf);
+  const invalid = await run('./.githooks/pre-commit', []);
+  checkRejected(invalid, 'action-yaml');
+  checkRejected(invalid, 'local-action-reference');
+  await git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    'commit',
+    '-qm',
+    'Break synthetic leaf YAML',
+  );
+
+  write(leaf, leafBody);
+  await git('add', leaf);
+  await git('commit', '-qm', 'Restore synthetic leaf YAML');
+  checkRejected(
+    await run(process.execPath, [
+      'scripts/check-data-guard.mjs',
+      '--range',
+      clean,
+      'HEAD',
+    ]),
+    'local-action-reference',
+  );
+  checkRejected(
+    await run(
+      './.githooks/pre-push',
+      [],
+      proposedUpdate(await git('rev-parse', 'HEAD'), clean),
+    ),
+    'action-yaml',
+  );
+});
+
+test('local action references reject path escapes, recursion and chains over the depth limit', async (t) => {
+  const { git, write, run } = await repository(t);
+  const escaped = 'tools/outside/action.yml';
+  const cycle = 'tools/loop/action.yml';
+  const writeAction = (path, reference) =>
+    write(
+      path,
+      `name: ${marker}\nruns:\n  using: composite\n  steps:\n    - uses: ${reference}\n`,
+    );
+  writeAction(escaped, './../../../outside');
+  writeAction(cycle, './tools/loop');
+  for (let i = 0; i < 9; i += 1) {
+    writeAction(`tools/step-${i}/action.yml`, `./tools/step-${i + 1}`);
+  }
+  write('tools/step-9/action.yml', 'runs:\n  using: composite\n  steps: []\n');
+  await git('add', 'tools');
+
+  const rejected = await run('./.githooks/pre-commit', []);
+  checkRejected(rejected, 'local-action-reference');
+  checkRejected(rejected, 'local-action-depth');
+  assert.ok(
+    rejected.stderr.includes(
+      `local-action-reference ${JSON.stringify(escaped)}`,
+    ),
+  );
+  assert.ok(
+    rejected.stderr.includes(`local-action-depth ${JSON.stringify(cycle)}`),
+  );
+  assert.ok(
+    rejected.stderr.includes('local-action-depth "tools/step-0/action.yml"'),
+  );
+  assert.ok(
+    !rejected.stderr.includes('local-action-depth "tools/step-1/action.yml"'),
+  );
 });
 
 test('pre-push and CI reject a renamed capture removed from an earlier outgoing commit', async (t) => {

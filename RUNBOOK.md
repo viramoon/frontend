@@ -4,7 +4,7 @@ frontend 交付给 web 的产物是 dist/。在盒子运行服务时，Ruler 使
 
 ## 安装提交与推送钩子
 
-每个新克隆在首次开发提交或推送前执行以下命令。Git 子模块克隆也需要在它自己的工作树执行。
+每个新克隆先按[构建说明](docs/build.md)准备锁定依赖，再在首次开发提交或推送前执行以下命令。Git 子模块克隆也需要在它自己的工作树执行。检查器使用随前端依赖安装的 YAML 解析器。
 
 ```sh
 git config --local core.hooksPath .githooks
