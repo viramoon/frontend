@@ -4,6 +4,8 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/dashboard` 提供带 fixture 标记的行情终端，可保存九只美股和 BTC、ETH、SOL 自选，切换 K 线周期与指标，查看价量历史、报价时效和盘口。`/trading` 用同一组合成行情展示只读 L1、场所深度及分开的已成交记录。系统状态和示例回测也可在 `/system` 查看。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。其余入口和后续接入计划见 [页面地图](docs/architecture.md#页面与功能)，操作与异常恢复见 [运行手册](RUNBOOK.md)，开发流程见 [AGENTS.md](AGENTS.md)。
 
+行情面板标注「价量历史」或「订单簿细节」。盘口与逐笔分别显示合成采集起点和已返回的样本覆盖，可按 UTC 日期查看。筛选区间在采集起点前时显示「采集开始前无细节数据」。[数据类别与覆盖](src/features/market/README.md#数据类别与覆盖)
+
 ## 本地启动
 
 在仓库根目录加载 fertile 的工具链，执行下列命令。启动 web 后，浏览器打开 Vite 输出的本地地址即可查看仪表盘。

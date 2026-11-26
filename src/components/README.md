@@ -4,3 +4,11 @@
 
 - `MarketChart` 绘制 K 线和成交量。移动十字光标或用键盘操作历史选择控件，可查看选中时间的开、高、低、收和成交量原始十进制字符串。Canvas 不可用时，仍可键盘查看精确读数。[图表组件](MarketChart.tsx)
 - `TerminalStates` 提供加载、陈旧、无权、空态及来源、新鲜度、回放、延迟、fixture 标记。状态采用可辨识的文字，空态可使用原创简笔元素。[状态组件](TerminalStates.tsx)
+
+## 行情数据类别
+
+- 价格、成交量、综合 L1 或其他非逐笔的行情摘要可用 `<DataClassLabel kind="price-volume" />`。由面板提供历史来源、覆盖和最新读数时间。
+- U2b 期权流水等依赖已采集逐笔的面板可在标题下使用 `DetailPanelData`，传入 `availableFrom`、`range`，并将经区间筛选的内容作为子节点。适配层按所选标的、场所、产品和数据类别提供 `availableFrom`（UTC `YYYY-MM-DD`）。缺省时显示「可用起点未知」。`range` 使用 `{ start, end }`，两端是 UTC 日期，可传空字符串。该组件处理早于起点、跨起点及无效区间提示，`includesDetailTime` 可筛选已标准化的 UTC 时间。
+- U2b 敞口若展示 OI、IV、GEX 等汇总快照，可使用价量历史类别作为行情摘要标识，并保留各指标自己的基准日和输入覆盖。依赖自采细节的独立区块使用细节类别。逐笔观察与历史核验应分别使用各自的起点、证据覆盖与不可补区间，面板负责展示适配层给出的这些信息。
+
+[共享标注与状态](PanelDataClass.tsx) · [行情适配层](../api/README.md#行情视图适配层)

@@ -1,5 +1,10 @@
 import { useMemo, useSyncExternalStore } from 'react';
 import {
+  DetailPanelData,
+  includesDetailTime,
+  type DetailDateRange,
+} from '../../components/PanelDataClass';
+import {
   DataState,
   displayDataTime,
   type DisplayTimeZone,
@@ -98,64 +103,76 @@ export function MarketDepth({
   currency,
   unit,
   timeZone,
+  detailRange,
 }: {
   source: BookSource;
   depth: ReturnType<typeof useMarketDepth>;
   currency: string;
   unit: string;
   timeZone: DisplayTimeZone;
+  detailRange: DetailDateRange;
 }) {
   const { state, advance, next } = depth;
+  const inRange =
+    state.kind === 'current' &&
+    includesDetailTime(detailRange, state.asOf, source.availableFrom);
   return (
     <section className="market-depth" aria-label="盘口深度">
       <h3>盘口深度</h3>
-      <p>数据类别 · 订单簿细节</p>
       <p>
         {source.instrument} · {source.venue} 场所深度
       </p>
-      <div className="market-book-status" aria-live="polite">
-        {state.kind === 'current' ? (
-          <p>
-            已返回买 {state.bids.length} 档 / 卖 {state.asks.length} 档 · 已同步
-          </p>
-        ) : (
-          <DataState
-            kind="stale"
-            title={state.reason}
-            detail="当前盘口档位已隐藏。"
-          />
-        )}
-      </div>
-      {state.kind === 'current' && (
-        <>
-          <p>
-            盘口时效 {source.timeliness} ·{' '}
-            <time dateTime={state.asOf}>
-              {displayDataTime(state.asOf, timeZone)}
-            </time>
-          </p>
-          {state.bids.length + state.asks.length > 0 ? (
-            <DepthTable
-              bids={state.bids}
-              asks={state.asks}
-              currency={currency}
-              unit={unit}
-              label="场所订单簿"
-            />
+      <DetailPanelData availableFrom={source.availableFrom} range={detailRange}>
+        <div className="market-book-status" aria-live="polite">
+          {state.kind === 'current' ? (
+            inRange ? (
+              <p>
+                已返回买 {state.bids.length} 档 / 卖 {state.asks.length} 档 ·
+                已同步
+              </p>
+            ) : (
+              <DataState kind="empty" title="该区间没有返回盘口快照" />
+            )
           ) : (
-            <p>快照为空</p>
+            <DataState
+              kind="stale"
+              title={state.reason}
+              detail="当前盘口档位已隐藏。"
+            />
           )}
-        </>
-      )}
-      {next && (
-        <button type="button" className="market-control" onClick={advance}>
-          {next === 'snapshot'
-            ? '回放恢复快照'
-            : state.kind === 'current'
-              ? '回放盘口断序'
-              : '回放后续增量'}
-        </button>
-      )}
+        </div>
+        {inRange && (
+          <>
+            <p>
+              样本覆盖 · 当前快照{' '}
+              <time dateTime={state.asOf}>
+                {displayDataTime(state.asOf, timeZone)}
+              </time>{' '}
+              · 盘口时效 {source.timeliness}
+            </p>
+            {state.bids.length + state.asks.length > 0 ? (
+              <DepthTable
+                bids={state.bids}
+                asks={state.asks}
+                currency={currency}
+                unit={unit}
+                label="场所订单簿"
+              />
+            ) : (
+              <p>快照为空</p>
+            )}
+          </>
+        )}
+        {next && (
+          <button type="button" className="market-control" onClick={advance}>
+            {next === 'snapshot'
+              ? '回放恢复快照'
+              : state.kind === 'current'
+                ? '回放盘口断序'
+                : '回放后续增量'}
+          </button>
+        )}
+      </DetailPanelData>
     </section>
   );
 }

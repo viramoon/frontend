@@ -137,3 +137,17 @@ test('mobile quote drawer captures only the seeded synthetic replay', async () =
     );
   });
 });
+
+test('mobile depth drawer explains dates before synthetic collection', async () => {
+  await withTerminal({ width: 390, height: 844 }, async (page, terminal) => {
+    await terminal.getByLabel('起始日期').fill('2026-11-16');
+    await terminal.getByLabel('结束日期（不含）').fill('2026-11-17');
+    await terminal.getByRole('button', { name: '报价与深度' }).click();
+    const drawer = page.getByRole('dialog', { name: '报价与深度' });
+    const depth = drawer.getByRole('region', { name: '盘口深度' });
+    await depth.getByText('采集开始前无细节数据', { exact: true }).waitFor();
+    await depth.getByText('2026-11-17', { exact: true }).waitFor();
+    assert.equal(await depth.getByRole('table').count(), 0);
+    await drawer.getByRole('table', { name: 'L1 最优报价' }).waitFor();
+  });
+});

@@ -1,4 +1,10 @@
 import {
+  DataClassLabel,
+  DetailPanelData,
+  includesDetailTime,
+  type DetailDateRange,
+} from '../../components/PanelDataClass';
+import {
   DataState,
   SourceDetails,
   displayDataTime,
@@ -53,6 +59,7 @@ export function MarketQuotes({
   instrument,
   reading,
   depth,
+  detailRange,
   budget,
   timeZone,
   replayTime,
@@ -61,6 +68,7 @@ export function MarketQuotes({
   instrument: MarketInstrument;
   reading: MarketReading;
   depth: ReturnType<typeof useMarketDepth>;
+  detailRange: DetailDateRange;
   budget: ComponentProps<typeof MarketBudget>;
   timeZone: DisplayTimeZone;
   replayTime?: string;
@@ -70,6 +78,7 @@ export function MarketQuotes({
   return (
     <div className="market-quote-content">
       <h2>报价与来源</h2>
+      <DataClassLabel kind="price-volume" />
       <p className="market-instrument-description">
         {hasReading(reading) ? reading.instrument : instrument.id} ·{' '}
         {instrument.name}
@@ -116,6 +125,7 @@ export function MarketQuotes({
             <MarketDepth
               source={reading.book}
               depth={depth}
+              detailRange={detailRange}
               currency={reading.currency}
               unit={unit}
               timeZone={timeZone}
@@ -124,6 +134,7 @@ export function MarketQuotes({
           {trading && instrument.kind !== 'l1-only' && reading.derivatives && (
             <section className="market-depth" aria-label="永续合约指标">
               <h3>永续合约指标</h3>
+              <DataClassLabel kind="price-volume" />
               <dl className="market-readings">
                 <dt>标记价格（{reading.currency}）</dt>
                 <dd>{reading.derivatives.mark}</dd>
@@ -158,47 +169,77 @@ export function TradePrints({
   reading,
   instrument,
   timeZone,
+  detailRange,
 }: {
   reading: MarketReading;
   instrument: MarketInstrument;
   timeZone: DisplayTimeZone;
+  detailRange: DetailDateRange;
 }) {
-  const prints = hasReading(reading) ? reading.trades : undefined;
+  const quoted = hasReading(reading) ? reading : undefined;
+  const prints = quoted?.trades?.filter(({ time }) =>
+    includesDetailTime(detailRange, time, quoted.tradesAvailableFrom),
+  );
+  let first = prints?.[0]?.time ?? '';
+  let last = first;
+  for (const { time } of prints ?? []) {
+    // Compare UTC timestamps without the Z suffix so fractional seconds sort naturally.
+    const utc = time.slice(0, -1);
+    if (utc < first.slice(0, -1)) first = time;
+    if (utc > last.slice(0, -1)) last = time;
+  }
   return (
     <section className="market-panel market-trades" aria-label="已成交记录">
       <h2>已成交记录</h2>
-      {prints?.length && hasReading(reading) ? (
-        <>
-          <p className="market-quote-label">
-            {reading.instrument} · {reading.venue} {reading.product} ·{' '}
-            {reading.availability === 'stale' ? '陈旧' : '来自已观察窗口'}
-          </p>
-          <table aria-label="逐笔成交">
-            <thead>
-              <tr>
-                <th scope="col">成交时间</th>
-                <th scope="col">价格（{reading.currency}）</th>
-                <th scope="col">数量（{instrument.quantityUnit}）</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prints.map(({ id, time, price, quantity }) => (
-                <tr key={id}>
-                  <td>
-                    <time dateTime={time}>
-                      {displayDataTime(time, timeZone)}
-                    </time>
-                  </td>
-                  <td>{price}</td>
-                  <td>{quantity}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      ) : (
-        <DataState kind="empty" title="暂无逐笔成交" />
+      {quoted && (
+        <p className="market-quote-label">
+          {quoted.instrument} · {quoted.venue} {quoted.product}
+          {quoted.availability === 'stale' && ' · 陈旧'}
+        </p>
       )}
+      <DetailPanelData
+        availableFrom={quoted?.tradesAvailableFrom}
+        range={detailRange}
+      >
+        {prints?.length && quoted ? (
+          <>
+            <p className="market-quote-label">
+              样本覆盖 ·{' '}
+              <time dateTime={first}>{displayDataTime(first, timeZone)}</time>
+              {first !== last && (
+                <>
+                  {' 至 '}
+                  <time dateTime={last}>{displayDataTime(last, timeZone)}</time>
+                </>
+              )}
+            </p>
+            <table aria-label="逐笔成交">
+              <thead>
+                <tr>
+                  <th scope="col">成交时间</th>
+                  <th scope="col">价格（{quoted.currency}）</th>
+                  <th scope="col">数量（{instrument.quantityUnit}）</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prints.map(({ id, time, price, quantity }) => (
+                  <tr key={id}>
+                    <td>
+                      <time dateTime={time}>
+                        {displayDataTime(time, timeZone)}
+                      </time>
+                    </td>
+                    <td>{price}</td>
+                    <td>{quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ) : (
+          <DataState kind="empty" title="暂无逐笔成交" />
+        )}
+      </DetailPanelData>
     </section>
   );
 }

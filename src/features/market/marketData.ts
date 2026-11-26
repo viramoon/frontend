@@ -51,6 +51,7 @@ export type BookSource = {
   instrument: string;
   venue: string;
   timeliness: '实时' | '延迟' | '回放';
+  availableFrom?: string;
   subscribe(receive: (event: BookEvent) => void): () => void;
   replay?: readonly BookEvent[];
 };
@@ -71,6 +72,7 @@ export type MarketReading =
       quote: MarketQuote;
       book?: BookSource;
       trades?: readonly Trade[];
+      tradesAvailableFrom?: string;
       derivatives?: { mark: string; fundingRate: string; openInterest: string };
     }
   | {

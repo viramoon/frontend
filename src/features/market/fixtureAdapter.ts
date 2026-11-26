@@ -107,6 +107,7 @@ function depthSource(
   fixture: QuotedFixture,
   instrument: string,
   venue: string,
+  availableFrom: string,
 ): BookSource {
   const stock = fixture.kind === 'nasdaq';
   const base = fixedPrice(fixture.quote.price);
@@ -154,6 +155,7 @@ function depthSource(
     instrument,
     venue,
     timeliness: '回放',
+    availableFrom,
     subscribe(receive) {
       receive(start);
       return () => {};
@@ -161,6 +163,13 @@ function depthSource(
     replay: fixture.availability === 'ready' ? replay : undefined,
   };
 }
+
+// Seeded collection dates exercise per-product coverage independently of the returned rows.
+const cryptoBookStart = {
+  'hyperliquid-perp': '2026-11-17',
+  'binance-spot': '2026-11-16',
+  'binance-perp': '2026-11-18',
+} as const;
 
 function makeReading(
   fixture: QuotedFixture,
@@ -178,11 +187,13 @@ function makeReading(
       ? `${symbol}-USD-PERP.HYPERLIQUID`
       : `${symbol}-USDT${product === '永续' ? '-PERP' : ''}.BINANCE`
     : fixture.id;
+  const tradesAvailableFrom =
+    fixture.id === 'QQQ.XNAS' ? '2026-11-17' : '2026-11-18';
   const book =
     fixture.kind === 'nasdaq'
-      ? depthSource(fixture, instrument, 'Nasdaq')
+      ? depthSource(fixture, instrument, 'Nasdaq', tradesAvailableFrom)
       : crypto
-        ? depthSource(fixture, instrument, venue)
+        ? depthSource(fixture, instrument, venue, cryptoBookStart[choice.id])
         : undefined;
   return {
     availability: fixture.availability,
@@ -198,6 +209,7 @@ function makeReading(
     marketDataType: fixture.marketDataType,
     quote: fixture.quote,
     book,
+    tradesAvailableFrom: book ? tradesAvailableFrom : undefined,
     trades:
       book &&
       [2n, 7n, 13n].map((offset) => {

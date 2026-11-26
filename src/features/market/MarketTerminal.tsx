@@ -6,6 +6,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { MarketChart } from '../../components/MarketChart';
+import {
+  DataClassLabel,
+  type DetailDateRange,
+} from '../../components/PanelDataClass';
 import { DataBadges, DataState } from '../../components/TerminalStates';
 import { binanceReplayAdapter, fixtureAdapter } from './fixtureAdapter';
 import { useMarketDepth } from './MarketDepth';
@@ -65,6 +69,7 @@ function Watchlist({
         <h2>自选</h2>
         <DataBadges fixture={fixture} />
       </div>
+      <DataClassLabel kind="price-volume" />
       <label htmlFor={searchId} className="market-field-label">
         搜索自选标的
       </label>
@@ -170,6 +175,10 @@ export function MarketTerminal({
   );
   const [indicatorId, setIndicatorId] = useState('');
   const [query, setQuery] = useState('');
+  const [detailRange, setDetailRange] = useState<DetailDateRange>({
+    start: '',
+    end: '',
+  });
   const [drawer, setDrawer] = useState<Drawer | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
@@ -261,6 +270,7 @@ export function MarketTerminal({
       instrument={selected}
       reading={reading}
       depth={depth}
+      detailRange={detailRange}
       timeZone={timeZone}
       replayTime={adapter.fixture?.replayTime}
       trading={trading}
@@ -315,6 +325,43 @@ export function MarketTerminal({
           {watchlist}
         </aside>
         <div className="market-centre">
+          {selected.kind !== 'l1-only' &&
+            (quoted?.book ||
+              (trading && (quoted?.trades || quoted?.tradesAvailableFrom))) && (
+              <fieldset className="market-panel market-detail-range">
+                <legend>
+                  {trading
+                    ? '盘口与逐笔日期筛选（UTC）'
+                    : '盘口日期筛选（UTC）'}
+                </legend>
+                <label className="market-field-label">
+                  起始日期
+                  <input
+                    type="date"
+                    value={detailRange.start}
+                    onChange={(event) =>
+                      setDetailRange({
+                        ...detailRange,
+                        start: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="market-field-label">
+                  结束日期（不含）
+                  <input
+                    type="date"
+                    value={detailRange.end}
+                    onChange={(event) =>
+                      setDetailRange({
+                        ...detailRange,
+                        end: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </fieldset>
+            )}
           <section
             aria-label={trading ? '市场选择' : '主 K 线与成交量'}
             className="market-panel"
@@ -334,7 +381,7 @@ export function MarketTerminal({
                 />
               </div>
               <div className="market-chart-toolbar">
-                {!trading && <p>数据类别 · 价量历史</p>}
+                {!trading && <DataClassLabel kind="price-volume" />}
                 <label className="market-field-label">
                   时间显示
                   <select
@@ -474,6 +521,7 @@ export function MarketTerminal({
               reading={reading}
               instrument={selected}
               timeZone={timeZone}
+              detailRange={detailRange}
             />
           )}
         </div>
