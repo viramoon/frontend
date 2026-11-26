@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getTest, list, list2, live, marketStatus, type Options, putCredential, ready, sample, startTest, status, submit, update } from '../sdk.gen';
-import type { ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
+import { ackAlert, byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getAlert, getChannelTest, getRule, getTest, list, list2, listAlerts, listRules, live, marketStatus, type Options, putCredential, putRule, ready, sample, startChannelTest, startTest, status, submit, update } from '../sdk.gen';
+import type { AckAlertData, AckAlertError, AckAlertResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetAlertData, GetAlertError, GetAlertResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetRuleData, GetRuleError, GetRuleResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
 
 export const deleteSessionMutation = (options?: Partial<Options<DeleteSessionData>>): UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> => {
     const mutationOptions: UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> = {
@@ -67,11 +67,11 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
     return [params];
 };
 
-export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
+export const listAlertsQueryKey = (options?: Options<ListAlertsData>) => createQueryKey('listAlerts', options);
 
-export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
+export const listAlertsOptions = (options?: Options<ListAlertsData>) => queryOptions<ListAlertsResponse, ListAlertsError, ListAlertsResponse, ReturnType<typeof listAlertsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
-        const { data } = await list({
+        const { data } = await listAlerts({
             ...options,
             ...queryKey[0],
             signal,
@@ -79,7 +79,7 @@ export const listOptions = (options?: Options<ListData>) => queryOptions<ListRes
         });
         return data;
     },
-    queryKey: listQueryKey(options)
+    queryKey: listAlertsQueryKey(options)
 });
 
 const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
@@ -110,6 +110,77 @@ const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'hea
     }
     return params as unknown as typeof page;
 };
+
+export const listAlertsInfiniteQueryKey = (options?: Options<ListAlertsData>): QueryKey<Options<ListAlertsData>> => createQueryKey('listAlerts', options, true);
+
+export const listAlertsInfiniteOptions = (options?: Options<ListAlertsData>) => {
+    const opts = infiniteQueryOptions<ListAlertsResponse, ListAlertsError, InfiniteData<ListAlertsResponse>, QueryKey<Options<ListAlertsData>>, string | Pick<QueryKey<Options<ListAlertsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListAlertsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listAlerts({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listAlertsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getAlertQueryKey = (options: Options<GetAlertData>) => createQueryKey('getAlert', options);
+
+export const getAlertOptions = (options: Options<GetAlertData>) => queryOptions<GetAlertResponse, GetAlertError, GetAlertResponse, ReturnType<typeof getAlertQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAlert({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAlertQueryKey(options)
+});
+
+export const ackAlertMutation = (options?: Partial<Options<AckAlertData>>): UseMutationOptions<AckAlertResponse, AckAlertError, Options<AckAlertData>> => {
+    const mutationOptions: UseMutationOptions<AckAlertResponse, AckAlertError, Options<AckAlertData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await ackAlert({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
+
+export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await list({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listQueryKey(options)
+});
 
 export const listInfiniteQueryKey = (options?: Options<ListData>): QueryKey<Options<ListData>> => createQueryKey('list', options, true);
 
@@ -356,6 +427,106 @@ export const capabilitiesOptions = (options?: Options<CapabilitiesData>) => quer
     },
     queryKey: capabilitiesQueryKey(options)
 });
+
+export const startChannelTestMutation = (options?: Partial<Options<StartChannelTestData>>): UseMutationOptions<StartChannelTestResponse, StartChannelTestError, Options<StartChannelTestData>> => {
+    const mutationOptions: UseMutationOptions<StartChannelTestResponse, StartChannelTestError, Options<StartChannelTestData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startChannelTest({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getChannelTestQueryKey = (options: Options<GetChannelTestData>) => createQueryKey('getChannelTest', options);
+
+export const getChannelTestOptions = (options: Options<GetChannelTestData>) => queryOptions<GetChannelTestResponse, GetChannelTestError, GetChannelTestResponse, ReturnType<typeof getChannelTestQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getChannelTest({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getChannelTestQueryKey(options)
+});
+
+export const listRulesQueryKey = (options?: Options<ListRulesData>) => createQueryKey('listRules', options);
+
+export const listRulesOptions = (options?: Options<ListRulesData>) => queryOptions<ListRulesResponse, ListRulesError, ListRulesResponse, ReturnType<typeof listRulesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listRules({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listRulesQueryKey(options)
+});
+
+export const listRulesInfiniteQueryKey = (options?: Options<ListRulesData>): QueryKey<Options<ListRulesData>> => createQueryKey('listRules', options, true);
+
+export const listRulesInfiniteOptions = (options?: Options<ListRulesData>) => {
+    const opts = infiniteQueryOptions<ListRulesResponse, ListRulesError, InfiniteData<ListRulesResponse>, QueryKey<Options<ListRulesData>>, string | Pick<QueryKey<Options<ListRulesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListRulesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listRules({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listRulesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getRuleQueryKey = (options: Options<GetRuleData>) => createQueryKey('getRule', options);
+
+export const getRuleOptions = (options: Options<GetRuleData>) => queryOptions<GetRuleResponse, GetRuleError, GetRuleResponse, ReturnType<typeof getRuleQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRule({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRuleQueryKey(options)
+});
+
+export const putRuleMutation = (options?: Partial<Options<PutRuleData>>): UseMutationOptions<PutRuleResponse, PutRuleError, Options<PutRuleData>> => {
+    const mutationOptions: UseMutationOptions<PutRuleResponse, PutRuleError, Options<PutRuleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putRule({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const statusQueryKey = (options?: Options<StatusData>) => createQueryKey('status', options);
 

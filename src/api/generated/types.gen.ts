@@ -8,6 +8,29 @@ export type Accepted = {
     id: number;
 };
 
+export type Alert = {
+    acknowledged_at?: string | null;
+    condition: Condition;
+    created_at: string;
+    deliveries: Array<Delivery>;
+    disposition: Disposition;
+    duplicate_count: number;
+    id: string;
+    last_duplicate_at?: string | null;
+    observed_at: string;
+    phase: Phase;
+    rule_id?: string | null;
+    sequence: string;
+    severity: Severity;
+};
+
+export type AlertPage = {
+    items: Array<Alert>;
+    next_cursor?: string | null;
+};
+
+export type AttemptOutcome = 'sending' | 'accepted' | 'timeout' | 'transient' | 'rejected' | 'configuration_error' | 'interrupted';
+
 export type AuthKind = 'none' | 'api_token';
 
 export type BacktestSummary = {
@@ -56,11 +79,28 @@ export type CatalogEntry = {
     title: string;
 };
 
+export type ChannelTest = ChannelTestDelivery & {
+    id: string;
+};
+
+export type ChannelTestDelivery = {
+    attempts: Array<DeliveryAttempt>;
+    available_at: string;
+    created_at: string;
+    defer_reason?: null | DeferReason;
+    deferrals: Array<DeliveryDeferral>;
+    last_outcome?: null | AttemptOutcome;
+    status: DeliveryStatus;
+    updated_at: string;
+};
+
 export type Check = {
     name: string;
     ok: boolean;
     required: boolean;
 };
+
+export type Condition = 'source_unavailable' | 'disk_critical' | 'backup_stale' | 'recovery_verification_failed' | 'market_data_delayed' | 'book_out_of_sync' | 'backfill_failed' | 'backtest_failed' | 'backtest_completed' | 'backup_succeeded' | 'market_anomaly' | 'smtp_unavailable';
 
 export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options';
 
@@ -103,6 +143,59 @@ export type DbStatus = {
     latency_ms?: number | null;
     ok: boolean;
 };
+
+export type DeferReason = 'quiet_hours' | 'cooldown' | 'rate_limit';
+
+export type Delivery = {
+    attempts: Array<DeliveryAttempt>;
+    available_at: string;
+    created_at: string;
+    defer_reason?: null | DeferReason;
+    deferrals: Array<DeliveryDeferral>;
+    id: string;
+    kind: DeliveryKind;
+    last_outcome?: null | AttemptOutcome;
+    /**
+     * Previous delivery UUID for this same alert, when this is a replacement.
+     */
+    replaces_id?: string | null;
+    status: DeliveryStatus;
+    /**
+     * Alert UUID for the summary's primary alert. Use it with `GET /api/v1/alerts/{id}`.
+     */
+    summary_alert_id?: string | null;
+    /**
+     * Attempts made by the summary that includes this delivery. Empty without a summary.
+     */
+    summary_attempts: Array<DeliveryAttempt>;
+    /**
+     * Deferrals of the summary that includes this delivery. Empty without a summary.
+     */
+    summary_deferrals: Array<DeliveryDeferral>;
+    summary_id?: string | null;
+    summary_status?: null | DeliveryStatus;
+    suppression_reason?: null | SuppressionReason;
+    updated_at: string;
+};
+
+export type DeliveryAttempt = {
+    attempt: number;
+    finished_at?: string | null;
+    outcome: AttemptOutcome;
+    started_at: string;
+};
+
+export type DeliveryDeferral = {
+    available_at: string;
+    deferred_at: string;
+    reason: DeferReason;
+};
+
+export type DeliveryKind = 'alert' | 'reminder' | 'recovery' | 'test' | 'outage_digest';
+
+export type DeliveryStatus = 'pending' | 'sending' | 'accepted' | 'failed' | 'summarized' | 'suppressed';
+
+export type Disposition = 'observed' | 'pending' | 'in_app' | 'ignored';
 
 export type ErrorBody = {
     error: ErrorDetail;
@@ -214,12 +307,24 @@ export type Metrics = {
     return_pct: string;
 };
 
+export type NotificationHealth = {
+    failure_since?: string | null;
+    last_accepted_at?: string | null;
+    last_attempt_at?: string | null;
+    last_outcome?: null | AttemptOutcome;
+    state: NotificationState;
+};
+
+export type NotificationState = 'idle' | 'healthy' | 'degraded' | 'unavailable';
+
 export type Page = {
     items: Array<Job>;
     next_cursor?: number | null;
 };
 
-export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data';
+export type Phase = 'triggered' | 'recovered';
+
+export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data' | 'notifications';
 
 export type ResearchReport = {
     actual_end: string;
@@ -241,6 +346,36 @@ export type ResearchReport = {
     windows: Array<Window>;
 };
 
+export type Rule = {
+    condition: Condition;
+    cooldown_seconds?: number | null;
+    email_enabled: boolean;
+    enabled: boolean;
+    id: string;
+    min_occurrences: number;
+    reminder_seconds?: number | null;
+    revision: number;
+    severity: Severity;
+};
+
+export type RuleConfig = {
+    /**
+     * `smtp_unavailable` is reserved for notifier-generated events.
+     */
+    condition: Condition;
+    cooldown_seconds?: number | null;
+    email_enabled: boolean;
+    enabled: boolean;
+    min_occurrences?: number;
+    reminder_seconds?: number | null;
+    severity: Severity;
+};
+
+export type RulePage = {
+    items: Array<Rule>;
+    next_cursor?: string | null;
+};
+
 export type SessionCreated = {
     csrf_token: string;
     /**
@@ -253,6 +388,8 @@ export type Settings = {
     symbol: Symbol;
 };
 
+export type Severity = 'informational' | 'important' | 'urgent';
+
 export type StrategyParams = {
     fast_period?: number | null;
     shares?: number | null;
@@ -261,12 +398,15 @@ export type StrategyParams = {
 
 export type Subject = 'anonymous' | 'admin';
 
+export type SuppressionReason = 'rule_disabled' | 'rule_changed' | 'incident_recovered';
+
 export type Symbol = 'BTCUSDT' | 'ETHUSDT' | 'BTC' | 'ETH' | 'SPX';
 
 export type SystemStatus = {
     database: DbStatus;
     finance: FinanceStatus;
     market: MarketSummary;
+    notifications: NotificationHealth;
     web: WebStatus;
 };
 
@@ -408,6 +548,98 @@ export type CreateSessionResponses = {
 };
 
 export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
+
+export type ListAlertsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        /**
+         * Decimal cursor returned by the preceding page.
+         */
+        cursor?: string;
+        unacknowledged?: boolean;
+    };
+    url: '/api/v1/alerts';
+};
+
+export type ListAlertsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type ListAlertsError = ListAlertsErrors[keyof ListAlertsErrors];
+
+export type ListAlertsResponses = {
+    200: AlertPage;
+};
+
+export type ListAlertsResponse = ListAlertsResponses[keyof ListAlertsResponses];
+
+export type GetAlertData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/alerts/{id}';
+};
+
+export type GetAlertErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type GetAlertError = GetAlertErrors[keyof GetAlertErrors];
+
+export type GetAlertResponses = {
+    200: Alert;
+};
+
+export type GetAlertResponse = GetAlertResponses[keyof GetAlertResponses];
+
+export type AckAlertData = {
+    body?: never;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/alerts/{id}/ack';
+};
+
+export type AckAlertErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type AckAlertError = AckAlertErrors[keyof AckAlertErrors];
+
+export type AckAlertResponses = {
+    200: Alert;
+};
+
+export type AckAlertResponse = AckAlertResponses[keyof AckAlertResponses];
 
 export type ListData = {
     body?: never;
@@ -885,6 +1117,177 @@ export type CapabilitiesResponses = {
 };
 
 export type CapabilitiesResponse = CapabilitiesResponses[keyof CapabilitiesResponses];
+
+export type StartChannelTestData = {
+    body?: never;
+    headers: {
+        /**
+         * Client-generated UUID for this test
+         */
+        'Idempotency-Key': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        /**
+         * Email channel ID: email
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-channels/{id}/tests';
+};
+
+export type StartChannelTestErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type StartChannelTestError = StartChannelTestErrors[keyof StartChannelTestErrors];
+
+export type StartChannelTestResponses = {
+    202: ChannelTest;
+};
+
+export type StartChannelTestResponse = StartChannelTestResponses[keyof StartChannelTestResponses];
+
+export type GetChannelTestData = {
+    body?: never;
+    path: {
+        /**
+         * Email channel ID: email
+         */
+        id: string;
+        /**
+         * Original Idempotency-Key UUID
+         */
+        testId: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-channels/{id}/tests/{testId}';
+};
+
+export type GetChannelTestErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type GetChannelTestError = GetChannelTestErrors[keyof GetChannelTestErrors];
+
+export type GetChannelTestResponses = {
+    200: ChannelTest;
+};
+
+export type GetChannelTestResponse = GetChannelTestResponses[keyof GetChannelTestResponses];
+
+export type ListRulesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        cursor?: string;
+    };
+    url: '/api/v1/notification-rules';
+};
+
+export type ListRulesErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type ListRulesError = ListRulesErrors[keyof ListRulesErrors];
+
+export type ListRulesResponses = {
+    200: RulePage;
+};
+
+export type ListRulesResponse = ListRulesResponses[keyof ListRulesResponses];
+
+export type GetRuleData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-rules/{id}';
+};
+
+export type GetRuleErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type GetRuleError = GetRuleErrors[keyof GetRuleErrors];
+
+export type GetRuleResponses = {
+    200: Rule;
+};
+
+export type GetRuleResponse = GetRuleResponses[keyof GetRuleResponses];
+
+export type PutRuleData = {
+    body: RuleConfig;
+    headers: {
+        /**
+         * Quoted current revision; use "0" to create
+         */
+        'If-Match': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-rules/{id}';
+};
+
+export type PutRuleErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type PutRuleError = PutRuleErrors[keyof PutRuleErrors];
+
+export type PutRuleResponses = {
+    200: Rule;
+    201: Rule;
+};
+
+export type PutRuleResponse = PutRuleResponses[keyof PutRuleResponses];
 
 export type StatusData = {
     body?: never;
