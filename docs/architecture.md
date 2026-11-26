@@ -13,13 +13,13 @@
 | `/strategies`、`/strategies/:id` | 策略列表、版本与详情的页面骨架，列表可打开示例详情。 | U3 · `/strategies`、`/strategies/validate`、`/strategies/{id}/versions/{version}`、`/strategy-schema/{major}` |
 | `/factors` | 因子目录和质量报告页面骨架。 | U3 · `/factors`、`/factors/{id}/versions/{version}/report` |
 | `/backtests` | 现有历史回测工作台读取 `/backtests` 系列接口。可读取标的和日期覆盖，提交单标的均线作业，也可经 `?job=` 查看作业状态、绩效覆盖和成交审计。 | U3 · `/strategy-runs`、`/strategy-runs/{id}`、`/strategy-runs/by-key`、`/strategy-runs/{id}/artifacts`、`/datasets/imports`、`/datasets/imports/{id}` |
-| `/settings/integrations` | 接口配置及验证的页面骨架。 | U4 接入已锁定的 `/me/capabilities`、`/admin/session`、`/integrations/catalog`、`/integrations`、`/integrations/{id}`、`/integrations/{id}/credential`、`/integrations/{id}/tests`、`/integration-tests/{id}` |
-| `/alerts` | 告警事件、确认和静默的页面骨架。 | U4 · `/alerts/rules`、`/alerts/rules/{id}`、`/alerts/events`、`/alerts/events/{id}/ack`、`/alerts/silences`、`/stream/events` |
-| `/settings/notifications` | 通知目的地、测试与投递轨迹的页面骨架。 | U4 · `/notifications/channels`、`/notifications/channels/{id}`、`/notifications/channels/{id}/tests`、`/notifications/deliveries/{id}` |
-| `/system` | 系统状态条、服务探测、行情采集新鲜度和示例回测。沿用 `/system/status` 和 `/backtests/sample`。 | U2 · `/quality/gaps`、`/quality/partitions`，行情明细可沿用已有的 `/market/status` |
+| `/settings/integrations` | 合成接口卡支持查看产品和权限、保存草稿、写入和清除示例凭据、测试、启用、回滚和停用。 | W1 会话、权限和配置版本，W4 提供实际连接、测试证据与配置应用 |
+| `/alerts` | 合成告警列表支持确认、按事件静默和投递状态查看。 | W3 · `/alerts`、`/alerts/{id}`、`/alerts/{id}/ack`；主动静默待 web 契约 |
+| `/settings/notifications` | 合成邮件规则、本人收件地址配置状态与测试发送。 | W3 · `/notification-rules`、`/notification-rules/{id}`、`/notification-channels/email/tests` 与测试详情 |
+| `/system` | 保留现有系统状态和示例回测，另有合成采集质量、SMTP 状态和 Drive 恢复水位。 | U2 分区水位与缺口，W3 邮件健康，T2b 备份状态由 web 提供安全摘要 |
 | `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
-表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 讨论稿 §E2 中各页面对应的路径，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
+表中的 API 路径以 `/api/v1` 为前缀。后续列记录设计与当前开发中的接入点，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
 
 页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 及 `scripts/verify-boundaries.mjs` 校验。页面通过生成客户端配合 TanStack Query 访问 web。系统状态和示例回测各有加载提示。系统状态的请求失败（含 404）显示错误提示。示例回测的 404 显示「暂无示例回测」，其余请求失败显示错误提示。盈亏直接显示接口返回的十进制文本。[请求入口](../src/api/README.md)
 
@@ -31,7 +31,7 @@
 
 ## 请求、状态与刷新
 
-src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从 `openapi/web.openapi.json` 生成客户端。`openapi/web.commit` 当前锁定 web main 的 `90662dbb904724f119814576cb98128d8cb9ed05`，包含 W1 会话、数据权限和配置生命周期（web #15）及 finance 契约升级（web #18）。管理员会话、当前用户能力和集成配置接口已生成客户端，页面接入由 U4 完成。
+src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从 `openapi/web.openapi.json` 生成客户端。`openapi/web.commit` 当前锁定 web main 的 `90662dbb904724f119814576cb98128d8cb9ed05`，包含 W1 会话、数据权限和配置生命周期（web #15）及 finance 契约升级（web #18）。管理员会话、当前用户能力和集成配置接口已生成客户端。U4 页面通过只在内存运行的适配层演示，实际接线等待 W3、W4 与 T2b 契约。[U4 适配层](../src/api/README.md#u4-适配层)
 
 查询结果默认在 15 秒内视为新鲜。系统状态每 30 秒刷新，作业列表每 5 秒刷新，排队或运行中的详情每 2 秒刷新。行情新鲜度由 web 根据采集器的时间和阈值报告。
 

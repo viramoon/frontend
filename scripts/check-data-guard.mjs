@@ -48,6 +48,10 @@ const textPaths = new Set([
 const fixturePath = /fixture|(?:^|\/)(?:replays?|samples?)(?:[./_-]|$)/i;
 const fixtureSources = new Map([
   [
+    'src/api/operationsFixture.ts',
+    '// Hand-authored scenarios, independent of any account, provider or production snapshot.',
+  ],
+  [
     'src/features/market/marketFixture.ts',
     '// Deterministic synthetic offsets and volumes, without vendor or historical data.',
   ],

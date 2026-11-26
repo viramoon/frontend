@@ -1,0 +1,130 @@
+.operations-page,
+.operations-section {
+  margin-block: 1.5rem;
+}
+.operations-page h1,
+.operations-section h2 {
+  margin: 0 0 0.7rem;
+}
+.operations-source {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.operations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.operations-card {
+  min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: clamp(0.75rem, 3vw, 1.2rem);
+}
+.operations-card + .operations-card:not(.operations-grid > *) {
+  margin-top: 1rem;
+}
+.operations-card h2,
+.operations-card h3,
+.operations-card h4 {
+  margin: 0 0 0.65rem;
+}
+.operations-card p {
+  margin-block: 0.65rem;
+}
+.operations-card time {
+  font-family: var(--mono);
+  font-size: 0.83em;
+}
+.operations-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.45rem 0.8rem;
+  margin-block: 0.8rem;
+}
+.operations-fields dt {
+  color: var(--muted);
+}
+.operations-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.operations-list {
+  display: grid;
+  gap: 0.35rem;
+  padding-inline-start: 1.25rem;
+}
+.operations-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-block: 0.8rem;
+  min-width: 0;
+}
+.operations-actions label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.operations-actions :is(input:not([type='checkbox']), select) {
+  max-width: 100%;
+  padding: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: inherit;
+}
+.operations-actions input[type='number'] {
+  width: 8rem;
+}
+.operations-actions input[type='password'] {
+  width: 15rem;
+}
+.operations-badge {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  padding: 0.12rem 0.4rem;
+  color: var(--muted);
+  font-size: 0.87rem;
+}
+.operations-badge:is([data-status='verified'], [data-status='accepted']) {
+  color: #a5e6c4;
+}
+.operations-badge:is(
+  [data-status='permission_denied'],
+  [data-status='failed'],
+  [data-status='urgent']
+) {
+  color: #ffc0b9;
+}
+.operations-badge:is(
+  [data-status='pending_market_open'],
+  [data-status='delayed'],
+  [data-status='capacity_exhausted'],
+  [data-status='pending']
+) {
+  color: var(--warning);
+}
+.operations-feedback {
+  color: var(--warning);
+}
+.operations-card fieldset {
+  border: 0;
+  padding: 0;
+  margin-inline: 0;
+}
+.operations-delivery {
+  margin-block: 0.4rem;
+}
+.operations-actions label.operations-checkbox {
+  display: flex;
+  align-items: center;
+}
+.operations-actions label.operations-checkbox input {
+  accent-color: var(--accent);
+}

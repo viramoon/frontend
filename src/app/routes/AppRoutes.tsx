@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Link,
   Navigate,
@@ -7,6 +8,7 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
+import { createOperationsFixture } from '../../api/operationsFixture';
 import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
@@ -14,6 +16,10 @@ import {
   SystemOverview,
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
+import { Integrations } from '../../features/integrations/Integrations';
+import { Alerts } from '../../features/notifications/Alerts';
+import { Notifications } from '../../features/notifications/Notifications';
+import { SystemDetails } from '../../features/system/SystemDetails';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
 import { Trading } from '../../features/trading/Trading';
 
@@ -47,21 +53,6 @@ const futurePages = [
     path: '/factors',
     title: '因子',
     detail: '后续 U3 将展示可引用因子版本、覆盖率、IC 和换手。',
-  },
-  {
-    path: '/settings/integrations',
-    title: '接口设置',
-    detail: '后续 U4 将接入配置版本、权限、预算状态与连接验证。',
-  },
-  {
-    path: '/alerts',
-    title: '事件',
-    detail: '后续 U4 将提供事件确认、静默与投递记录。',
-  },
-  {
-    path: '/settings/notifications',
-    title: '通知设置',
-    detail: '后续 U4 将提供通知目的地验证与测试发送。',
   },
 ];
 
@@ -105,6 +96,8 @@ function StrategyDetail() {
 
 export function AppRoutes() {
   const { pathname } = useLocation();
+  const [operations] = useState(createOperationsFixture);
+  const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -166,21 +159,29 @@ export function AppRoutes() {
           <Route path="/strategies/:id" element={<StrategyDetail />} />
           <Route path="/backtests" element={<Backtests />} />
           <Route
+            path="/settings/integrations"
+            element={<Integrations adapter={operations.integrations} />}
+          />
+          <Route
+            path="/alerts"
+            element={<Alerts adapter={operations.alerts} />}
+          />
+          <Route
+            path="/settings/notifications"
+            element={
+              <Notifications
+                adapter={operations.notifications}
+                testKey={emailTestKey}
+                setTestKey={setEmailTestKey}
+              />
+            }
+          />
+          <Route
             path="/system"
             element={
               <>
                 <SystemOverview standalone />
-                <section
-                  className="dashboard-section"
-                  aria-labelledby="quality-heading"
-                >
-                  <h2 id="quality-heading">数据质量</h2>
-                  <DataState
-                    kind="empty"
-                    title="数据质量摘要待接入"
-                    detail="后续 U2 将接入分区水位与数据缺口。"
-                  />
-                </section>
+                <SystemDetails read={operations.readSystem} />
               </>
             }
           />
