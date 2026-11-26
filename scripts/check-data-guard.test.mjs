@@ -638,3 +638,30 @@ test('pre-push peels annotated tags and checks the same Git blobs', async (t) =>
     'restricted-format',
   );
 });
+
+test('registered U3 configuration requires a provenance marker and still checks content', async (t) => {
+  const { git, run, write } = await repository(t);
+  const path = 'src/features/research/fixtures/entry-exit.yaml';
+  const provenance =
+    '# Synthetic finance StrategyBundle fixture from b21f241.\n';
+  write(path, 'kind: StrategyBundle\n' + provenance);
+  await git('add', path);
+  assert.equal(
+    (await run('node', ['scripts/check-data-guard.mjs', '--staged'])).status,
+    0,
+  );
+
+  write(path, 'kind: StrategyBundle\n');
+  await git('add', path);
+  checkRejected(
+    await run('node', ['scripts/check-data-guard.mjs', '--staged']),
+    'fixture-provenance',
+  );
+
+  write(path, '%PDF-1.7\n' + provenance);
+  await git('add', path);
+  checkRejected(
+    await run('node', ['scripts/check-data-guard.mjs', '--staged']),
+    'media-content',
+  );
+});

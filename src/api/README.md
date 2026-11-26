@@ -16,6 +16,10 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 
 W2a 合并后，HTTP 经唯一同源生成客户端接入 watchlist、行情、指标、额度与 focus，WS 只接同源 web。适配器须将 web 流分区、序号、心跳、缺口和授权撤回映射为单盘口的生命周期和连续位置。F6 的参数、版本化列、OHLCV 和指标十进制原文及 `provisional` 分别用于适配器视图。HTTP OpenAPI 和流 schema 仍由上游维护，沿用 [生成流程](../../docs/build.md#更新生成客户端)。本次构建只打包合成回放，无新增服务配置。
 
+## 研究工作台适配层
+
+策略、因子与配置作业通过 [ResearchAdapter](../features/research/adapter.ts) 读取合成 fixture。W2b 接入时，在此请求边界复用生成客户端并把 web 响应转换为页面模型。[接口和接入约定](../features/research/README.md)
+
 ## U4 适配层
 
 [operations.ts](operations.ts) 定义设置、通知、告警和系统页的类型。[W3 适配器](notificationsWeb.ts) 使用锁定的生成客户端与 web 同源通信。告警、通知规则和测试详情经管理员会话读取。写入带 Origin 与 CSRF，规则带原修订号，邮件测试带 UUID 幂等键。写入结果不确定时，先用原 ID 查看结果。查询仅保存展示状态，系统的邮件健康复用已生成的系统状态接口。
