@@ -1,0 +1,12 @@
+[
+  {
+    "path": "public/third-party/lightweight-charts/LICENSE",
+    "sha256": "70c9d5382506dd184465425c08a99ad9bd6d9ac1313c252968ba0b585e5ef823",
+    "source": "Lightweight Charts 5.3.0 随包分发的 Apache-2.0 许可证"
+  },
+  {
+    "path": "public/third-party/lightweight-charts/NOTICE",
+    "sha256": "bdd3fb99b0e23fa6fe504a6653e648579a9e2bf10751657d4c4f9f4a739ad31a",
+    "source": "Lightweight Charts 5.3.0 的仓库分发归属声明，来源见 public/third-party/lightweight-charts/NOTICE"
+  }
+]

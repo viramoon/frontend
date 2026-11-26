@@ -13,6 +13,8 @@ pnpm test
 pnpm build
 ```
 
+Git 防护和离线浏览器用例的检查命令见[行情样本与截图防护](data-guard.md#本地复测)。
+
 运行 `pnpm dev` 可从浏览器打开开发服务器。Vite 将 `/api` 和 `/healthz` 默认代理到 `http://127.0.0.1:8090`。测试另一个隔离实例时，可用 `WEB_PROXY_TARGET=http://127.0.0.1:18090 pnpm dev`。生产构建使用同源相对路径，浏览器调用托管页面的 web。
 
 ## 更新生成客户端

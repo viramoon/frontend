@@ -28,6 +28,15 @@ function watchlist() {
 }
 
 describe('行情终端', () => {
+  it('renders the versioned synthetic seed on the terminal', () => {
+    render(<MarketTerminal />);
+    const terminal = screen.getByRole('region', { name: '行情终端' });
+    expect(terminal).toHaveAttribute('data-fixture-seed', 'market-terminal-v1');
+    expect(
+      within(terminal).getByText('67529.712500', { selector: 'strong' }),
+    ).toBeVisible();
+  });
+
   it('labels fixture replay, simulated delay, source time and exact quotes without a request', () => {
     const request = vi.fn();
     vi.stubGlobal('fetch', request);

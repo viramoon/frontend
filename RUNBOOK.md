@@ -2,6 +2,23 @@
 
 frontend 交付给 web 的产物是 dist/。在盒子运行服务时，Ruler 使用 fertile 的部署命令统一选择前后端构建。前端开发和本地验证步骤见 [构建说明](docs/build.md)。
 
+## 安装提交与推送钩子
+
+每个新克隆先按[构建说明](docs/build.md)准备锁定依赖，再在首次开发提交或推送前执行以下命令。Git 子模块克隆也需要在它自己的工作树执行。检查器使用随前端依赖安装的 YAML 解析器。
+
+```sh
+git config --local core.hooksPath .githooks
+node scripts/check-data-guard.mjs --staged
+```
+
+如命中检查，按错误中的路径定位文件，将本地采集数据、截图、录像或报告移到工作树之外，并更新暂存区。若违规内容已经进入待推送提交，处置这段本地历史后重新检查整个范围。仅在后一条提交删除文件，前一条提交仍会被检查。协作时只汇报规则和脱敏结论。[规则与范围](docs/data-guard.md)
+
+获准的静态资产先合入白名单更新，再从包含批准记录的目标分支建立后续资产 PR。出现 `allowlist-change` 时，核对审批记录是否已进入基准。[白名单登记流程](docs/data-guard.md#文件白名单)
+
+## 离线检查行情渲染
+
+使用已有依赖和系统 Chrome 运行 `pnpm build`，再运行 `pnpm test:visual`。测试进程拦截页面所有 HTTP 和 WebSocket 请求，从内存返回构建资源和模拟 API 状态。使用宽屏和窄屏视口检查 Canvas、报价及抽屉焦点。无需启动 Vite、web 或 IBKR，截图只在测试进程内存中处理。
+
 ## 验证 web 托管
 
 在 web 启动前将 WEB_STATIC_ROOT 设为已完成构建的 dist 绝对路径。用本地入口检查静态文件、刷新回落和数据接口：
@@ -18,6 +35,8 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 在浏览器打开 `/system`，核对数据库、finance、行情源和新鲜度，再核对示例摘要的币种与金额。打开 `/backtests` 验证历史工作台，再按页面地图抽查入口的刷新回落。盒子上现有站点使用 `8080`，Ruler 从 `https://fertile.viramoon.com` 验收指向 `127.0.0.1:8090` 的公网路由。[页面地图](docs/architecture.md#页面与功能)
 
 ## 验证行情终端
+
+以下为托管页面的人工检查。硬件、环境与账户的验收记录仅保存脱敏结论。数据和画面按[防护规则](docs/data-guard.md)处理。
 
 1. 从 `/` 进入 `/dashboard`，核对自选、K 线和成交量、指标占位、报价和来源说明。行情区域应显示「Fixture」演示标记，系统状态来自现有 web 接口。
 2. 搜索并切换标的和周期，查看 K 线精确读数、报价单位与来源时间。切换到其他示例时核对回放、延迟、陈旧、无权或空态文字。清空搜索会恢复自选列表。

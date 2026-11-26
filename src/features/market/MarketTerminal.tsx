@@ -8,6 +8,7 @@ import {
 } from '../../components/TerminalStates';
 import {
   hasQuote,
+  marketFixtureSeed,
   marketFixtures,
   periods,
   replayTime,
@@ -232,7 +233,11 @@ export function MarketTerminal() {
   const quoteDetails = <QuoteDetails fixture={selected} />;
 
   return (
-    <section aria-label="行情终端" className="market-terminal">
+    <section
+      aria-label="行情终端"
+      className="market-terminal"
+      data-fixture-seed={marketFixtureSeed}
+    >
       <div className="market-mobile-actions">
         {(['watchlist', 'quote'] as const).map((panel) => (
           <button
