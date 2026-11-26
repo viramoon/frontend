@@ -1,4 +1,5 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { QueryClientContext } from '@tanstack/react-query';
+import { useContext } from 'react';
 import {
   Link,
   Navigate,
@@ -128,9 +129,9 @@ export function AppRoutes({
 }: { research?: ResearchAdapter } = {}) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const queryClient = useContext(QueryClientContext);
   const submission = useRunSubmission(research, (run) => {
-    void queryClient.invalidateQueries({
+    void queryClient?.invalidateQueries({
       queryKey: ['research', research.source, 'runs'],
     });
     void navigate(`/backtests?run=${encodeURIComponent(run)}`);
