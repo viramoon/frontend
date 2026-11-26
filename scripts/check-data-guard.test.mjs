@@ -153,6 +153,51 @@ test('staged policy blocks captures, exports, hidden blobs, LFS, and CI uploads 
   assert.match(guard.stderr, /19 violation\(s\)/);
 });
 
+test('staged policy blocks SVG with an XML prologue and plain Netpbm images', async (t) => {
+  const { git, write, run } = await repository(t);
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- ${marker} -->\n<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>`;
+  const ppm = `P3\n# ${marker}\n1 1\n255\n0 0 0\n`;
+  for (const [path, content, rule] of [
+    ['drawing.txt', svg, 'media-content'],
+    ['raster.ppm', ppm, 'restricted-format'],
+    ['raster.txt', ppm, 'media-content'],
+  ]) {
+    await t.test(path, async () => {
+      write(path, content);
+      await git('add', path);
+      const guard = await run(process.execPath, [
+        'scripts/check-data-guard.mjs',
+        '--staged',
+      ]);
+      checkRejected(guard, rule);
+      assert.ok(guard.stderr.includes(`${rule} ${JSON.stringify(path)}`));
+      await git('restore', '--staged', path);
+    });
+  }
+});
+
+test('staged policy blocks artifact uploads regardless of YAML uses key quoting', async (t) => {
+  const { git, write, run } = await repository(t);
+  const path = '.github/workflows/report.yml';
+  for (const key of ["'uses'", '"uses"']) {
+    await t.test(key, async () => {
+      write(
+        path,
+        `name: ${marker}\non: workflow_dispatch\njobs:\n  report:\n    runs-on: ubuntu-latest\n    steps:\n      - ${key}: actions/upload-artifact@v4\n`,
+      );
+      await git('add', path);
+      const guard = await run(process.execPath, [
+        'scripts/check-data-guard.mjs',
+        '--staged',
+      ]);
+      checkRejected(guard, 'artifact-upload');
+      assert.ok(
+        guard.stderr.includes(`artifact-upload ${JSON.stringify(path)}`),
+      );
+    });
+  }
+});
+
 test('pre-push and CI reject a renamed capture removed from an earlier outgoing commit', async (t) => {
   const { git, write, run, base } = await repository(t);
   write('notes.txt', Buffer.from(`\0${marker}`));

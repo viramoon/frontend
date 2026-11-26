@@ -12,7 +12,10 @@ const execute = promisify(execFile);
 const restrictedPath =
   /(?:^|\/)(?:screenshots?|screen[-_]?(?:shots?|recordings?|captures?)|captures?|recordings?|traces?|snapshots?|__snapshots__|(?:visual|playwright|test|blob)[-_](?:reports?|results?|artifacts?|output)|artifacts?|data|data-paper|datasets?|exports?|dumps?|backups?|logs?)(?:\/|$)/i;
 const restrictedFormat =
-  /\.(?:png|jpe?g|gif|webp|avif|apng|bmp|tiff?|ico|heic|heif|svgz?|pdf|psd|mp[34]|m4v|mov|mkv|avi|webm|ogg|wav|flac|har|snap|log|dmp|dump|sql|db|sqlite[3]?|parquet|arrow|feather|orc|avro|csv|tsv|jsonl|ndjson|zip|gz|tgz|tar|xz|bz2|zst|7z|rar)(?:$|[.\s])/i;
+  /\.(?:png|jpe?g|gif|webp|avif|apng|bmp|tiff?|ico|heic|heif|svgz?|pbm|pgm|ppm|pnm|pam|pdf|psd|mp[34]|m4v|mov|mkv|avi|webm|ogg|wav|flac|har|snap|log|dmp|dump|sql|db|sqlite[3]?|parquet|arrow|feather|orc|avro|csv|tsv|jsonl|ndjson|zip|gz|tgz|tar|xz|bz2|zst|7z|rar)(?:$|[.\s])/i;
+const githubActionPath = /^\.github\/(?:workflows|actions)\//;
+const artifactUploadAction =
+  /\bactions\/upload-(?:artifact|release-asset)(?![\w.-])/i;
 const fixturePath = /fixture|(?:^|\/)(?:replays?|samples?)(?:[./_-]|$)/i;
 const fixtureSources = new Map([
   [
@@ -170,6 +173,24 @@ function isMarketExport(content) {
   }
 }
 
+function isTextMedia(content) {
+  const start = content.trimStart();
+  if (
+    /^(?:GIF8[79]a|%PDF-)/i.test(start) ||
+    /^P[1-7](?=[ \t\r\n#])/.test(start)
+  ) {
+    return true;
+  }
+
+  // Consume complete XML processing instructions and comments before the root.
+  const prologueToken = /(?:<\?[\s\S]*?\?>|<!--[\s\S]*?-->)\s*/y;
+  let rootOffset = 0;
+  while (prologueToken.test(start)) rootOffset = prologueToken.lastIndex;
+  return /^<(?:!DOCTYPE\s+)?(?:[\w.-]+:)?svg(?=\s|[/>]|\[)/i.test(
+    start.slice(rootOffset),
+  );
+}
+
 function contentRule(path, bytes) {
   let content;
   try {
@@ -184,10 +205,7 @@ function contentRule(path, bytes) {
   }
   if (/^\s*version https:\/\/git-lfs\.github\.com\/spec\/v1\b/.test(content))
     return 'lfs-pointer';
-  if (
-    /^\s*(?:GIF8[79]a|%PDF-|<svg[\s>]|<\?xml[^>]*>\s*<svg[\s>])/i.test(content)
-  )
-    return 'media-content';
+  if (isTextMedia(content)) return 'media-content';
   if (/data:(?:image|video|audio)\/[^\s,;]+[;,]/i.test(content))
     return 'embedded-media';
   if (/(?:iVBORw0KGgo|R0lGOD[lh]|\/9j\/)[a-z0-9+/]{24,}/i.test(content))
@@ -197,12 +215,8 @@ function contentRule(path, bytes) {
     /!\[|<(?:img|video|picture|svg|audio)\b/i.test(content)
   )
     return 'embedded-media';
-  if (
-    /^\.github\/(?:workflows|actions)\//.test(path) &&
-    /\buses\s*:\s*['"]?actions\/upload-(?:artifact|release-asset)\b/i.test(
-      content,
-    )
-  ) {
+  // Check the action reference itself independently of YAML key syntax.
+  if (githubActionPath.test(path) && artifactUploadAction.test(content)) {
     return 'artifact-upload';
   }
   if (isMarketExport(content)) return 'market-export';
