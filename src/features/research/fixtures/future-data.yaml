@@ -56,3 +56,4 @@ spec:
       commission_bps: '2',
       slippage_bps: '5',
     }
+# Synthetic finance StrategyBundle fixture from b21f241.

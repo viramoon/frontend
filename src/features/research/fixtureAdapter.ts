@@ -1,3 +1,4 @@
+// U3 uses only the documented synthetic research inputs.
 import type {
   Compilation,
   Diagnostic,

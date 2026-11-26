@@ -61,3 +61,4 @@ spec:
     lot_size_policy: instrument_master
     commission_bps: '2'
     slippage_bps: '5'
+# Synthetic finance StrategyBundle fixture from b21f241.

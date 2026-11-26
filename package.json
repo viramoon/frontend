@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && node scripts/verify-boundaries.mjs",
     "test": "vitest run",
+    "test:visual": "node --test --test-isolation=none scripts/visual-market.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "generate:client": "bash scripts/gen-web-client.sh from-snapshot",

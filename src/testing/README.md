@@ -8,6 +8,8 @@
 
 行情终端测试在 jsdom 下检查 fixture、状态标记和来源。图表用例验证精确读数、交互及 Canvas 不可用时的降级。[终端测试](market.test.tsx) · [图表测试](chart.test.tsx)
 
+Git 防护测试在临时仓库生成合规和违规样本。浏览器渲染用例单独使用本地构建，检查宽屏与窄屏渲染。执行方式见[防护本地复测](../../docs/data-guard.md#本地复测)。
+
 路由用例覆盖新旧深链、策略详情及系统和示例回测的 404 处理。键盘用例用 Testing Library 的 user-event 模拟 `Tab` 和 `Enter`，验证焦点顺序和导航结果。焦点样式用例将实际样式表的 `:focus-visible` 映射为 jsdom 支持的 `:focus`，再检查计算出的轮廓。在浏览器中验收实际 Canvas、焦点轮廓和窄屏抽屉焦点。[路由测试](routes.test.tsx) · [终端验收](../../RUNBOOK.md#验证行情终端)
 
 研究工作台用例在正式路由中验证两条 YAML 入口、行列诊断、精确十进制结果、只读研究、因子衰减和按键恢复。通过假响应模拟提交结果丢失和重试，逐例断言 fixture 页面没有发起 HTTP 请求。[研究工作台测试](research.test.tsx)

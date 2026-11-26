@@ -1,3 +1,4 @@
+// U3 uses only the documented synthetic research inputs.
 import { CORE_SCHEMA, load, YAMLException } from 'js-yaml';
 import type { Diagnostic } from './adapter';
 

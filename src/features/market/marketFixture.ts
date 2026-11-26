@@ -6,6 +6,7 @@ export const periods = [
 export type MarketPeriod = (typeof periods)[number]['id'];
 
 export const replayTime = '2026-11-18T12:15:00Z';
+export const marketFixtureSeed = 'market-terminal-v1';
 
 type FixedBar = {
   time: string;
