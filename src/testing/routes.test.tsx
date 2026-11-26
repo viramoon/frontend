@@ -1,13 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  act,
   cleanup,
   fireEvent,
   render,
   screen,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Job } from '../api';
@@ -70,19 +73,29 @@ describe('终端路由', () => {
     ['/alerts', '事件', 'U4'],
     ['/settings/notifications', '通知设置', 'U4'],
   ])(
-    'opens %s from a keyboard-focusable navigation link with a planned issue',
-    (path, label, issue) => {
+    'opens %s with Tab and Enter and shows its planned issue',
+    async (path, label, issue) => {
       const http = vi.fn();
       vi.stubGlobal('fetch', http);
+      const user = userEvent.setup();
       mount('/blog');
 
       const nav = screen.getByRole('navigation', { name: '主导航' });
       const link = within(nav).getByRole('link', { name: label });
       expect(link).toHaveAttribute('href', path);
-      expect(link.tabIndex).toBe(0);
-      act(() => link.focus());
+      const links = within(nav).getAllByRole('link');
+      const tabStops = [
+        screen.getByRole('link', { name: '跳至主要内容' }),
+        screen.getByRole('link', { name: 'Fertile 工作台首页' }),
+        ...links.slice(0, links.indexOf(link) + 1),
+      ];
+      for (const stop of tabStops) {
+        await user.tab();
+        expect(stop).toHaveFocus();
+      }
       expect(link).toHaveFocus();
-      fireEvent.click(link);
+      await user.keyboard('{Enter}');
+      expect(screen.getByLabelText('当前地址').textContent).toBe(path);
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(
         screen.getByRole('heading', { name: label, level: 1 }),
@@ -91,6 +104,34 @@ describe('终端路由', () => {
       expect(http).not.toHaveBeenCalled();
     },
   );
+
+  it('applies a visible outline to a focused masthead link', () => {
+    const { container } = mount('/blog');
+    const link = container.querySelector<HTMLAnchorElement>(
+      '.navigation a[href="/dashboard"]',
+    );
+    if (!link) throw new Error('Expected a dashboard link in the masthead');
+
+    link.focus();
+    const stylesheet = document.createElement('style');
+    const appStyles = readFileSync(
+      resolve(dirname(fileURLToPath(import.meta.url)), '../app/styles.css'),
+      'utf8',
+    );
+    // jsdom does not reliably model keyboard modality. Apply the real focus-visible
+    // declarations to :focus so their cascade can be checked on this link.
+    stylesheet.textContent = appStyles.replaceAll(':focus-visible', ':focus');
+    document.head.append(stylesheet);
+    try {
+      expect(link).toHaveFocus();
+      const style = window.getComputedStyle(link);
+      expect(style.outline).toBe('2px solid #f4d5ed');
+      expect(style.outlineColor).toBe('var(--accent)');
+      expect(style.outlineOffset).toBe('-4px');
+    } finally {
+      stylesheet.remove();
+    }
+  });
 
   it('provides the strategy detail route from the strategy list and as a deep link', () => {
     const { unmount } = mount('/strategies');
@@ -114,25 +155,33 @@ describe('终端路由', () => {
     expect(screen.getByText(/sma-review.*U3/)).toBeVisible();
   });
 
-  it('shows the existing system status and identifies the pending data quality section', async () => {
-    vi.stubGlobal('fetch', (request: Request) =>
-      Promise.resolve(
-        Response.json(
-          {},
-          {
-            status: request.url.endsWith('/backtests/sample') ? 404 : 503,
-          },
+  it.each([404, 503])(
+    'shows an error for system status HTTP %s and an empty sample on its 404',
+    async (status) => {
+      vi.stubGlobal('fetch', (request: Request) =>
+        Promise.resolve(
+          Response.json(
+            {},
+            {
+              status: request.url.endsWith('/backtests/sample') ? 404 : status,
+            },
+          ),
         ),
-      ),
-    );
-    mount('/system');
-    expect(
-      screen.getByRole('heading', { name: '系统', level: 1 }),
-    ).toBeVisible();
-    expect(await screen.findByText('系统状态加载失败')).toBeVisible();
-    expect(await screen.findByText('暂无示例回测')).toBeVisible();
-    expect(screen.getByText(/后续 U2.*分区水位/)).toBeVisible();
-  });
+      );
+      mount('/system');
+      expect(
+        screen.getByRole('heading', { name: '系统', level: 1 }),
+      ).toBeVisible();
+      const system = within(screen.getByRole('region', { name: '系统状态' }));
+      const error = await system.findByRole('alert');
+      expect(error).toHaveTextContent('系统状态加载失败');
+      expect(error).toHaveTextContent(`HTTP ${status}`);
+      const sample = within(screen.getByRole('region', { name: '示例回测' }));
+      expect(await sample.findByText('暂无示例回测')).toBeVisible();
+      expect(sample.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText(/后续 U2.*分区水位/)).toBeVisible();
+    },
+  );
 
   it('keeps /backtests?job=71 at its original address and requests that job', async () => {
     const job: Job = {
