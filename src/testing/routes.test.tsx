@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Job } from '../api';
+import { createOperationsFixture } from '../api/operationsFixture';
 import { AppRoutes } from '../app/routes/AppRoutes';
 
 let client: QueryClient;
@@ -23,12 +24,13 @@ function CurrentAddress() {
   return <output aria-label="当前地址">{pathname + search}</output>;
 }
 
-function mount(path: string) {
+function mount(path: string, fixture = false) {
+  const operations = fixture ? createOperationsFixture() : undefined;
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
+        <AppRoutes operations={operations} />
         <CurrentAddress />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -78,7 +80,7 @@ describe('终端路由', () => {
       const http = vi.fn();
       vi.stubGlobal('fetch', http);
       const user = userEvent.setup();
-      mount('/blog');
+      mount('/blog', issue === 'U4');
 
       const nav = screen.getByRole('navigation', { name: '主导航' });
       const link = within(nav).getByRole('link', { name: label });
@@ -158,16 +160,26 @@ describe('终端路由', () => {
   it.each([404, 503])(
     'shows an error for system status HTTP %s and an empty sample on its 404',
     async (status) => {
-      vi.stubGlobal('fetch', (request: Request) =>
-        Promise.resolve(
-          Response.json(
-            {},
-            {
-              status: request.url.endsWith('/backtests/sample') ? 404 : status,
-            },
-          ),
-        ),
-      );
+      const requested: string[] = [];
+      vi.stubGlobal('fetch', async (request: Request) => {
+        const url = new URL(request.url);
+        expect(url.origin).toBe(location.origin);
+        expect(request.method).toBe('GET');
+        requested.push(url.pathname);
+        switch (url.pathname) {
+          case '/api/v1/system/status':
+            return Response.json({}, { status });
+          case '/api/v1/backtests/sample':
+            return Response.json({}, { status: 404 });
+          case '/api/v1/me/capabilities':
+            return Response.json({
+              subject: 'anonymous',
+              products: ['system'],
+            });
+          default:
+            throw new Error('Unexpected request in the system route test');
+        }
+      });
       mount('/system');
       expect(
         screen.getByRole('heading', { name: '系统', level: 1 }),
@@ -179,7 +191,13 @@ describe('终端路由', () => {
       const sample = within(screen.getByRole('region', { name: '示例回测' }));
       expect(await sample.findByText('暂无示例回测')).toBeVisible();
       expect(sample.queryByRole('alert')).not.toBeInTheDocument();
-      expect(screen.getByText(/后续 U2.*分区水位/)).toBeVisible();
+      expect(await screen.findByLabelText('管理令牌')).toBeVisible();
+      expect(screen.queryByText(/合成演示/)).not.toBeInTheDocument();
+      expect(requested.sort()).toEqual([
+        '/api/v1/backtests/sample',
+        '/api/v1/me/capabilities',
+        '/api/v1/system/status',
+      ]);
     },
   );
 

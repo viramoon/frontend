@@ -1,5 +1,5 @@
 import { QueryClientContext } from '@tanstack/react-query';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -11,13 +11,26 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import { DataState } from '../../components/TerminalStates';
+import type { OperationsAdapter } from '../../api/operations';
+import { webAlerts, webNotifications } from '../../api/notificationsWeb';
+import { webIntegrations } from '../../api/integrationsWeb';
+import { webRecovery } from '../../api/recoveryWeb';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
 import {
   SystemOverview,
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
+import { Integrations } from '../../features/integrations/Integrations';
+import { WebIntegrations } from '../../features/integrations/WebIntegrations';
+import { Alerts } from '../../features/notifications/Alerts';
+import { Notifications } from '../../features/notifications/Notifications';
+import {
+  SystemDetails,
+  WebSystemDetails,
+} from '../../features/system/SystemDetails';
+import { WebRecovery } from '../../features/system/WebRecovery';
+import { AdminProductAccess } from './AdminProductAccess';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
 import { OptionsTerminal } from '../../features/options/OptionsTerminal';
 import type { ResearchAdapter } from '../../features/research/adapter';
@@ -46,33 +59,6 @@ const navigation = [
   { path: '/system', label: '系统' },
   { path: '/blog', label: '博客' },
 ];
-
-const futurePages = [
-  {
-    path: '/settings/integrations',
-    title: '接口设置',
-    detail: '后续 U4 将接入配置版本、权限、预算状态与连接验证。',
-  },
-  {
-    path: '/alerts',
-    title: '事件',
-    detail: '后续 U4 将提供事件确认、静默与投递记录。',
-  },
-  {
-    path: '/settings/notifications',
-    title: '通知设置',
-    detail: '后续 U4 将提供通知目的地验证与测试发送。',
-  },
-];
-
-function FuturePage({ title, detail }: { title: string; detail: string }) {
-  return (
-    <section className="simple-page">
-      <h1>{title}</h1>
-      <DataState kind="empty" title="功能待接入" detail={detail} illustrated />
-    </section>
-  );
-}
 
 type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
@@ -117,7 +103,11 @@ function BacktestRoute({ adapter, submission }: ResearchProps) {
 
 export function AppRoutes({
   research = fixtureResearch,
-}: { research?: ResearchAdapter } = {}) {
+  operations,
+}: {
+  research?: ResearchAdapter;
+  operations?: OperationsAdapter;
+} = {}) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const queryClient = useContext(QueryClientContext);
@@ -127,6 +117,23 @@ export function AppRoutes({
     });
     void navigate(`/backtests?run=${encodeURIComponent(run)}`);
   });
+  const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
+
+  const resetTest = () => setEmailTestKey(null);
+  const alerts = (
+    <Alerts
+      adapter={operations?.alerts ?? webAlerts}
+      fixture={Boolean(operations)}
+    />
+  );
+  const notifications = (
+    <Notifications
+      adapter={operations?.notifications ?? webNotifications}
+      fixture={Boolean(operations)}
+      testKey={emailTestKey}
+      setTestKey={setEmailTestKey}
+    />
+  );
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -184,13 +191,6 @@ export function AppRoutes({
               </Trading>
             }
           />
-          {futurePages.map(({ path, title, detail }) => (
-            <Route
-              key={path}
-              path={path}
-              element={<FuturePage title={title} detail={detail} />}
-            />
-          ))}
           <Route
             path="/options/flow"
             element={<OptionsTerminal page="flow" />}
@@ -222,21 +222,73 @@ export function AppRoutes({
             }
           />
           <Route
+            path="/settings/integrations"
+            element={
+              operations ? (
+                <Integrations adapter={operations.integrations} fixture />
+              ) : (
+                <AdminProductAccess
+                  title="接口设置"
+                  product="integrations"
+                  resetTest={resetTest}
+                >
+                  <WebIntegrations adapter={webIntegrations} />
+                </AdminProductAccess>
+              )
+            }
+          />
+          <Route
+            path="/alerts"
+            element={
+              operations ? (
+                alerts
+              ) : (
+                <AdminProductAccess
+                  title="事件"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
+                  {alerts}
+                </AdminProductAccess>
+              )
+            }
+          />
+          <Route
+            path="/settings/notifications"
+            element={
+              operations ? (
+                notifications
+              ) : (
+                <AdminProductAccess
+                  title="通知设置"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
+                  {notifications}
+                </AdminProductAccess>
+              )
+            }
+          />
+          <Route
             path="/system"
             element={
               <>
                 <SystemOverview standalone />
-                <section
-                  className="dashboard-section"
-                  aria-labelledby="quality-heading"
-                >
-                  <h2 id="quality-heading">数据质量</h2>
-                  <DataState
-                    kind="empty"
-                    title="数据质量摘要待接入"
-                    detail="后续 U2 将接入分区水位与数据缺口。"
-                  />
-                </section>
+                {operations ? (
+                  <SystemDetails read={operations.readSystem} fixture />
+                ) : (
+                  <>
+                    <WebSystemDetails />
+                    <AdminProductAccess
+                      title="备份与采集质量"
+                      product="integrations"
+                      heading="h2"
+                      resetTest={resetTest}
+                    >
+                      <WebRecovery adapter={webRecovery} />
+                    </AdminProductAccess>
+                  </>
+                )}
               </>
             }
           />

@@ -33,6 +33,7 @@ const status = {
     stale_count: 1,
     updated_at: '2026-11-02T15:30:00Z',
   },
+  notifications: { state: 'idle' },
 } satisfies SystemStatus;
 const sample = {
   run_id: 'sample-run-101',

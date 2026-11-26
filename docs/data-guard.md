@@ -9,8 +9,9 @@ v1 的付费数据、真实行情及衍生样本、截图、录屏、数据库�
 | `market-terminal-v1` | 固定的虚构基价、价格步长、48 个收盘偏移及成交量公式。U2a 的扩展标的按数值种子用 32 位线性同余序列扰动偏移。以固定 UTC 时钟生成 1 小时 K 线及报价，以 BigInt 聚合 4 小时 K 线。价格和数量分别以十进制字符串保存精度。 | 终端、自选列表、精确读数、组件与浏览器渲染测试 |
 | `options-terminal-v1` | SPY 和 AAPL 分别使用 1801 和 1802 的 32 位线性同余序列，由 BigInt 生成虚构报价、流量、IV、gamma、权利金和 GEX。时钟、OI、缺口与条件码由代码设定，flip 由合成情景网格点推导。QQQ 使用固定空态。 | 期权流水、敞口、组件和离线浏览器测试。[期权生成器](../src/features/options/optionsFixture.ts) |
 | U3 合成研究 | finance `b21f241` 的三份配置样例与仓库内的固定演示结果，生成方式见 [研究工作台](../src/features/research/README.md)。 | 策略配置校验、因子报告和作业恢复 |
+| `u4-operations-v1` | 手工定义权限、投递、恢复和采集状态，以 UTC 2000-01-03 12:00 为基准加减固定时长。 | 离线用例，使用显式注入的合成适配器。无提供商样本、邮箱地址或密钥。 |
 
-种子的全部原始参数都在代码内可审查。回放适配器生成合成指标、盘口事件和逐笔，和 OHLCV 生成器分别登记。新增测试样本时，提交生成器及来源说明，列明种子、算法和数据范围，并在检查器登记生成器路径。变更来源由代码审查核对。视觉用例从终端的 `data-fixture-seed` 和可见的 Fixture 标记验证来源。[合成生成器](../src/features/market/marketFixture.ts) · [回放适配器](../src/features/market/fixtureAdapter.ts) · [登记与校验](../scripts/check-data-guard.mjs)
+种子的全部原始参数都在代码内可审查。回放适配器生成合成指标、盘口事件和逐笔，和 OHLCV 生成器分别登记。新增测试样本时，提交生成器及来源说明，列明种子、算法和数据范围，并在检查器登记生成器路径。变更来源由代码审查核对。视觉用例从终端的 `data-fixture-seed` 和可见的 Fixture 标记验证来源。[合成生成器](../src/features/market/marketFixture.ts) · [回放适配器](../src/features/market/fixtureAdapter.ts) · [U4 合成实现](../src/api/operationsFixture.ts) · [登记与校验](../scripts/check-data-guard.mjs)
 
 U3 的首个提交早于 UG 合并。历史范围检查使用首个提交的 SHA 与六个已核对的 blob ID 识别其来源。暂存区及后续快照要求源文件标记，所有快照继续检查正文和数据特征。
 
