@@ -1,8 +1,8 @@
 # frontend
 
-fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，按 trading / backtest / dashboard / blog 功能组织，只调用 web；构建静态文件由 web 托管，不独立起服务。
+fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，按功能组织。API 由 web 同源提供，构建静态文件也由 web 托管。
 
-`/dashboard` 显示 web 返回的系统状态、行情新鲜度和上游示例摘要。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。`/trading` 和 `/blog` 是预留页面。回测操作与异常恢复见 [运行手册](RUNBOOK.md#验证历史回测工作台)，开发流程见 [AGENTS.md](AGENTS.md)。
+`/dashboard` 提供带 fixture 标记的行情终端，可搜索自选、切换 K 线周期，查看成交量、报价和数据来源。系统状态和示例回测也可在 `/system` 查看。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。其余入口和后续接入计划见 [页面地图](docs/architecture.md#页面与功能)，操作与异常恢复见 [运行手册](RUNBOOK.md)，开发流程见 [AGENTS.md](AGENTS.md)。
 
 ## 本地启动
 
@@ -36,8 +36,7 @@ frontend/
 ├── .agents/skills/          本仓库专属 skill 约定
 ├── src/                    应用、页面与测试
 │   ├── app/routes/         页面、provider 与 router
-│   ├── features/           trading / backtest / dashboard / blog
-│   │                       各含 api / components / hooks / types
+│   ├── features/           market / trading / backtest / dashboard / blog
 │   ├── api/generated/      Hey API + TanStack Query，禁止手改
 │   ├── lib/                通用设施说明
 │   └── components/ hooks/ stores/ config/ types/ utils/ testing/

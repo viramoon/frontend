@@ -9,12 +9,20 @@ frontend 交付给 web 的产物是 dist/。在盒子运行服务时，Ruler 使
 ```sh
 curl -fsSI http://127.0.0.1:8090/
 curl -fsS http://127.0.0.1:8090/dashboard
+curl -fsS http://127.0.0.1:8090/system
 curl -fsS http://127.0.0.1:8090/api/v1/system/status
 curl -i http://127.0.0.1:8090/api/v1/backtests/sample
 curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 ```
 
-在浏览器打开 `/dashboard`，核对数据库、finance、行情源和新鲜度，再核对示例摘要的币种与金额。打开 `/backtests` 验证历史工作台。`/trading` 和 `/blog` 可打开并刷新，当前仅为入口。盒子上现有站点使用 `8080`，Ruler 从 `https://fertile.viramoon.com` 验收指向 `127.0.0.1:8090` 的公网路由。
+在浏览器打开 `/system`，核对数据库、finance、行情源和新鲜度，再核对示例摘要的币种与金额。打开 `/backtests` 验证历史工作台，再按页面地图抽查入口的刷新回落。盒子上现有站点使用 `8080`，Ruler 从 `https://fertile.viramoon.com` 验收指向 `127.0.0.1:8090` 的公网路由。[页面地图](docs/architecture.md#页面与功能)
+
+## 验证行情终端
+
+1. 从 `/` 进入 `/dashboard`，核对自选、K 线和成交量、指标占位、报价和来源说明。行情区域应显示「Fixture」演示标记，系统状态来自现有 web 接口。
+2. 搜索并切换标的和周期，查看 K 线精确读数、报价单位与来源时间。切换到其他示例时核对回放、延迟、陈旧、无权或空态文字。清空搜索会恢复自选列表。
+3. 用 `Tab` 移至主导航，核对每次移动时的焦点轮廓，再按 `Enter` 打开聚焦的链接。返回仪表盘并缩窄浏览器，用键盘打开两侧抽屉，使用 `Escape` 关闭并核对焦点回到打开按钮。
+4. 打开 `/trading`、期权、策略详情、因子、设置、告警、系统与博客入口。核对占位说明，确认 `/backtests?job=<id>` 可打开既有作业详情。
 
 ## 故障与回滚
 
@@ -24,7 +32,7 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 | 示例回测无结果 | sample 的 404 会显示空状态。在 finance 上按运行手册生成示例，再刷新页面。 |
 | 刷新路由或资源 404 | 确认 web 指向同一份完整 dist，核对 index 引用的资源名和缓存头。 |
 | 客户端与服务不匹配 | 比较 openapi/web.commit 与实际部署的 web 提交，运行 pnpm check:client。按同一组已验证的 fertile 指针恢复。 |
-| 行情陈旧 | 查看仪表盘的数据源、更新时间和陈旧标的数。检查 finance collector、Gateway 或回放源。 |
+| 行情采集陈旧 | 在 `/system` 查看 web 报告的数据源、更新时间和陈旧标的数。检查 finance collector、Gateway 或回放源。终端的陈旧标记来自 fixture。 |
 
 回滚通过 fertile 的运行手册切换匹配的服务与静态资源。记录部署提交、浏览器访问路径、HTTP 状态、request id 和实际恢复时间。勿在浏览器存放管理员令牌或 IBKR 凭据。
 

@@ -1,17 +1,111 @@
-import { Link, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
+import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
-import { Dashboard } from '../../features/dashboard/Dashboard';
+import {
+  SystemOverview,
+  SystemStatusStrip,
+} from '../../features/dashboard/Dashboard';
+import { MarketTerminal } from '../../features/market/MarketTerminal';
 import { Trading } from '../../features/trading/Trading';
 
 const navigation = [
   { path: '/dashboard', label: '仪表盘' },
   { path: '/trading', label: '交易' },
+  { path: '/options/flow', label: '期权流水' },
+  { path: '/options/exposure', label: '期权敞口' },
+  { path: '/strategies', label: '策略' },
+  { path: '/factors', label: '因子' },
   { path: '/backtests', label: '回测' },
+  { path: '/settings/integrations', label: '接口设置' },
+  { path: '/alerts', label: '事件' },
+  { path: '/settings/notifications', label: '通知设置' },
+  { path: '/system', label: '系统' },
   { path: '/blog', label: '博客' },
 ];
 
+const futurePages = [
+  {
+    path: '/options/flow',
+    title: '期权流水',
+    detail: '后续 U2 将接入期权成交流水、筛选条件和数据来源。',
+  },
+  {
+    path: '/options/exposure',
+    title: '期权敞口',
+    detail: '后续 U2 将按行权价与到期日展示敞口、模型和数据覆盖。',
+  },
+  {
+    path: '/factors',
+    title: '因子',
+    detail: '后续 U3 将展示可引用因子版本、覆盖率、IC 和换手。',
+  },
+  {
+    path: '/settings/integrations',
+    title: '接口设置',
+    detail: '后续 U4 将接入配置版本、权限、预算状态与连接验证。',
+  },
+  {
+    path: '/alerts',
+    title: '事件',
+    detail: '后续 U4 将提供事件确认、静默与投递记录。',
+  },
+  {
+    path: '/settings/notifications',
+    title: '通知设置',
+    detail: '后续 U4 将提供通知目的地验证与测试发送。',
+  },
+];
+
+function FuturePage({ title, detail }: { title: string; detail: string }) {
+  return (
+    <section className="simple-page">
+      <h1>{title}</h1>
+      <DataState kind="empty" title="功能待接入" detail={detail} illustrated />
+    </section>
+  );
+}
+
+function Strategies() {
+  return (
+    <>
+      <FuturePage
+        title="策略"
+        detail="后续 U3 将接入配置校验、不可变版本和策略依赖。"
+      />
+      <p className="route-action">
+        <Link to="/strategies/example">查看策略详情骨架</Link>
+      </p>
+    </>
+  );
+}
+
+function StrategyDetail() {
+  const { id } = useParams();
+  return (
+    <>
+      <FuturePage
+        title="策略详情"
+        detail={`路径中的策略 ID 为 ${id}。后续 U3 将显示策略版本、校验结果与依赖。`}
+      />
+      <p className="route-action">
+        <Link to="/strategies">返回策略</Link>
+      </p>
+    </>
+  );
+}
+
 export function AppRoutes() {
+  const { pathname } = useLocation();
+  const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
       <a className="skip-link" href="#workspace">
@@ -45,13 +139,51 @@ export function AppRoutes() {
             ))}
           </nav>
         </div>
+        {showStatus && <SystemStatusStrip />}
       </header>
       <main id="workspace" className="workspace" tabIndex={-1}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route
+            path="/dashboard"
+            element={
+              <>
+                <h1 className="terminal-title">仪表盘</h1>
+                <MarketTerminal />
+                <SystemOverview />
+              </>
+            }
+          />
           <Route path="/trading" element={<Trading />} />
+          {futurePages.map(({ path, title, detail }) => (
+            <Route
+              key={path}
+              path={path}
+              element={<FuturePage title={title} detail={detail} />}
+            />
+          ))}
+          <Route path="/strategies" element={<Strategies />} />
+          <Route path="/strategies/:id" element={<StrategyDetail />} />
           <Route path="/backtests" element={<Backtests />} />
+          <Route
+            path="/system"
+            element={
+              <>
+                <SystemOverview standalone />
+                <section
+                  className="dashboard-section"
+                  aria-labelledby="quality-heading"
+                >
+                  <h2 id="quality-heading">数据质量</h2>
+                  <DataState
+                    kind="empty"
+                    title="数据质量摘要待接入"
+                    detail="后续 U2 将接入分区水位与数据缺口。"
+                  />
+                </section>
+              </>
+            }
+          />
           <Route path="/blog" element={<Blog />} />
           <Route
             path="*"

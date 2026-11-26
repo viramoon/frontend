@@ -1,3 +1,3 @@
 # 仪表盘查询
 
-[Dashboard](../Dashboard.tsx) 通过全局 [api](../../../api/README.md) 导出的 statusOptions 与 sampleOptions 读取 web。系统状态与示例回测分别缓存、加载和报告错误。
+系统状态详情与状态条复用 `statusOptions`，示例回测使用 `sampleOptions`。两个查询分别缓存和加载。系统状态的 404 响应显示错误，示例回测的 404 响应显示空态。[页面组件](../Dashboard.tsx) · [请求入口](../../../api/README.md)

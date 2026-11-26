@@ -29,6 +29,8 @@ pnpm check:client
 
 `pnpm build` 产出 dist/index.html 和 dist/assets 中带摘要的脚本与样式。将完整 dist 作为同一批构建交给 web 的 WEB_STATIC_ROOT。web 对首页和 SPA 回落使用 no-cache，对带摘要的资源使用一年 immutable 缓存，缺失的资源返回 404。代码库只保存输入、源码和锁文件。
 
+行情终端使用 Apache-2.0 的 TradingView Lightweight Charts，图表区域显示 TradingView 署名。构建产物中的 `third-party/` 包含随库发布的许可证和声明。[Lightweight Charts 声明](../public/third-party/lightweight-charts/NOTICE)
+
 fertile 的 web 源站监听 `127.0.0.1:8090`，现有站点使用 `8080`。Ruler 管理 `https://fertile.viramoon.com` 的入口、路由与验收，具体部署以 fertile 的服务清单为准。
 
 只有 fertile 对外发版。Ruler 使用总仓库的部署入口选择匹配的 web 和静态资源，检查后整体切换或回滚。详见 [fertile 发版规则](https://github.com/viramoon/fertile/blob/main/docs/release.md)。

@@ -4,14 +4,30 @@
 
 ## 页面与功能
 
-| 路由 | 功能 |
-| --- | --- |
-| /dashboard | 仪表盘读取系统状态、数据库与 finance 探测、行情新鲜度及示例回测摘要。根路径进入此页。 |
-| /trading | 交易页面入口，当前仅提供状态说明。 |
-| /backtests | 历史回测工作台。读取已导入的标的与日期覆盖，提交单标的均线作业，浏览队列、结果、绩效覆盖和成交审计。 |
-| /blog | 博客页面入口，当前仅提供页面骨架。 |
+| 路由 | 当前功能 | 后续 web 契约草案 |
+| --- | --- | --- |
+| `/`、`/dashboard` | 根路径进入行情终端。左侧自选和搜索，中央 K 线、成交量和指标面板位，右侧报价、来源、深度与说明。终端下方保留 web 系统状态和示例回测。 | U2 · `/watchlists/{id}`、`/market/instruments`、`/market/bars`、`/indicators`、`/indicators/series`、`/market/book`、`/market/trades`、`/stream/market` |
+| `/trading` | 只读盘口、逐笔成交和衍生品数据的页面骨架。 | U2 · `/market/book`、`/market/trades`、`/market/derivatives`、`/stream/market` |
+| `/options/flow` | 期权成交流页面骨架。 | U2 · `/options/flow` |
+| `/options/exposure` | 期权敞口、行权价和到期分布页面骨架。 | U2 · `/options/exposure` |
+| `/strategies`、`/strategies/:id` | 策略列表、版本与详情的页面骨架，列表可打开示例详情。 | U3 · `/strategies`、`/strategies/validate`、`/strategies/{id}/versions/{version}`、`/strategy-schema/{major}` |
+| `/factors` | 因子目录和质量报告页面骨架。 | U3 · `/factors`、`/factors/{id}/versions/{version}/report` |
+| `/backtests` | 现有历史回测工作台读取 `/backtests` 系列接口。可读取标的和日期覆盖，提交单标的均线作业，也可经 `?job=` 查看作业状态、绩效覆盖和成交审计。 | U3 · `/strategy-runs`、`/strategy-runs/{id}`、`/strategy-runs/by-key`、`/strategy-runs/{id}/artifacts`、`/datasets/imports`、`/datasets/imports/{id}` |
+| `/settings/integrations` | 接口配置及验证的页面骨架。 | U4 · `/me/capabilities`、`/admin/session`、`/integrations/catalog`、`/integrations`、`/integrations/{id}`、`/integrations/{id}/credential`、`/integrations/{id}/tests`、`/integration-tests/{id}` |
+| `/alerts` | 告警事件、确认和静默的页面骨架。 | U4 · `/alerts/rules`、`/alerts/rules/{id}`、`/alerts/events`、`/alerts/events/{id}/ack`、`/alerts/silences`、`/stream/events` |
+| `/settings/notifications` | 通知目的地、测试与投递轨迹的页面骨架。 | U4 · `/notifications/channels`、`/notifications/channels/{id}`、`/notifications/channels/{id}/tests`、`/notifications/deliveries/{id}` |
+| `/system` | 系统状态条、服务探测、行情采集新鲜度和示例回测。沿用 `/system/status` 和 `/backtests/sample`。 | U2 · `/quality/gaps`、`/quality/partitions`，行情明细可沿用已有的 `/market/status` |
+| `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
-页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 校验。页面通过 [src/api](../src/api/README.md) 的生成客户端配合 TanStack Query 访问 web。仪表盘将加载、请求失败和示例摘要为空分别呈现。盈亏作为服务返回的十进制文本直接显示，避免经过 Number 或 parseFloat。
+表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 讨论稿 §E2 中各页面对应的路径，实际接入以合入并锁定的 web 契约为准。当前 U1 继续调用已有系统和回测接口。
+
+页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 及 `scripts/verify-boundaries.mjs` 校验。页面通过生成客户端配合 TanStack Query 访问 web。系统状态和示例回测各有加载提示。系统状态的请求失败（含 404）显示错误提示。示例回测的 404 显示「暂无示例回测」，其余请求失败显示错误提示。盈亏直接显示接口返回的十进制文本。[请求入口](../src/api/README.md)
+
+## 行情终端与 fixture
+
+行情和自选示例保存在 market feature 内。价格、成交量和深度数量使用原始十进制字符串，精确读数直接展示这些字符串。图表坐标在渲染时使用数值近似，报价和读数仍使用源文本。数据源、时间、新鲜度、回放和延迟均显示文字。陈旧行情保留示例读数及陈旧提示，无权和空态显示各自原因。样式使用深靛底和低饱和粉紫，原创简笔只用于空态或说明区。[行情终端](../src/features/market/README.md) · [共享组件](../src/components/README.md)
+
+窄屏使用自选和报价深度抽屉，导航和操作控件支持键盘与可见焦点。顶部状态条显示 web 服务状态，终端在行情区域显示 fixture 标记。
 
 ## 请求、状态与刷新
 
@@ -21,8 +37,8 @@ src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面�
 
 ## 实时消息与陈旧提示
 
-WebSocket / SSE 不在 OpenAPI 范围内，消息协议单独约定。TBD：选择 WS 或 SSE、消息版本、事件类型、标的 / 频道、精确数值编码、事件时间与接收时间单位、序列号 / 恢复游标、快照与增量、错误和重连恢复语义。以上只是设计字段，不创建假消息 schema。
+WebSocket 与 SSE 消息协议单独版本化。v1 草案由 WS 承载行情订阅，SSE 承载通知、质量及作业事件。消息版本、频道、事件时间、接收时间、序列和恢复游标等字段以 finance 输出和 web 消费契约为准。本阶段使用本地 fixture 演示行情状态。
 
-仪表盘使用轮询更新行情源、更新时间和陈旧标的统计。回测页在浏览器离线时保留最近读取的数据并显示离线提示，恢复后支持重新读取。交易执行、实时订阅和风控交互留给后续实现。
+系统面板通过轮询更新服务探测、行情源、更新时间和陈旧标的统计。顶部状态条复用同一查询的缓存并显示摘要。回测页在浏览器离线时保留最近读取的数据并显示离线提示，恢复后支持重新读取。
 
 构建、托管与 tag 追溯见 [build.md](build.md)，系统约定见 [README](README.md)。

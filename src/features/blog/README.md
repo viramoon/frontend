@@ -1,3 +1,3 @@
 # 博客
 
-[Blog](Blog.tsx) 对应 /blog，当前为文章列表的页面占位。内容读取和受控发布需由后续博客功能与 web 契约明确。
+`/blog` 保留文章列表入口，当前展示空态。内容读取及受控发布由后续博客 issue 排期。[Blog](Blog.tsx) · [页面地图](../../../docs/architecture.md#页面与功能)

@@ -1,0 +1,141 @@
+.terminal-data-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid #48415d;
+  border-radius: 0.5rem;
+  background: #211d32;
+  color: #f1e9f8;
+}
+
+.terminal-data-state-detail {
+  margin-top: 0.25rem;
+  color: #c0b4ce;
+  font-size: 0.87rem;
+  line-height: 1.65;
+}
+
+.terminal-data-state-symbol {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  aspect-ratio: 1;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: #d7bde8;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.terminal-data-state-stale .terminal-data-state-symbol {
+  border-radius: 0.25rem;
+  color: #f0c696;
+}
+
+.terminal-data-state-denied .terminal-data-state-symbol {
+  border-style: dashed;
+  color: #f2b2c7;
+}
+
+.terminal-empty-illustration {
+  width: clamp(2.3rem, 7vw, 3.75rem);
+  color: #d7bde8;
+}
+
+.terminal-data-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.terminal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid #58486c;
+  border-radius: 0.3rem;
+  background: #2a223c;
+  color: #e4ccef;
+  font-size: 0.72rem;
+  font-weight: 630;
+  line-height: 1.35;
+}
+
+.terminal-badge::before {
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  border: 1px solid currentColor;
+  content: '';
+}
+
+.terminal-badge.replay::before {
+  width: 0;
+  height: 0;
+  border: 0;
+  border-block: 0.3em solid transparent;
+  border-inline-start: 0.48em solid currentColor;
+}
+
+.terminal-badge.delay,
+.terminal-badge.freshness-stale {
+  border-color: #785b4f;
+  background: #362b35;
+  color: #f0c696;
+}
+
+.terminal-badge.delay::before {
+  border-radius: 50%;
+}
+
+.terminal-badge.freshness-stale::before {
+  transform: rotate(45deg);
+}
+
+.terminal-badge.freshness-current {
+  border-color: #45665f;
+  background: #202f37;
+  color: #a9e5d6;
+}
+
+.terminal-badge.freshness-current::before {
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.terminal-badge.freshness-unknown {
+  border-style: dashed;
+}
+
+.terminal-source-details,
+.terminal-source-details dl {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.terminal-source-details dl > div {
+  display: grid;
+  grid-template-columns: 4em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.terminal-source-details dt {
+  color: #c0b4ce;
+}
+
+.terminal-source-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
