@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import type { Auth } from './generated/client';
 import { client } from './generated/client.gen';
 
 export {
@@ -18,6 +19,11 @@ export type {
   ResearchReport,
   SystemStatus,
 } from './generated/types.gen';
+
+export function bearerAuth(token: string) {
+  return ({ type, scheme }: Auth) =>
+    type === 'http' && scheme === 'bearer' ? token : undefined;
+}
 
 export class WebRequestError extends Error {
   constructor(

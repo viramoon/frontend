@@ -1,5 +1,11 @@
 import { useRef, useState } from 'react';
-import { byKey, submit, WebRequestError, type JobRequest } from '../../api';
+import {
+  bearerAuth,
+  byKey,
+  submit,
+  WebRequestError,
+  type JobRequest,
+} from '../../api';
 
 type Pending = { key: string; request: JobRequest };
 const storageKey = 'fertile.pending-backtest';
@@ -51,7 +57,7 @@ export function useSubmission(accepted: (id: number) => void) {
     setAbsent(false);
     try {
       const { data } = await byKey({
-        auth: token,
+        auth: bearerAuth(token),
         headers: { 'Idempotency-Key': item.key },
         cache: 'no-store',
         signal: AbortSignal.timeout(10_000),
@@ -78,7 +84,7 @@ export function useSubmission(accepted: (id: number) => void) {
   async function post(item: Pending, token: string, first: boolean) {
     try {
       const { data } = await submit({
-        auth: token,
+        auth: bearerAuth(token),
         headers: { 'Idempotency-Key': item.key },
         body: item.request,
         signal: AbortSignal.timeout(10_000),

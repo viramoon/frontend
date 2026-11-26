@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ByKeyData, ByKeyErrors, ByKeyResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DetailData, DetailErrors, DetailResponses, ListData, ListErrors, ListResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, ReadyData, ReadyErrors, ReadyResponses, SampleData, SampleErrors, SampleResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses } from './types.gen';
+import type { ByKeyData, ByKeyErrors, ByKeyResponses, CapabilitiesData, CapabilitiesResponses, CatalogData, CatalogErrors, CatalogResponses, CreateData, CreateErrors, CreateResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DeleteCredentialData, DeleteCredentialErrors, DeleteCredentialResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DetailData, DetailErrors, DetailResponses, GetTestData, GetTestErrors, GetTestResponses, List2Data, List2Errors, List2Responses, ListData, ListErrors, ListResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, PutCredentialData, PutCredentialErrors, PutCredentialResponses, ReadyData, ReadyErrors, ReadyResponses, SampleData, SampleErrors, SampleResponses, StartTestData, StartTestErrors, StartTestResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -18,10 +18,30 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
 
+export const deleteSession = <ThrowOnError extends boolean = false>(options: Options<DeleteSessionData, ThrowOnError>): RequestResult<DeleteSessionResponses, DeleteSessionErrors, ThrowOnError> => (options.client ?? client).delete<DeleteSessionResponses, DeleteSessionErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/admin/session',
+    ...options
+});
+
+export const createSession = <ThrowOnError extends boolean = false>(options: Options<CreateSessionData, ThrowOnError>): RequestResult<CreateSessionResponses, CreateSessionErrors, ThrowOnError> => (options.client ?? client).post<CreateSessionResponses, CreateSessionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/admin/session',
+    ...options
+});
+
 export const list = <ThrowOnError extends boolean = false>(options?: Options<ListData, ThrowOnError>): RequestResult<ListResponses, ListErrors, ThrowOnError> => (options?.client ?? client).get<ListResponses, ListErrors, ThrowOnError>({ url: '/api/v1/backtests', ...options });
 
 export const submit = <ThrowOnError extends boolean = false>(options: Options<SubmitData, ThrowOnError>): RequestResult<SubmitResponses, SubmitErrors, ThrowOnError> => (options.client ?? client).post<SubmitResponses, SubmitErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
     url: '/api/v1/backtests',
     ...options,
     headers: {
@@ -31,7 +51,11 @@ export const submit = <ThrowOnError extends boolean = false>(options: Options<Su
 });
 
 export const byKey = <ThrowOnError extends boolean = false>(options: Options<ByKeyData, ThrowOnError>): RequestResult<ByKeyResponses, ByKeyErrors, ThrowOnError> => (options.client ?? client).get<ByKeyResponses, ByKeyErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
     url: '/api/v1/backtests/by-key',
     ...options
 });
@@ -42,7 +66,109 @@ export const sample = <ThrowOnError extends boolean = false>(options?: Options<S
 
 export const detail = <ThrowOnError extends boolean = false>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, DetailErrors, ThrowOnError> => (options.client ?? client).get<DetailResponses, DetailErrors, ThrowOnError>({ url: '/api/v1/backtests/{id}', ...options });
 
+export const getTest = <ThrowOnError extends boolean = false>(options: Options<GetTestData, ThrowOnError>): RequestResult<GetTestResponses, GetTestErrors, ThrowOnError> => (options.client ?? client).get<GetTestResponses, GetTestErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integration-tests/{id}',
+    ...options
+});
+
+export const list2 = <ThrowOnError extends boolean = false>(options?: Options<List2Data, ThrowOnError>): RequestResult<List2Responses, List2Errors, ThrowOnError> => (options?.client ?? client).get<List2Responses, List2Errors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations',
+    ...options
+});
+
+export const create = <ThrowOnError extends boolean = false>(options: Options<CreateData, ThrowOnError>): RequestResult<CreateResponses, CreateErrors, ThrowOnError> => (options.client ?? client).post<CreateResponses, CreateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const catalog = <ThrowOnError extends boolean = false>(options?: Options<CatalogData, ThrowOnError>): RequestResult<CatalogResponses, CatalogErrors, ThrowOnError> => (options?.client ?? client).get<CatalogResponses, CatalogErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/catalog',
+    ...options
+});
+
+export const update = <ThrowOnError extends boolean = false>(options: Options<UpdateData, ThrowOnError>): RequestResult<UpdateResponses, UpdateErrors, ThrowOnError> => (options.client ?? client).patch<UpdateResponses, UpdateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const deleteCredential = <ThrowOnError extends boolean = false>(options: Options<DeleteCredentialData, ThrowOnError>): RequestResult<DeleteCredentialResponses, DeleteCredentialErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCredentialResponses, DeleteCredentialErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/credential',
+    ...options
+});
+
+export const putCredential = <ThrowOnError extends boolean = false>(options: Options<PutCredentialData, ThrowOnError>): RequestResult<PutCredentialResponses, PutCredentialErrors, ThrowOnError> => (options.client ?? client).put<PutCredentialResponses, PutCredentialErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/credential',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const startTest = <ThrowOnError extends boolean = false>(options: Options<StartTestData, ThrowOnError>): RequestResult<StartTestResponses, StartTestErrors, ThrowOnError> => (options.client ?? client).post<StartTestResponses, StartTestErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/tests',
+    ...options
+});
+
 export const marketStatus = <ThrowOnError extends boolean = false>(options?: Options<MarketStatusData, ThrowOnError>): RequestResult<MarketStatusResponses, MarketStatusErrors, ThrowOnError> => (options?.client ?? client).get<MarketStatusResponses, MarketStatusErrors, ThrowOnError>({ url: '/api/v1/market/status', ...options });
+
+export const capabilities = <ThrowOnError extends boolean = false>(options?: Options<CapabilitiesData, ThrowOnError>): RequestResult<CapabilitiesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<CapabilitiesResponses, unknown, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/me/capabilities',
+    ...options
+});
 
 export const status = <ThrowOnError extends boolean = false>(options?: Options<StatusData, ThrowOnError>): RequestResult<StatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<StatusResponses, unknown, ThrowOnError>({ url: '/api/v1/system/status', ...options });
 
