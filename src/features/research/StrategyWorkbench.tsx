@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import type {
-  Compilation,
-  CompiledPlan,
-  ResearchAdapter,
-  Strategy,
-  StrategySource,
+import {
+  researchNetworkMode,
+  type Compilation,
+  type CompiledPlan,
+  type ResearchAdapter,
+  type Strategy,
+  type StrategySource,
 } from './adapter';
 import { bundles, errorFile } from './fixtures/catalog';
 import { InvalidYaml, maxYamlBytes } from './fixtureYaml';
@@ -76,6 +77,7 @@ export function StrategyWorkbench({
   const [search] = useSearchParams();
   const version = search.get('version');
   const catalog = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: ['research', adapter.source, 'strategies'],
     queryFn: () => adapter.listStrategies(),
   });
@@ -499,6 +501,7 @@ function RunForm({
   submission: RunSubmission;
 }) {
   const datasets = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: [
       'research',
       adapter.source,

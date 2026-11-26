@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import type {
-  ResearchAdapter,
-  RunRequest,
-  RunResult,
-  RunStatus,
+import {
+  researchNetworkMode,
+  type ResearchAdapter,
+  type RunRequest,
+  type RunResult,
+  type RunStatus,
 } from './adapter';
 import {
   FixtureNotice,
@@ -39,12 +40,14 @@ export function RunWorkbench({
   const [search, setSearch] = useSearchParams();
   const id = search.get('run') || '';
   const list = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: ['research', adapter.source, 'runs'],
     queryFn: () => adapter.listRuns(),
     refetchInterval: (query) =>
       query.state.data?.some((run) => active(run.status)) ? 1000 : false,
   });
   const detail = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: ['research', adapter.source, 'run', id],
     queryFn: () => adapter.run(id),
     enabled: Boolean(id),

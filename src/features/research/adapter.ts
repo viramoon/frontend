@@ -153,3 +153,8 @@ export interface ResearchAdapter {
   submit(request: RunRequest, key: string): Promise<{ id: string }>;
   byKey(key: string): Promise<RunLookup>;
 }
+
+// Only the local adapter can resolve queries while the browser is offline.
+export function researchNetworkMode(source: ResearchAdapter['source']) {
+  return source === 'fixture' ? 'always' : 'online';
+}

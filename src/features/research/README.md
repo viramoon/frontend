@@ -14,12 +14,12 @@
 | `submit`、`byKey` | 提交固定版本、哈希、数据集和时间窗，以及调用方生成的幂等键。失败后先按键查询。只有明确查无原作业时才能重试，重试使用原参数与原键。 |
 | `listRuns`、`run` | 列出作业与状态并按 ID 查询。成功详情返回运行清单、模拟成交账本与基准，排队及运行中的详情继续轮询。 |
 
-YAML 内容和客户端诊断不写入浏览器存储。会话存储保留待确认请求的不可变引用、时间窗、数据集与幂等键，合成适配层还保存演示作业元数据。通过两个入口提交同一版本和时间窗时，结果可比较，两次主动提交各有自己的作业 ID。对同一作业键重试会确认或返回原作业。
+静态应用已加载时，合成目录、报告和作业查询在断网及空查询缓存下可运行。web 适配仍使用在线查询模式。YAML 内容和客户端诊断不写入浏览器存储。会话存储保留待确认请求的不可变引用、时间窗、数据集与幂等键，合成适配层还保存演示作业元数据。通过两个入口提交同一版本和时间窗时，结果可比较，两次主动提交各有自己的作业 ID。对同一作业键重试会确认或返回原作业。
 
 ## 合成来源与校验
 
-- [entry-exit.yaml](fixtures/entry-exit.yaml)、[target-weights.yaml](fixtures/target-weights.yaml) 和 [future-data.yaml](fixtures/future-data.yaml) 取自 finance `b21f241` 的 `strategies/fixtures/strategy-bundle/v1/`，用本仓库 Prettier 格式化。这些配置只引用示例目录。使用本地 F2 编译器运行 `finance-strategy compile <文件>` 可核对内容哈希和晚到日线诊断。
-- 浏览器解析上传文件，只为与内置合成配置等价的版本返回已核验的预览。可改注释、键顺序和等值十进制尾零。晚到日线的合成错误文件重放 F2 返回的位置，其他语法错误显示解析器给出的行列。局部校验支持 256 KiB 和 UTF-8 限制。
+- [entry-exit.yaml](fixtures/entry-exit.yaml)、[target-weights.yaml](fixtures/target-weights.yaml) 和 [future-data.yaml](fixtures/future-data.yaml) 取自 finance `b21f241` 的 `strategies/fixtures/strategy-bundle/v1/`，用本仓库 Prettier 格式化并附合成来源标记。这些配置只引用示例目录。使用本地 F2 编译器运行 `finance-strategy compile <文件>` 可核对内容哈希和晚到日线诊断。
+- 浏览器解析上传文件，只为与内置合成配置等价的版本返回已核验的预览。可改注释、键顺序和等值十进制尾零。数值字面量须能精确表示为安全整数，带引号的十进制金额与权重保留精度。与晚到日线样例等价的文件返回 `FUTURE_DATA`，行列根据此次上传的标量位置计算。语法错误使用解析器的行列。局部校验支持 256 KiB 和 UTF-8 限制。
 - [目录与因子报告](fixtures/catalog.ts) 的指标、覆盖计数与日期均为手写常量。合成作业根据选定配方与时间窗，选择固定的权益、基准和 `SYN.XNYS` 账本值，快照摘要是演示标识。生成方式无需随机种子、真实行情、账户数据或外部调用。价格、数量、金额、权重和报告小数按十进制字符串呈现。
 - `research.factor-momentum@1.0.0` 对应 F8 保留的只读研究 ID，此处展示登记状态与结论，省略原报告数据。
 

@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import type { Factor, FactorReport, ResearchAdapter } from './adapter';
+import {
+  researchNetworkMode,
+  type Factor,
+  type FactorReport,
+  type ResearchAdapter,
+} from './adapter';
 import { FixtureNotice, LoadFailure } from './ResearchStates';
 
 const stateLabel = {
@@ -20,6 +25,7 @@ const factorKey = ({ id, version }: Factor) => `${id}@${version}`;
 export function FactorCatalog({ adapter }: { adapter: ResearchAdapter }) {
   const [choice, setChoice] = useState('');
   const catalog = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: ['research', adapter.source, 'factors'],
     queryFn: () => adapter.listFactors(),
   });
@@ -106,6 +112,7 @@ function Evaluation({
   factor: Factor;
 }) {
   const report = useQuery({
+    networkMode: researchNetworkMode(adapter.source),
     queryKey: [
       'research',
       adapter.source,

@@ -21,8 +21,11 @@ import { fixtureFingerprint, InvalidYaml, readYaml } from './fixtureYaml';
 
 const compiled = bundles.map(({ plan, yaml }) => ({
   plan,
-  fingerprint: fixtureFingerprint(readYaml(yaml)),
+  fingerprint: fixtureFingerprint(readYaml(yaml).value),
 }));
+const futureDataFingerprint = fixtureFingerprint(
+  readYaml(errorFile.yaml).value,
+);
 const strategies: Strategy[] = [
   ...bundles.map(({ plan }) => ({
     kind: 'backtest' as const,
@@ -66,23 +69,25 @@ function lookupMetadata(value: unknown) {
 }
 
 function compileYaml(content: string): Compilation {
-  if (content === errorFile.yaml) {
-    return invalid({
-      code: 'FUTURE_DATA',
-      path: '/spec/data/bars',
-      message: '日线在决策截止后才发布，请选择收盘时已可得的数据。',
-      location: { line: 11, column: 13 },
-    });
-  }
   try {
-    const value = readYaml(content);
+    const { value, scalarLocation } = readYaml(content, errorFile.bars);
+    const fingerprint = fixtureFingerprint(value);
+    // The delayed bars reference appears once in this fixture, at /spec/data/bars.
+    if (fingerprint === futureDataFingerprint) {
+      return invalid({
+        code: 'FUTURE_DATA',
+        path: '/spec/data/bars',
+        message: '日线在决策截止后才发布，请选择收盘时已可得的数据。',
+        location: scalarLocation,
+      });
+    }
     const version = lookupMetadata(value);
     if (version?.id === researchOnly.id) return researchOnlyError();
     const known =
       version &&
       compiled.find(({ plan }) => sameVersion(plan.revision, version));
     if (!known) return unavailable();
-    if (known.fingerprint !== fixtureFingerprint(value)) {
+    if (known.fingerprint !== fingerprint) {
       return invalid({
         code: 'FIXTURE_CONTENT_MISMATCH',
         path: '',

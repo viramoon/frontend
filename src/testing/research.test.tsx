@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   cleanup,
   render,
@@ -10,6 +14,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { queryClient } from '../api';
 import { AppRoutes } from '../app/routes/AppRoutes';
 import type { ResearchAdapter } from '../features/research/adapter';
 import { fixtureResearch } from '../features/research/fixtureAdapter';
@@ -26,6 +31,7 @@ const blockedHttp = vi.fn(() => {
   throw new Error('Research fixture screens must not make HTTP requests');
 });
 const clients: QueryClient[] = [];
+let wasOnline: boolean;
 
 function CurrentAddress() {
   const { pathname, search } = useLocation();
@@ -39,7 +45,7 @@ function CurrentAddress() {
 
 function mount(path: string, adapter = fixtureResearch) {
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: queryClient.getDefaultOptions(),
   });
   clients.push(client);
   return render(
@@ -75,6 +81,7 @@ async function startRun(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  wasOnline = onlineManager.isOnline();
   sessionStorage.clear();
   blockedHttp.mockClear();
   vi.stubGlobal('fetch', blockedHttp);
@@ -83,6 +90,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   for (const client of clients.splice(0)) client.clear();
+  onlineManager.setOnline(wasOnline);
   sessionStorage.clear();
   vi.unstubAllGlobals();
   expect(blockedHttp).not.toHaveBeenCalled();
@@ -127,11 +135,9 @@ describe('配置策略与因子工作台', () => {
     }).textContent;
 
     await user.click(screen.getByRole('link', { name: '选择策略' }));
-    await upload(
-      user,
-      '# Local synthetic copy\n' +
-        sample.yaml.replace('"100000.00"', '"100000.0000"'),
-    );
+    const equivalentYaml = sample.yaml.replace("'100000.00'", "'100000.0000'");
+    expect(equivalentYaml).not.toBe(sample.yaml);
+    await upload(user, '# Local synthetic copy\n' + equivalentYaml);
     const uploaded = await screen.findByRole('region', { name: '编译预览' });
     expect(uploaded.textContent).toBe(preview);
     await user.selectOptions(
@@ -158,7 +164,31 @@ describe('配置策略与因子工作台', () => {
       '/backtests?run=fixture-2',
     );
     expect(screen.getByRole('link', { name: 'fixture-1' })).toBeVisible();
+    const originalRun = await fixtureResearch.run('fixture-1');
+    const repeatedRun = await fixtureResearch.run('fixture-2');
+    expect(originalRun?.status).toBe('succeeded');
+    // This includes the entire run manifest and benchmark, as well as the
+    // version, dataset, time window and ledger.
+    expect(repeatedRun).toEqual({ ...originalRun, id: 'fixture-2' });
   }, 12000);
+
+  it.each(bundles)(
+    'resolves formatted $filename to its registered plan',
+    async ({ yaml, plan }) => {
+      const registered = await fixtureResearch.compile({
+        kind: 'registered',
+        selection: plan.revision,
+      });
+      expect(registered).toEqual({ kind: 'compiled', plan });
+      const formatted = ('# Synthetic formatting\n' + yaml).replaceAll(
+        '\n',
+        '\r\n',
+      );
+      expect(
+        await fixtureResearch.compile({ kind: 'yaml', content: formatted }),
+      ).toEqual(registered);
+    },
+  );
 
   it('selects a registered revision from a strategy detail deep link', async () => {
     const user = userEvent.setup();
@@ -203,6 +233,72 @@ describe('配置策略与因子工作台', () => {
       'FIXTURE_CONTENT_MISMATCH',
     );
   });
+
+  it.each(['20.000000000000000001', '2.0000000000000000001e1'])(
+    'rejects the exact fractional YAML number %s instead of reusing version 1.0.0',
+    async (numericInput) => {
+      const user = userEvent.setup();
+      mount('/strategies');
+      const changed = sample.yaml.replace(
+        'lookback_sessions: 20',
+        `lookback_sessions: ${numericInput}`,
+      );
+      expect(changed).not.toBe(sample.yaml);
+      await upload(user, changed);
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'INVALID_NUMBER',
+      );
+      expect(
+        screen.queryByRole('region', { name: '编译预览' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: '运行示例回测' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(['20.000', '2e1', '0x14'])(
+    'accepts %s as an exact integer 20',
+    async (numericInput) => {
+      const content = sample.yaml.replace(
+        'lookback_sessions: 20',
+        `lookback_sessions: ${numericInput}`,
+      );
+      expect(content).not.toBe(sample.yaml);
+      expect(await fixtureResearch.compile({ kind: 'yaml', content })).toEqual({
+        kind: 'compiled',
+        plan: sample.plan,
+      });
+    },
+  );
+
+  it.each([
+    ['leading comment', '# Synthetic formatting\n' + errorFile.yaml, 12, 13],
+    ['CRLF', errorFile.yaml.replaceAll('\n', '\r\n'), 11, 13],
+    [
+      'reindent',
+      errorFile.yaml.replace('      bars:', '        bars:'),
+      11,
+      15,
+    ],
+  ] as const)(
+    'finds the original YAML scalar position with %s',
+    async (_label, content, line, column) => {
+      const user = userEvent.setup();
+      mount('/strategies');
+      expect(content).not.toBe(errorFile.yaml);
+      await upload(user, content);
+      const diagnostic = await screen.findByRole('alert');
+      expect(diagnostic).toHaveTextContent(
+        `第 ${line} 行，第 ${column} 列 · FUTURE_DATA`,
+      );
+      expect(diagnostic).toHaveTextContent('/spec/data/bars');
+      expect(diagnostic).toHaveTextContent('日线在决策截止后才发布');
+      expect(
+        screen.queryByRole('button', { name: '运行示例回测' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it.each([
     ['oversized', new Uint8Array(maxYamlBytes + 1), 'FILE_TOO_LARGE'],
@@ -309,6 +405,51 @@ describe('配置策略与因子工作台', () => {
     expect(
       screen.queryByRole('region', { name: '样本外 IC 衰减表' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('研究工作台断网', () => {
+  it('loads uncached fixture strategies, datasets, reports and run details with the network offline', async () => {
+    onlineManager.setOnline(false);
+    const user = userEvent.setup();
+    const original = mount('/strategies');
+    await previewRegistered(user);
+    expect(
+      await screen.findByRole('option', { name: '合成美股日线' }),
+    ).toBeVisible();
+    await startRun(user);
+    expect(
+      await screen.findByText(
+        '100025.620000000000000002',
+        {},
+        { timeout: 3500 },
+      ),
+    ).toBeVisible();
+    original.unmount();
+
+    const factors = mount('/factors');
+    expect(await screen.findByText('0.123456789012345678')).toBeVisible();
+    factors.unmount();
+
+    mount('/backtests?run=fixture-1');
+    expect(
+      await screen.findByRole('link', { name: 'fixture-1' }),
+    ).toBeVisible();
+    expect(await screen.findByText('101.125000000000000001')).toBeVisible();
+    expect(onlineManager.isOnline()).toBe(false);
+  }, 9000);
+
+  it('keeps web-backed research queries paused while offline', async () => {
+    onlineManager.setOnline(false);
+    const listStrategies = vi.fn(fixtureResearch.listStrategies);
+    mount('/strategies', { ...fixtureResearch, source: 'web', listStrategies });
+    await waitFor(() => {
+      expect(
+        clients.at(-1)?.getQueryState(['research', 'web', 'strategies'])
+          ?.fetchStatus,
+      ).toBe('paused');
+    });
+    expect(listStrategies).not.toHaveBeenCalled();
   });
 });
 

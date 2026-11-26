@@ -77,7 +77,11 @@ export const bundles: { filename: string; yaml: string; plan: CompiledPlan }[] =
     },
   ];
 
-export const errorFile = { filename: 'future-data.yaml', yaml: futureData };
+export const errorFile = {
+  filename: 'future-data.yaml',
+  yaml: futureData,
+  bars: 'example.delayed-us-daily@1.0.0',
+};
 
 export const researchOnly: Strategy = {
   kind: 'research_only',
