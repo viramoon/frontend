@@ -205,6 +205,56 @@ type SampleContract = OptionContract & {
   iv: string | null;
 };
 
+function makeFlip(base: bigint, scenario: Scenario): ExposureSeries['flip'] {
+  if (scenario === 'absolute')
+    return { kind: 'not_evaluated', reason: '绝对集中度没有净方向。' };
+
+  const from = base - 5n;
+  const to = base + 5n;
+  const step = 1n;
+  const points: { spot: bigint; exposure: bigint }[] = [];
+  for (let spot = from; spot <= to; spot += step) {
+    // Synthetic backend projection in USD per 1% move, built from two
+    // unsigned legs with fixed slopes. These points simulate a response.
+    const offset = (spot - from) / step;
+    const call = 5750n + 600n * offset;
+    const put = 11000n - 400n * offset;
+    const exposure =
+      scenario === 'callPositive'
+        ? call - put
+        : (scenario === 'dealerShort' ? -1n : 1n) * (call + put);
+    points.push({ spot, exposure });
+  }
+
+  const grid = {
+    from: from.toString(),
+    to: to.toString(),
+    step: step.toString(),
+    pricingModel: '合成线性网格 v1',
+    ivBasis: '合成合约 IV 固定',
+    riskFreeRate: '0.04',
+    dividendYield: '0.01',
+    points: points.map(({ spot, exposure }) => ({
+      spot: spot.toString(),
+      exposure: exposure.toString(),
+    })),
+  };
+
+  const spots = points.flatMap(({ spot, exposure }, index) => {
+    if (exposure === 0n) return [spot.toString()];
+    const next = points[index + 1];
+    if (!next || exposure * next.exposure >= 0n) return [];
+    // Interpolate the signed bracket in cents. Sample roots fall on whole cents.
+    const offsetCents =
+      -(exposure * (next.spot - spot) * 100n) / (next.exposure - exposure);
+    return [scaledDecimal(spot * 100n + offsetCents, 2)];
+  });
+
+  return spots.length
+    ? { kind: 'crossings', grid, spots }
+    : { kind: 'none', grid };
+}
+
 function makeSeries(
   base: bigint,
   spotCents: bigint,
@@ -278,27 +328,6 @@ function makeSeries(
     }
   }
 
-  const grid = {
-    from: (base - 5n).toString(),
-    to: (base + 5n).toString(),
-    step: '1',
-    pricingModel: '合成网格回放 v1',
-    ivBasis: '合成合约 IV 固定',
-    riskFreeRate: '0.04',
-    dividendYield: '0.01',
-  };
-  // This is a canned repricing outcome for display tests; no option pricer runs.
-  const flip: ExposureSeries['flip'] =
-    scenario === 'absolute'
-      ? { kind: 'not_evaluated', reason: '绝对集中度没有净方向。' }
-      : scenario === 'callPositive'
-        ? {
-            kind: 'crossings',
-            grid,
-            spots: [scaledDecimal(base * 100n + 25n, 2)],
-          }
-        : { kind: 'none', grid };
-
   return {
     byStrike,
     byExpiry: [...expiries.entries()]
@@ -308,7 +337,7 @@ function makeSeries(
         exposure: scaledDecimal(value, 12),
       })),
     walls,
-    flip,
+    flip: makeFlip(base, scenario),
   };
 }
 

@@ -78,6 +78,7 @@ type FlipGrid = {
   ivBasis: string;
   riskFreeRate: DecimalText;
   dividendYield: DecimalText;
+  points: readonly { spot: DecimalText; exposure: DecimalText }[];
 };
 
 type Flip =

@@ -123,7 +123,7 @@ function OptionsReadingView({
       {page === 'flow' ? (
         <OptionsFlow reading={flow} />
       ) : (
-        <OptionsExposure reading={exposure} />
+        <OptionsExposure reading={exposure} fixture={Boolean(fixtureSeed)} />
       )}
     </div>
   );

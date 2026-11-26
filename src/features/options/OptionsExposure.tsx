@@ -80,7 +80,13 @@ function ExposureTable({
   );
 }
 
-function ExposureFlip({ flip }: { flip: ExposureSeries['flip'] }) {
+function ExposureFlip({
+  flip,
+  fixture,
+}: {
+  flip: ExposureSeries['flip'];
+  fixture: boolean;
+}) {
   return (
     <section className="option-panel" aria-labelledby="option-flip">
       <h2 id="option-flip">Gamma flip</h2>
@@ -88,6 +94,11 @@ function ExposureFlip({ flip }: { flip: ExposureSeries['flip'] }) {
         <DataState kind="empty" title="未评估 flip" detail={flip.reason} />
       ) : (
         <>
+          <p className="option-note">
+            {fixture
+              ? '后端情景网格的过零点（当前为合成样例）'
+              : '后端情景网格的过零点'}
+          </p>
           {flip.kind === 'none' ? (
             <DataState
               kind="empty"
@@ -96,7 +107,7 @@ function ExposureFlip({ flip }: { flip: ExposureSeries['flip'] }) {
             />
           ) : (
             <p>
-              网格过零点（USD） ·{' '}
+              现货价格（USD） ·{' '}
               <span className="option-number">{flip.spots.join('、')}</span>
             </p>
           )}
@@ -108,7 +119,7 @@ function ExposureFlip({ flip }: { flip: ExposureSeries['flip'] }) {
               </dd>
             </div>
             <div>
-              <dt>重估模型</dt>
+              <dt>后端网格模型</dt>
               <dd>{flip.grid.pricingModel}</dd>
             </div>
             <div>
@@ -122,6 +133,33 @@ function ExposureFlip({ flip }: { flip: ExposureSeries['flip'] }) {
               </dd>
             </div>
           </dl>
+          <details className="option-record">
+            <summary>查看情景网格点</summary>
+            <div
+              className="option-table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="情景网格点"
+            >
+              <table className="option-table">
+                <caption className="option-visually-hidden">情景网格点</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">现货价格（USD）</th>
+                    <th scope="col">净 GEX（USD / 1%）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {flip.grid.points.map(({ spot, exposure }) => (
+                    <tr key={spot}>
+                      <th scope="row">{spot}</th>
+                      <td className="option-number">{exposure}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
         </>
       )}
     </section>
@@ -231,7 +269,13 @@ function ExposureInputs({ reading }: { reading: ReadyExposure }) {
   );
 }
 
-export function OptionsExposure({ reading }: { reading: ExposureReading }) {
+export function OptionsExposure({
+  reading,
+  fixture,
+}: {
+  reading: ExposureReading;
+  fixture: boolean;
+}) {
   const [scenario, setScenario] = useState<Scenario>('absolute');
   if (reading.kind === 'empty')
     return (
@@ -319,7 +363,7 @@ export function OptionsExposure({ reading }: { reading: ExposureReading }) {
       </section>
       <div className="option-columns">
         <ExposureCoverage reading={reading} />
-        <ExposureFlip flip={series.flip} />
+        <ExposureFlip flip={series.flip} fixture={fixture} />
       </div>
       <ExposureInputs reading={reading} />
     </>

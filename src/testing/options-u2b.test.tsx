@@ -13,6 +13,7 @@ import { AppRoutes } from '../app/routes/AppRoutes';
 import { OptionsTerminal } from '../features/options/OptionsTerminal';
 import type { OptionsReading } from '../features/options/optionsData';
 import { optionsFixtureAdapter } from '../features/options/optionsFixture';
+import { decimalKeys } from '../features/options/decimal';
 
 function mount(page: 'flow' | 'exposure') {
   return render(
@@ -162,6 +163,26 @@ describe('U2b 期权终端', () => {
     expect(results().queryByText('历史逐笔 · 已核验')).toBeNull();
   });
 
+  it('filters by trade condition independently of other filters', async () => {
+    mount('flow');
+    await screen.findByRole('list', { name: '流水结果' });
+    choose('成交条件', 'complex');
+
+    const rows = results().getAllByRole('listitem');
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText('明确多腿 · 方向未知')).toBeVisible();
+  });
+
+  it('filters by confidence independently of other filters', async () => {
+    mount('flow');
+    await screen.findByRole('list', { name: '流水结果' });
+    choose('置信度', 'high');
+
+    expect(results().getAllByRole('listitem')).toHaveLength(3);
+    expect(results().getAllByText('权利金 64030 USD')).toHaveLength(2);
+    expect(results().getByText('权利金 4940 USD')).toBeVisible();
+  });
+
   it('combines expiry, 0DTE, condition, confidence and exact premium filters', async () => {
     mount('flow');
     await screen.findByRole('list', { name: '流水结果' });
@@ -267,11 +288,80 @@ describe('U2b 期权终端', () => {
     choose('敞口情景', 'callPositive');
     expect(flip.getByText('314.25')).toBeVisible();
     expect(flip.queryByText('此情景无 flip')).toBeNull();
+    expect(
+      flip.getByText('后端情景网格的过零点（当前为合成样例）'),
+    ).toBeVisible();
+    expect(flip.getByText('合成线性网格 v1')).toBeVisible();
+    fireEvent.click(flip.getByText('查看情景网格点'));
+    expect(row('情景网格点', '314')).toEqual(['-250']);
+    expect(row('情景网格点', '315')).toEqual(['750']);
 
     choose('标的', 'QQQ');
     expect(await screen.findByText('暂无期权敞口数据')).toBeVisible();
     expect(screen.queryByRole('region', { name: 'Gamma flip' })).toBeNull();
   });
+
+  it.each(['SPY', 'AAPL'])(
+    'verifies %s flip outcomes against the supplied scenario grid',
+    async (symbol) => {
+      const { exposure } = await optionsFixtureAdapter.read(
+        symbol,
+        new AbortController().signal,
+      );
+      if (exposure.kind !== 'ready') throw new Error('Expected exposure data');
+      const { absolute, dealerShort, dealerLong, callPositive } =
+        exposure.scenarios;
+      expect(absolute.flip.kind).toBe('not_evaluated');
+
+      for (const [series, sign] of [
+        [dealerShort, -1n],
+        [dealerLong, 1n],
+      ] as const) {
+        const { flip } = series;
+        if (flip.kind !== 'none')
+          throw new Error('Expected a grid without a root');
+        expect(flip.grid.points).toHaveLength(11);
+        expect(
+          flip.grid.points.every(
+            ({ exposure }) => BigInt(exposure) * sign > 0n,
+          ),
+        ).toBe(true);
+      }
+
+      const { flip } = callPositive;
+      if (flip.kind !== 'crossings')
+        throw new Error('Expected a signed crossing');
+      const { points, from, to, step } = flip.grid;
+      expect(points).toHaveLength(11);
+      expect(points.at(-1)?.spot).toBe(to);
+      expect(points.map(({ spot }) => BigInt(spot))).toEqual(
+        Array.from(
+          { length: 11 },
+          (_, index) => BigInt(from) + BigInt(step) * BigInt(index),
+        ),
+      );
+      const brackets = points.slice(0, -1).flatMap((left, index) => {
+        const right = points[index + 1];
+        return BigInt(left.exposure) * BigInt(right.exposure) < 0n
+          ? [[left, right]]
+          : [];
+      });
+      expect(brackets).toHaveLength(1);
+      expect(flip.spots).toHaveLength(1);
+      const [[left, right]] = brackets;
+      const [lower, upper, root] = decimalKeys([
+        left.spot,
+        right.spot,
+        flip.spots[0],
+      ]);
+      expect(root).toBeGreaterThan(lower);
+      expect(root).toBeLessThan(upper);
+      expect(
+        BigInt(left.exposure) * (upper - root) +
+          BigInt(right.exposure) * (root - lower),
+      ).toBe(0n);
+    },
+  );
 
   it('keeps an unknown OI denominator and date separate from a known zero', async () => {
     mount('exposure');

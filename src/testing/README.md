@@ -17,3 +17,5 @@ U2a 覆盖十二个自选标的、SPY 的 L1 限制、marketDataType 与独立�
 十二标的切换用例分别在 1 小时和 4 小时周期运行。每次选择都核对 L1 最优买卖价及数量、最近报价和末根闭合 K 线的 OHLCV 原文。AAPL 先从未闭合预览切回末根闭合 K 线。[逐标的读数测试](market-u2a.test.tsx)
 
 U2b 通过正式路由核对观察、核验、假设、实测项和 OI 日期，测试精确权利金额筛选、证据与缺口、情景与 0DTE、wall、flip、覆盖及读取状态。用例拒绝期权页发起 HTTP、WebSocket 或 SSE，并验证没有下单入口。离线浏览器核对两路由首屏和窄屏键盘操作。[组件用例](options-u2b.test.tsx) · [离线渲染](../../scripts/visual-market.test.mjs)
+
+成交条件和置信度各有独立的结果集断言。SPY 和 AAPL 的 flip 用例检查同号网格和异号夹点，并用两端的净 GEX 验证返回的过零点。

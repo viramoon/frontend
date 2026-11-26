@@ -182,6 +182,19 @@ test('desktop options routes distinguish observation, verification, hypothesis a
       .getByRole('combobox', { name: '敞口情景' })
       .selectOption('callPositive');
     await page.getByText('314.25', { exact: true }).waitFor();
+    await page.getByText('后端情景网格的过零点（当前为合成样例）').waitFor();
+    await page.getByText('查看情景网格点', { exact: true }).click();
+    const grid = page.getByRole('table', { name: '情景网格点' });
+    for (const [spot, gex] of [
+      ['314', '-250'],
+      ['315', '750'],
+    ]) {
+      const point = grid.getByRole('rowheader', { name: spot, exact: true });
+      assert.equal(
+        await point.locator('..').getByRole('cell').textContent(),
+        gex,
+      );
+    }
   });
 });
 
