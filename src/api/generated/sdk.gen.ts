@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AckAlertData, AckAlertErrors, AckAlertResponses, ByKeyData, ByKeyErrors, ByKeyResponses, CapabilitiesData, CapabilitiesResponses, CatalogData, CatalogErrors, CatalogResponses, CreateData, CreateErrors, CreateResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DeleteCredentialData, DeleteCredentialErrors, DeleteCredentialResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DetailData, DetailErrors, DetailResponses, GetAlertData, GetAlertErrors, GetAlertResponses, GetChannelTestData, GetChannelTestErrors, GetChannelTestResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetTestData, GetTestErrors, GetTestResponses, List2Data, List2Errors, List2Responses, ListAlertsData, ListAlertsErrors, ListAlertsResponses, ListData, ListErrors, ListResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, PutCredentialData, PutCredentialErrors, PutCredentialResponses, PutRuleData, PutRuleErrors, PutRuleResponses, ReadyData, ReadyErrors, ReadyResponses, SampleData, SampleErrors, SampleResponses, StartChannelTestData, StartChannelTestErrors, StartChannelTestResponses, StartTestData, StartTestErrors, StartTestResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen';
+import type { AckAlertData, AckAlertErrors, AckAlertResponses, ActivateData, ActivateErrors, ActivateResponses, BackupStatusData, BackupStatusErrors, BackupStatusResponses, ByKeyData, ByKeyErrors, ByKeyResponses, CapabilitiesData, CapabilitiesResponses, CatalogData, CatalogErrors, CatalogResponses, CreateData, CreateErrors, CreateResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DeleteCredentialData, DeleteCredentialErrors, DeleteCredentialResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DetailData, DetailErrors, DetailResponses, GetAlertData, GetAlertErrors, GetAlertResponses, GetChannelTestData, GetChannelTestErrors, GetChannelTestResponses, GetIntegrationData, GetIntegrationErrors, GetIntegrationResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetScopedTestData, GetScopedTestErrors, GetScopedTestResponses, GetTestData, GetTestErrors, GetTestResponses, List2Data, List2Errors, List2Responses, ListAlertsData, ListAlertsErrors, ListAlertsResponses, ListData, ListErrors, ListResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LiveData, LiveResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, PutCredentialData, PutCredentialErrors, PutCredentialResponses, PutRuleData, PutRuleErrors, PutRuleResponses, QualityGapsData, QualityGapsErrors, QualityGapsResponses, ReadyData, ReadyErrors, ReadyResponses, RollbackData, RollbackErrors, RollbackResponses, SampleData, SampleErrors, SampleResponses, StartChannelTestData, StartChannelTestErrors, StartChannelTestResponses, StartTestData, StartTestErrors, StartTestResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -96,6 +96,16 @@ export const sample = <ThrowOnError extends boolean = false>(options?: Options<S
 
 export const detail = <ThrowOnError extends boolean = false>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, DetailErrors, ThrowOnError> => (options.client ?? client).get<DetailResponses, DetailErrors, ThrowOnError>({ url: '/api/v1/backtests/{id}', ...options });
 
+export const backupStatus = <ThrowOnError extends boolean = false>(options?: Options<BackupStatusData, ThrowOnError>): RequestResult<BackupStatusResponses, BackupStatusErrors, ThrowOnError> => (options?.client ?? client).get<BackupStatusResponses, BackupStatusErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/backup/status',
+    ...options
+});
+
 export const getTest = <ThrowOnError extends boolean = false>(options: Options<GetTestData, ThrowOnError>): RequestResult<GetTestResponses, GetTestErrors, ThrowOnError> => (options.client ?? client).get<GetTestResponses, GetTestErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
@@ -140,6 +150,16 @@ export const catalog = <ThrowOnError extends boolean = false>(options?: Options<
     ...options
 });
 
+export const getIntegration = <ThrowOnError extends boolean = false>(options: Options<GetIntegrationData, ThrowOnError>): RequestResult<GetIntegrationResponses, GetIntegrationErrors, ThrowOnError> => (options.client ?? client).get<GetIntegrationResponses, GetIntegrationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}',
+    ...options
+});
+
 export const update = <ThrowOnError extends boolean = false>(options: Options<UpdateData, ThrowOnError>): RequestResult<UpdateResponses, UpdateErrors, ThrowOnError> => (options.client ?? client).patch<UpdateResponses, UpdateErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
@@ -147,6 +167,20 @@ export const update = <ThrowOnError extends boolean = false>(options: Options<Up
             type: 'apiKey'
         }],
     url: '/api/v1/integrations/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const activate = <ThrowOnError extends boolean = false>(options: Options<ActivateData, ThrowOnError>): RequestResult<ActivateResponses, ActivateErrors, ThrowOnError> => (options.client ?? client).post<ActivateResponses, ActivateErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/activate',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -178,6 +212,20 @@ export const putCredential = <ThrowOnError extends boolean = false>(options: Opt
     }
 });
 
+export const rollback = <ThrowOnError extends boolean = false>(options: Options<RollbackData, ThrowOnError>): RequestResult<RollbackResponses, RollbackErrors, ThrowOnError> => (options.client ?? client).post<RollbackResponses, RollbackErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/rollback',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 export const startTest = <ThrowOnError extends boolean = false>(options: Options<StartTestData, ThrowOnError>): RequestResult<StartTestResponses, StartTestErrors, ThrowOnError> => (options.client ?? client).post<StartTestResponses, StartTestErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
@@ -185,6 +233,16 @@ export const startTest = <ThrowOnError extends boolean = false>(options: Options
             type: 'apiKey'
         }],
     url: '/api/v1/integrations/{id}/tests',
+    ...options
+});
+
+export const getScopedTest = <ThrowOnError extends boolean = false>(options: Options<GetScopedTestData, ThrowOnError>): RequestResult<GetScopedTestResponses, GetScopedTestErrors, ThrowOnError> => (options.client ?? client).get<GetScopedTestResponses, GetScopedTestErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/integrations/{id}/tests/{testId}',
     ...options
 });
 
@@ -252,6 +310,16 @@ export const putRule = <ThrowOnError extends boolean = false>(options: Options<P
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+export const qualityGaps = <ThrowOnError extends boolean = false>(options?: Options<QualityGapsData, ThrowOnError>): RequestResult<QualityGapsResponses, QualityGapsErrors, ThrowOnError> => (options?.client ?? client).get<QualityGapsResponses, QualityGapsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/quality/gaps',
+    ...options
 });
 
 export const status = <ThrowOnError extends boolean = false>(options?: Options<StatusData, ThrowOnError>): RequestResult<StatusResponses, unknown, ThrowOnError> => (options?.client ?? client).get<StatusResponses, unknown, ThrowOnError>({ url: '/api/v1/system/status', ...options });

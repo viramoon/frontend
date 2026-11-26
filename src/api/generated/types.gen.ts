@@ -8,6 +8,12 @@ export type Accepted = {
     id: number;
 };
 
+export type Activate = {
+    test_id: string;
+};
+
+export type AdapterResult = 'missing_credential' | 'unsupported' | 'deadline_exceeded';
+
 export type Alert = {
     acknowledged_at?: string | null;
     condition: Condition;
@@ -50,6 +56,30 @@ export type BacktestSummary = {
     total_positions: number;
 };
 
+export type BackupState = 'disabled' | 'unavailable' | 'no_verified_point' | 'healthy' | 'degraded';
+
+export type BackupStatus = {
+    age_seconds?: number | null;
+    /**
+     * Whether an enabled backup has an unavailable, degraded or overdue recovery point.
+     */
+    alert: boolean;
+    /**
+     * The latest T2b producer observation reported an error or invalid recovery chain.
+     */
+    degraded: boolean;
+    last_full_at?: string | null;
+    last_hourly_at?: string | null;
+    last_isolated_restore?: null | IsolatedRestore;
+    last_recoverable_at?: string | null;
+    last_recoverable_point?: string | null;
+    /**
+     * Modification time of the last valid T2b state file observation.
+     */
+    observed_at?: string | null;
+    state: BackupState;
+};
+
 export type BlockedOrder = {
     bar_volume: string;
     execution_session: string;
@@ -57,6 +87,8 @@ export type BlockedOrder = {
     requested_shares: number;
     signal_session: string;
 };
+
+export type Calendar = 'XNYS';
 
 export type Capabilities = {
     csrf_token?: string | null;
@@ -72,6 +104,7 @@ export type CatalogEntry = {
     fee_class: FeeClass;
     file_types: Array<string>;
     product: Product;
+    profiles: Array<Profile>;
     settings_fields: Array<string>;
     symbols: Array<Symbol>;
     test_available: boolean;
@@ -102,7 +135,7 @@ export type Check = {
 
 export type Condition = 'source_unavailable' | 'disk_critical' | 'backup_stale' | 'recovery_verification_failed' | 'market_data_delayed' | 'book_out_of_sync' | 'backfill_failed' | 'backtest_failed' | 'backtest_completed' | 'backup_succeeded' | 'market_anomaly' | 'smtp_unavailable';
 
-export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options';
+export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options' | 'ibkr_paper' | 'strategy_file' | 'research_file' | 'smtp' | 'google_drive';
 
 export type Coverage = 'full' | 'insufficient';
 
@@ -119,6 +152,13 @@ export type CredentialView = {
     mask: string;
     rotated_at: string;
     version: number;
+};
+
+export type CryptoMarketEvidence = {
+    event_at?: string | null;
+    metadata: boolean;
+    price_precision?: number | null;
+    snapshot: boolean;
 };
 
 export type Dataset = {
@@ -197,6 +237,8 @@ export type DeliveryStatus = 'pending' | 'sending' | 'accepted' | 'failed' | 'su
 
 export type Disposition = 'observed' | 'pending' | 'in_app' | 'ignored';
 
+export type DriveMode = 'local_test';
+
 export type ErrorBody = {
     error: ErrorDetail;
 };
@@ -205,6 +247,11 @@ export type ErrorDetail = {
     code: string;
     message: string;
 };
+
+/**
+ * An F3 unsigned 64-bit count, position or timestamp transported as decimal text.
+ */
+export type ExactCount = string;
 
 export type ExecutionAudit = {
     blocked_insufficient_cash: number;
@@ -215,6 +262,8 @@ export type ExecutionAudit = {
     recent_fills: Array<Fill>;
     zero_volume_bars: number;
 };
+
+export type ExecutionModel = 'execution.next_close_cash_equity@1.0.0';
 
 export type FeeClass = 'free' | 'unavailable';
 
@@ -235,6 +284,10 @@ export type FinanceStatus = {
     ok: boolean;
 };
 
+export type GapCause = 'license_skip' | 'rotation' | 'source_rate_limit' | 'disconnected' | 'source_gap' | 'storage_unavailable';
+
+export type GapRecovery = 'tick_backfilled' | 'bar_backfilled' | 'book_restored_from_snapshot' | 'history_unrecoverable';
+
 export type Health = {
     checks: Array<Check>;
     status: string;
@@ -254,6 +307,13 @@ export type Integration = {
     last_test_id?: string | null;
     latest: VersionView;
     revision: number;
+    rollback_versions: Array<number>;
+};
+
+export type IsolatedRestore = {
+    point: string;
+    recoverable_at: string;
+    restored_at: string;
 };
 
 export type Job = {
@@ -276,6 +336,35 @@ export type JobRequest = {
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out';
 
+export type LocalDrivePreview = {
+    available_bytes?: string | null;
+    cleaned_up: boolean;
+    encrypted_round_trip: boolean;
+    mode: DriveMode;
+};
+
+export type LocalEvidence = {
+    drive?: null | LocalDrivePreview;
+    research?: null | ResearchPreview;
+    result: LocalProbeResult;
+    strategy?: null | StrategyPreview;
+};
+
+export type LocalProbeResult = 'verified' | 'not_configured' | 'invalid_file' | 'hash_mismatch' | 'invalid_producer_response' | 'tool_unavailable' | 'validation_failed' | 'remote_failed' | 'round_trip_mismatch' | 'cleanup_failed' | 'deadline_exceeded';
+
+export type MarketEvidence = {
+    observation?: null | MarketObservation;
+    result: MarketResult;
+};
+
+export type MarketObservation = {
+    details: ObservationDetails;
+    observed_at: string;
+    origin: ObservationOrigin;
+};
+
+export type MarketResult = 'verified' | 'market_closed' | 'delayed' | 'frozen' | 'no_permission' | 'lines_full' | 'source_unavailable' | 'disabled' | 'adapter_unavailable' | 'observation_pending' | 'timed_out' | 'invalid_configuration' | 'invalid_response' | 'unsafe_broker_session' | 'evidence_incomplete' | 'stale_observation' | 'replay_only';
+
 export type MarketStatus = {
     instruments: Array<InstrumentStatus>;
     max_age_seconds?: number | null;
@@ -294,6 +383,13 @@ export type MarketSummary = {
     stale_count: number;
     state: string;
     updated_at?: string | null;
+};
+
+export type MarketWatermarks = {
+    local_durable: ExactCount;
+    projected: ExactCount;
+    remote_verified?: null | ExactCount;
+    source_latest?: null | SourceObservation;
 };
 
 export type Metrics = {
@@ -317,14 +413,90 @@ export type NotificationHealth = {
 
 export type NotificationState = 'idle' | 'healthy' | 'degraded' | 'unavailable';
 
+export type ObservationDetails = {
+    data: PaperMarketEvidence;
+    kind: 'ibkr_paper';
+} | {
+    data: CryptoMarketEvidence;
+    kind: 'crypto_market';
+};
+
+export type ObservationOrigin = 'live' | 'replay';
+
 export type Page = {
     items: Array<Job>;
     next_cursor?: number | null;
 };
 
+export type PaperMarketEvidence = {
+    nasdaq_depth_callback: boolean;
+    option_contract_id?: number | null;
+    option_greeks: boolean;
+    option_l1_market_data_type?: number | null;
+    option_open_interest: boolean;
+    paper_account: boolean;
+    paper_endpoint: boolean;
+    read_only: boolean;
+    remaining_depth_lines?: number | null;
+    remaining_l1_lines?: number | null;
+    stock_l1_market_data_type?: number | null;
+    unique_market_data_client: boolean;
+};
+
 export type Phase = 'triggered' | 'recovered';
 
+export type PlanVersion = 'fertile.finance/strategy-plan/v1';
+
 export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data' | 'notifications';
+
+export type Profile = 'primary' | 'secondary';
+
+export type QualityCoverage = {
+    license: string;
+    product: string;
+    source: string;
+    watermarks?: null | MarketWatermarks;
+};
+
+export type QualityGap = {
+    cause: GapCause;
+    channel: string;
+    count?: null | ExactCount;
+    /**
+     * Inclusive UTC start of the gap.
+     */
+    from: string;
+    instrument_id: string;
+    outcome?: null | GapRecovery;
+    product: string;
+    source: string;
+    /**
+     * Exclusive UTC end of the gap.
+     */
+    to: string;
+};
+
+export type QualityGapsPage = {
+    as_of?: string | null;
+    coverage: Array<QualityCoverage>;
+    items: Array<QualityGap>;
+    next_offset?: number | null;
+    state: QualityState;
+};
+
+export type QualityState = 'unavailable' | 'available';
+
+export type ResearchLicense = 'synthetic' | 'private_research';
+
+export type ResearchPreview = {
+    calendar: Calendar;
+    first_session: string;
+    instrument: string;
+    last_session: string;
+    license: ResearchLicense;
+    observations: number;
+    source_sha256: string;
+};
 
 export type ResearchReport = {
     actual_end: string;
@@ -344,6 +516,10 @@ export type ResearchReport = {
     slippage_bps: number;
     warmup_sessions: number;
     windows: Array<Window>;
+};
+
+export type Rollback = {
+    version: number;
 };
 
 export type Rule = {
@@ -385,10 +561,23 @@ export type SessionCreated = {
 };
 
 export type Settings = {
-    symbol: Symbol;
+    profile?: null | Profile;
+    symbol?: null | Symbol;
 };
 
 export type Severity = 'informational' | 'important' | 'urgent';
+
+export type SourceObservation = {
+    channel: string;
+    epoch: ExactCount;
+    exchange_ts?: null | ExactCount;
+    instrument_id: string;
+    /**
+     * UTC nanoseconds since the Unix epoch, as observed by the collector.
+     */
+    receive_ts: ExactCount;
+    seq: ExactCount;
+};
 
 export type StrategyParams = {
     fast_period?: number | null;
@@ -396,11 +585,21 @@ export type StrategyParams = {
     slow_period?: number | null;
 };
 
+export type StrategyPreview = {
+    content_sha256: string;
+    execution_model: ExecutionModel;
+    factors: number;
+    modules: number;
+    plan_version: PlanVersion;
+    sleeves: number;
+    source_sha256: string;
+};
+
 export type Subject = 'anonymous' | 'admin';
 
 export type SuppressionReason = 'rule_disabled' | 'rule_changed' | 'incident_recovered';
 
-export type Symbol = 'BTCUSDT' | 'ETHUSDT' | 'BTC' | 'ETH' | 'SPX';
+export type Symbol = 'BTCUSDT' | 'ETHUSDT' | 'BTC' | 'ETH' | 'SPX' | 'SPY' | 'QQQ';
 
 export type SystemStatus = {
     database: DbStatus;
@@ -410,12 +609,27 @@ export type SystemStatus = {
     web: WebStatus;
 };
 
-export type TestMethod = 'public_market_sample' | 'authorized_read';
+export type TestEvidence = {
+    details: MarketEvidence;
+    kind: 'market';
+} | {
+    details: LocalEvidence;
+    kind: 'local';
+} | {
+    details: AttemptOutcome;
+    kind: 'smtp';
+} | {
+    details: AdapterResult;
+    kind: 'adapter';
+};
+
+export type TestMethod = 'public_market_sample' | 'authorized_read' | 'paper_market_sample' | 'file_validation' | 'test_email' | 'encrypted_local_round_trip';
 
 export type TestStatus = 'pending' | 'passed' | 'failed' | 'unavailable' | 'superseded';
 
 export type TestView = {
     config_version: number;
+    evidence?: null | TestEvidence;
     finished_at?: string | null;
     id: string;
     integration_id: string;
@@ -812,6 +1026,30 @@ export type DetailResponses = {
 
 export type DetailResponse = DetailResponses[keyof DetailResponses];
 
+export type BackupStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/backup/status';
+};
+
+export type BackupStatusErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    /**
+     * Request deadline exceeded (request_timeout)
+     */
+    504: ErrorBody;
+};
+
+export type BackupStatusError = BackupStatusErrors[keyof BackupStatusErrors];
+
+export type BackupStatusResponses = {
+    200: BackupStatus;
+};
+
+export type BackupStatusResponse = BackupStatusResponses[keyof BackupStatusResponses];
+
 export type GetTestData = {
     body?: never;
     path: {
@@ -827,6 +1065,10 @@ export type GetTestErrors = {
     404: ErrorBody;
     422: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout
+     */
+    504: ErrorBody;
 };
 
 export type GetTestError = GetTestErrors[keyof GetTestErrors];
@@ -848,6 +1090,10 @@ export type List2Errors = {
     401: ErrorBody;
     403: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout
+     */
+    504: ErrorBody;
 };
 
 export type List2Error = List2Errors[keyof List2Errors];
@@ -882,6 +1128,10 @@ export type CreateErrors = {
     422: ErrorBody;
     429: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout. Read the integrations list before retrying
+     */
+    504: ErrorBody;
 };
 
 export type CreateError = CreateErrors[keyof CreateErrors];
@@ -911,6 +1161,35 @@ export type CatalogResponses = {
 };
 
 export type CatalogResponse = CatalogResponses[keyof CatalogResponses];
+
+export type GetIntegrationData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}';
+};
+
+export type GetIntegrationErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+    /**
+     * request_timeout
+     */
+    504: ErrorBody;
+};
+
+export type GetIntegrationError = GetIntegrationErrors[keyof GetIntegrationErrors];
+
+export type GetIntegrationResponses = {
+    200: Integration;
+};
+
+export type GetIntegrationResponse = GetIntegrationResponses[keyof GetIntegrationResponses];
 
 export type UpdateData = {
     body: Update;
@@ -945,6 +1224,10 @@ export type UpdateErrors = {
     428: ErrorBody;
     429: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision before retrying
+     */
+    504: ErrorBody;
 };
 
 export type UpdateError = UpdateErrors[keyof UpdateErrors];
@@ -954,6 +1237,44 @@ export type UpdateResponses = {
 };
 
 export type UpdateResponse = UpdateResponses[keyof UpdateResponses];
+
+export type ActivateData = {
+    body: Activate;
+    headers: {
+        'If-Match': string;
+        Origin?: string | null;
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/activate';
+};
+
+export type ActivateErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision and active version before retrying
+     */
+    504: ErrorBody;
+};
+
+export type ActivateError = ActivateErrors[keyof ActivateErrors];
+
+export type ActivateResponses = {
+    200: Integration;
+};
+
+export type ActivateResponse = ActivateResponses[keyof ActivateResponses];
 
 export type DeleteCredentialData = {
     body?: never;
@@ -988,6 +1309,10 @@ export type DeleteCredentialErrors = {
     428: ErrorBody;
     429: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision before retrying
+     */
+    504: ErrorBody;
 };
 
 export type DeleteCredentialError = DeleteCredentialErrors[keyof DeleteCredentialErrors];
@@ -1031,6 +1356,10 @@ export type PutCredentialErrors = {
     428: ErrorBody;
     429: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision before retrying
+     */
+    504: ErrorBody;
 };
 
 export type PutCredentialError = PutCredentialErrors[keyof PutCredentialErrors];
@@ -1040,6 +1369,44 @@ export type PutCredentialResponses = {
 };
 
 export type PutCredentialResponse = PutCredentialResponses[keyof PutCredentialResponses];
+
+export type RollbackData = {
+    body: Rollback;
+    headers: {
+        'If-Match': string;
+        Origin?: string | null;
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/rollback';
+};
+
+export type RollbackErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision and active version before retrying
+     */
+    504: ErrorBody;
+};
+
+export type RollbackError = RollbackErrors[keyof RollbackErrors];
+
+export type RollbackResponses = {
+    200: Integration;
+};
+
+export type RollbackResponse = RollbackResponses[keyof RollbackResponses];
 
 export type StartTestData = {
     body?: never;
@@ -1074,6 +1441,10 @@ export type StartTestErrors = {
     428: ErrorBody;
     429: ErrorBody;
     503: ErrorBody;
+    /**
+     * request_timeout. Read the integration revision and latest test before retrying
+     */
+    504: ErrorBody;
 };
 
 export type StartTestError = StartTestErrors[keyof StartTestErrors];
@@ -1083,6 +1454,36 @@ export type StartTestResponses = {
 };
 
 export type StartTestResponse = StartTestResponses[keyof StartTestResponses];
+
+export type GetScopedTestData = {
+    body?: never;
+    path: {
+        id: string;
+        testId: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/tests/{testId}';
+};
+
+export type GetScopedTestErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+    /**
+     * request_timeout
+     */
+    504: ErrorBody;
+};
+
+export type GetScopedTestError = GetScopedTestErrors[keyof GetScopedTestErrors];
+
+export type GetScopedTestResponses = {
+    200: TestView;
+};
+
+export type GetScopedTestResponse = GetScopedTestResponses[keyof GetScopedTestResponses];
 
 export type MarketStatusData = {
     body?: never;
@@ -1288,6 +1689,38 @@ export type PutRuleResponses = {
 };
 
 export type PutRuleResponse = PutRuleResponses[keyof PutRuleResponses];
+
+export type QualityGapsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: string;
+        product?: string;
+        from?: string;
+        to?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/quality/gaps';
+};
+
+export type QualityGapsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    422: ErrorBody;
+    /**
+     * Request deadline exceeded (request_timeout)
+     */
+    504: ErrorBody;
+};
+
+export type QualityGapsError = QualityGapsErrors[keyof QualityGapsErrors];
+
+export type QualityGapsResponses = {
+    200: QualityGapsPage;
+};
+
+export type QualityGapsResponse = QualityGapsResponses[keyof QualityGapsResponses];
 
 export type StatusData = {
     body?: never;
