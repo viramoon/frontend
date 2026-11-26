@@ -76,8 +76,20 @@ export function DataBadges({ fixture, replay, delay }: DataBadgeProps) {
   );
 }
 
-export function displayDataTime(value: string) {
-  return value.replace('T', ' ').replace(/Z$/, ' UTC');
+const newYorkTime = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'America/New_York',
+  dateStyle: 'short',
+  timeStyle: 'medium',
+});
+
+export type DisplayTimeZone = 'UTC' | 'America/New_York';
+
+export function displayDataTime(value: string, zone: DisplayTimeZone = 'UTC') {
+  if (zone === 'UTC') return value.replace('T', ' ').replace(/Z$/, ' UTC');
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const fraction = value.match(/T\d{2}:\d{2}:\d{2}(\.\d+)/)?.[1] ?? '';
+  return `${newYorkTime.format(date)}${fraction} ${zone}`;
 }
 
 const freshnessLabels = {
@@ -90,12 +102,14 @@ type SourceDetailsProps = DataBadgeProps & {
   source: string;
   asOf: string;
   freshness: keyof typeof freshnessLabels;
+  timeZone?: DisplayTimeZone;
 };
 
 export function SourceDetails({
   source,
   asOf,
   freshness,
+  timeZone,
   ...badges
 }: SourceDetailsProps) {
   return (
@@ -109,7 +123,7 @@ export function SourceDetails({
         <div>
           <dt>数据时间</dt>
           <dd>
-            <time dateTime={asOf}>{displayDataTime(asOf)}</time>
+            <time dateTime={asOf}>{displayDataTime(asOf, timeZone)}</time>
           </dd>
         </div>
         <div>

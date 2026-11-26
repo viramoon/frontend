@@ -6,8 +6,8 @@
 
 | 路由 | 当前功能 | 后续接入的 web 接口 |
 | --- | --- | --- |
-| `/`、`/dashboard` | 根路径进入行情终端。左侧自选和搜索，中央 K 线、成交量和指标面板位，右侧报价、来源、深度与说明。终端下方保留 web 系统状态和示例回测。 | U2 · `/watchlists/{id}`、`/market/instruments`、`/market/bars`、`/indicators`、`/indicators/series`、`/market/book`、`/market/trades`、`/stream/market` |
-| `/trading` | 只读盘口、逐笔成交和衍生品数据的页面骨架。 | U2 · `/market/book`、`/market/trades`、`/market/derivatives`、`/stream/market` |
+| `/`、`/dashboard` | 自选、价量历史、指标、报价、来源及场所订单簿使用 U2a 合成回放。下方通过 web 读取系统状态和示例回测。 | W2a · `/watchlists/{id}`、`/market/instruments`、`/market/bars`、`/market/quotes`、`/indicators`、`/indicators/values`、`/market/book`、`/stream/market` |
+| `/trading` | 同一合成回放提供只读 L1、场所盘口、逐笔成交、深度名额、加密现货与永续。 | W2a · `/market/book`、`/market/trades`、`/market/derivatives`、`/market/subscriptions`、`/market/depth-focus`、`/stream/market` |
 | `/options/flow` | 期权成交流页面骨架。 | U2 · `/options/flow` |
 | `/options/exposure` | 期权敞口、行权价和到期分布页面骨架。 | U2 · `/options/exposure` |
 | `/strategies`、`/strategies/:id` | 策略列表、版本与详情的页面骨架，列表可打开示例详情。 | U3 · `/strategies`、`/strategies/validate`、`/strategies/{id}/versions/{version}`、`/strategy-schema/{major}` |
@@ -19,15 +19,15 @@
 | `/system` | 系统状态条、服务探测、行情采集新鲜度和示例回测。沿用 `/system/status` 和 `/backtests/sample`。 | U2 · `/quality/gaps`、`/quality/partitions`，行情明细可沿用已有的 `/market/status` |
 | `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
-表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 讨论稿 §E2 中各页面对应的路径，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
+表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 方案 §E2 中各页面对应的路径，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
 
 页面在 app 层组合各 feature。feature 之间的直接导入、相对跨目录导入和重导出由 ESLint 及 `scripts/verify-boundaries.mjs` 校验。页面通过生成客户端配合 TanStack Query 访问 web。系统状态和示例回测各有加载提示。系统状态的请求失败（含 404）显示错误提示。示例回测的 404 显示「暂无示例回测」，其余请求失败显示错误提示。盈亏直接显示接口返回的十进制文本。[请求入口](../src/api/README.md)
 
 ## 行情终端与 fixture
 
-行情和自选示例保存在 market feature 内。价格、成交量和深度数量使用原始十进制字符串，精确读数直接展示这些字符串。图表坐标在渲染时使用数值近似，报价和读数仍使用源文本。数据源、时间、新鲜度、回放和延迟均显示文字。陈旧行情保留示例读数及陈旧提示，无权和空态显示各自原因。样式使用深靛底和低饱和粉紫，原创简笔只用于空态或说明区。[行情终端](../src/features/market/README.md) · [共享组件](../src/components/README.md)
+market feature 的合成行情保留十进制源字符串。图表仅在传入 Lightweight Charts 时转成近似坐标，报价、成交、档位及主图读数使用原始精度。行情类别、时间、来源与时效见[行情终端](../src/features/market/README.md)，图表署名见[共享组件](../src/components/README.md)。
 
-窄屏使用自选和报价深度抽屉，导航和操作控件支持键盘与可见焦点。顶部状态条显示 web 服务状态，终端在行情区域显示 fixture 标记。
+陈旧的 L1 与历史 K 线可保留并标记陈旧。场所订单簿在断序、重置、陈旧或权限撤回时立即清空，等新快照恢复。窄屏使用自选和报价深度抽屉。顶部系统状态条继续使用 web 接口，行情面板显示 Fixture 标记。
 
 ## 请求、状态与刷新
 
@@ -39,7 +39,7 @@ src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面�
 
 ## 实时消息与陈旧提示
 
-WebSocket 与 SSE 消息协议单独版本化。v1 草案由 WS 承载行情订阅，SSE 承载通知、质量及作业事件。消息版本、频道、事件时间、接收时间、序列和恢复游标等字段以 finance 输出和 web 消费契约为准。本阶段使用本地 fixture 演示行情状态。
+WebSocket 与 SSE 消息协议单独版本化。v1 草案由 WS 承载行情订阅，SSE 承载通知、质量及作业事件。消息版本、频道、事件时间、接收时间、序列和恢复游标等字段以 finance 输出和 web 消费契约为准。U2a 的 MarketDataAdapter 接收已校验的视图数据和订单簿事件。本地 fixture 提供当前实现，W2a 合入后从同源 web 接入。具体映射见 [Web API 入口](../src/api/README.md#行情视图适配层)。
 
 系统面板通过轮询更新服务探测、行情源、更新时间和陈旧标的统计。顶部状态条复用同一查询的缓存并显示摘要。回测页在浏览器离线时保留最近读取的数据并显示离线提示，恢复后支持重新读取。
 
