@@ -104,3 +104,15 @@
   color: #d9cde7;
   text-underline-offset: 0.24em;
 }
+
+.market-chart-indicator {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  color: #ccc9e0;
+  font-size: 0.75rem;
+}
+
+.market-chart-indicator dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}

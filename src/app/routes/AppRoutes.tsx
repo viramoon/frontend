@@ -147,7 +147,14 @@ export function AppRoutes() {
               </>
             }
           />
-          <Route path="/trading" element={<Trading />} />
+          <Route
+            path="/trading"
+            element={
+              <Trading>
+                <MarketTerminal trading />
+              </Trading>
+            }
+          />
           {futurePages.map(({ path, title, detail }) => (
             <Route
               key={path}

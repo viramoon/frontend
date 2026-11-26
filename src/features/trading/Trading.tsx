@@ -1,15 +1,10 @@
-import { DataState } from '../../components/TerminalStates';
+import type { ReactNode } from 'react';
 
-export function Trading() {
+export function Trading({ children }: { children: ReactNode }) {
   return (
-    <section className="simple-page">
-      <h1>交易</h1>
-      <DataState
-        kind="empty"
-        title="市场微观结构待接入"
-        detail="后续 U2 将提供只读盘口、逐笔成交和永续合约指标，可按场所查看。"
-        illustrated
-      />
-    </section>
+    <>
+      <h1 className="terminal-title">交易</h1>
+      {children}
+    </>
   );
 }
