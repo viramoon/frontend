@@ -6,6 +6,8 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/options/flow` 提供只读的合成观察线索、历史核验和证据详情。`/options/exposure` 展示合成 GEX 情景、0DTE、wall 和输入覆盖。两页在首屏显示观察和核验摘要、持仓假设及 OI 基准日。实接依赖 W2a 网关契约。[期权页验收](RUNBOOK.md#验证期权页)
 
+`/strategies` 支持上传示例 YAML 或选择登记版本，查看行列诊断与编译计划。可选择合成数据集与时间窗，在 `/backtests?view=strategy` 查看配置作业、按键找回和复查运行清单。`/factors` 展示合成因子报告与覆盖率。配置回测的实接依赖 web W2b，历史均线作业深链继续使用 `/backtests?job=<id>`。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)
+
 ## 本地启动
 
 在仓库根目录加载 fertile 的工具链，执行下列命令。启动 web 后，浏览器打开 Vite 输出的本地地址即可查看仪表盘。
@@ -38,7 +40,7 @@ frontend/
 ├── .agents/skills/          本仓库专属 skill 约定
 ├── src/                    应用、页面与测试
 │   ├── app/routes/         页面、provider 与 router
-│   ├── features/           market / options / trading / backtest / dashboard / blog
+│   ├── features/           market / options / research / trading / backtest / dashboard / blog
 │   ├── api/generated/      Hey API + TanStack Query，禁止手改
 │   ├── lib/                通用设施说明
 │   └── components/ hooks/ stores/ config/ types/ utils/ testing/
