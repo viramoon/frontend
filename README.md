@@ -4,6 +4,8 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/dashboard` 提供带 fixture 标记的行情终端，可保存九只美股和 BTC、ETH、SOL 自选，切换 K 线周期与指标，查看价量历史、报价时效和盘口。`/trading` 用同一组合成行情展示只读 L1、场所深度及分开的已成交记录。系统状态和示例回测也可在 `/system` 查看。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。告警和通知设置通过 web 管理邮件和投递。接口设置支持草稿、候选测试、启用和回滚；系统页展示 Drive 已验证恢复点和采集缺口。其余入口和后续接入计划见 [页面地图](docs/architecture.md#页面与功能)，操作与异常恢复见 [运行手册](RUNBOOK.md)，开发流程见 [AGENTS.md](AGENTS.md)。
 
+`/options/flow` 提供只读的合成观察线索、历史核验和证据详情。`/options/exposure` 展示合成 GEX 情景、0DTE、wall 和输入覆盖。两页在首屏显示观察和核验摘要、持仓假设及 OI 基准日。实接依赖 W2a 网关契约。[期权页验收](RUNBOOK.md#验证期权页)
+
 `/strategies` 支持上传示例 YAML 或选择登记版本，查看行列诊断与编译计划。可选择合成数据集与时间窗，在 `/backtests?view=strategy` 查看配置作业、按键找回和复查运行清单。`/factors` 展示合成因子报告与覆盖率。配置回测的实接依赖 web W2b，历史均线作业深链继续使用 `/backtests?job=<id>`。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)
 
 ## 本地启动
@@ -38,7 +40,7 @@ frontend/
 ├── .agents/skills/          本仓库专属 skill 约定
 ├── src/                    应用、页面与测试
 │   ├── app/routes/         页面、provider 与 router
-│   ├── features/           market / research / trading / backtest / dashboard / blog
+│   ├── features/           market / options / research / trading / backtest / dashboard / blog
 │   ├── api/generated/      Hey API + TanStack Query，禁止手改
 │   ├── lib/                通用设施说明
 │   └── components/ hooks/ stores/ config/ types/ utils/ testing/

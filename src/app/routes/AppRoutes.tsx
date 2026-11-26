@@ -15,7 +15,6 @@ import type { OperationsAdapter } from '../../api/operations';
 import { webAlerts, webNotifications } from '../../api/notificationsWeb';
 import { webIntegrations } from '../../api/integrationsWeb';
 import { webRecovery } from '../../api/recoveryWeb';
-import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
 import {
@@ -33,6 +32,7 @@ import {
 import { WebRecovery } from '../../features/system/WebRecovery';
 import { AdminProductAccess } from './AdminProductAccess';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
+import { OptionsTerminal } from '../../features/options/OptionsTerminal';
 import type { ResearchAdapter } from '../../features/research/adapter';
 import { FactorCatalog } from '../../features/research/FactorCatalog';
 import { fixtureResearch } from '../../features/research/fixtureAdapter';
@@ -59,28 +59,6 @@ const navigation = [
   { path: '/system', label: '系统' },
   { path: '/blog', label: '博客' },
 ];
-
-const futurePages = [
-  {
-    path: '/options/flow',
-    title: '期权流水',
-    detail: '后续 U2 将接入期权成交流水、筛选条件和数据来源。',
-  },
-  {
-    path: '/options/exposure',
-    title: '期权敞口',
-    detail: '后续 U2 将按行权价与到期日展示敞口、模型和数据覆盖。',
-  },
-];
-
-function FuturePage({ title, detail }: { title: string; detail: string }) {
-  return (
-    <section className="simple-page">
-      <h1>{title}</h1>
-      <DataState kind="empty" title="功能待接入" detail={detail} illustrated />
-    </section>
-  );
-}
 
 type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
@@ -213,13 +191,14 @@ export function AppRoutes({
               </Trading>
             }
           />
-          {futurePages.map(({ path, title, detail }) => (
-            <Route
-              key={path}
-              path={path}
-              element={<FuturePage title={title} detail={detail} />}
-            />
-          ))}
+          <Route
+            path="/options/flow"
+            element={<OptionsTerminal page="flow" />}
+          />
+          <Route
+            path="/options/exposure"
+            element={<OptionsTerminal page="exposure" />}
+          />
           <Route
             path="/strategies"
             element={

@@ -59,6 +59,10 @@ const fixtureSources = new Map([
     'src/features/market/fixtureAdapter.ts',
     '// synthetic points, independent of the production indicator algorithms.',
   ],
+  [
+    'src/features/options/optionsFixture.ts',
+    '// Seeded synthetic options and evidence; no vendor or historical observations.',
+  ],
   ...[
     'src/features/research/fixtureAdapter.ts',
     'src/features/research/fixtureYaml.ts',

@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | `/`、`/dashboard` | 自选、价量历史、指标、报价、来源及场所订单簿使用 U2a 合成回放。下方通过 web 读取系统状态和示例回测。 | W2a · `/watchlists/{id}`、`/market/instruments`、`/market/bars`、`/market/quotes`、`/indicators`、`/indicators/values`、`/market/book`、`/stream/market` |
 | `/trading` | 同一合成回放提供只读 L1、场所盘口、逐笔成交、深度名额、加密现货与永续。 | W2a · `/market/book`、`/market/trades`、`/market/derivatives`、`/market/subscriptions`、`/market/depth-focus`、`/stream/market` |
-| `/options/flow` | 期权成交流页面骨架。 | U2 · `/options/flow` |
-| `/options/exposure` | 期权敞口、行权价和到期分布页面骨架。 | U2 · `/options/exposure` |
+| `/options/flow` | 合成实时观察、历史逐笔核验、证据与缺口。 | W2a · `/options/flow` |
+| `/options/exposure` | 合成 OI/IV/gamma、行权价和到期 GEX、0DTE、wall 与 flip。 | W2a · `/options/chain`、`/options/exposure` |
 | `/strategies`、`/strategies/:id` | 合成策略目录、登记版本和只读研究详情。上传 YAML 或选择登记版本后查看编译预览、行列诊断和配置回测表单。 | W2b · 策略目录、版本、校验与不可变配置引用 |
 | `/factors` | 合成因子定义、版本选用状态、训练/验证/样本外覆盖与 IC 衰减，显示费前、费后和等权基准。 | W2b · 因子目录与版本评价报告 |
 | `/backtests` | 历史工作台通过 `?job=` 查看均线作业。配置工作台使用 `?view=strategy` 查看合成作业、按键找回，使用 `?run=` 查看运行清单、基准与模拟成交账本。 | W2b · 配置作业提交、列表、详情、按键查询和回放数据集 |
@@ -28,6 +28,8 @@
 market feature 的合成行情保留十进制源字符串。图表仅在传入 Lightweight Charts 时转成近似坐标，报价、成交、档位及主图读数使用原始精度。行情类别、时间、来源与时效见[行情终端](../src/features/market/README.md)，图表署名见[共享组件](../src/components/README.md)。
 
 陈旧的 L1 与历史 K 线可保留并标记陈旧。场所订单簿在断序、重置、陈旧或权限撤回时立即清空，等新快照恢复。窄屏使用自选和报价深度抽屉。顶部系统状态条继续使用 web 接口，行情面板显示 Fixture 标记。
+
+期权功能与行情终端共用状态、来源与时间展示组件。两条期权路由读取所选标的的合成快照，切换标的时取消旧读取。观察、核验、缺口、敞口输入和估算结果保留各自的语义。数据类别暂沿用 U2a 面板的「数据类别 · …」格式，后续由 U5 #21 统一。[期权功能](../src/features/options/README.md) · [适配层](../src/api/README.md#期权视图适配层)
 
 ## 请求、状态与刷新
 
