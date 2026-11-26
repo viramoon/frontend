@@ -13,3 +13,5 @@ Git 防护测试在临时仓库生成合规和违规样本。浏览器渲染用�
 路由用例覆盖新旧深链、策略详情及系统和示例回测的 404 处理。键盘用例用 Testing Library 的 user-event 模拟 `Tab` 和 `Enter`，验证焦点顺序和导航结果。焦点样式用例将实际样式表的 `:focus-visible` 映射为 jsdom 支持的 `:focus`，再检查计算出的轮廓。在浏览器中验收实际 Canvas、焦点轮廓和窄屏抽屉焦点。[路由测试](routes.test.tsx) · [终端验收](../../RUNBOOK.md#验证行情终端)
 
 U2a 覆盖十二个自选标的、SPY 的 L1 限制、marketDataType 与独立新鲜度、市场时区与周期持久化、合成指标列、Binance 部署开关和区域限制、深度额度、盘口失同步、恢复与迟到事件。订单簿单元测试使用超过 JS 安全整数的序号和价格。[U2a 行情用例](market-u2a.test.tsx) · [订单簿状态用例](order-book.test.ts)
+
+十二标的切换用例分别在 1 小时和 4 小时周期运行。每次选择都核对 L1 最优买卖价及数量、最近报价和末根闭合 K 线的 OHLCV 原文。AAPL 先从未闭合预览切回末根闭合 K 线。[逐标的读数测试](market-u2a.test.tsx)

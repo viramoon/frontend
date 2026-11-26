@@ -13,6 +13,7 @@ import { AppRoutes } from '../app/routes/AppRoutes';
 import { fixtureAdapter } from '../features/market/fixtureAdapter';
 import { MarketTerminal } from '../features/market/MarketTerminal';
 import { hasReading, type BookSource } from '../features/market/marketData';
+import { hasQuote, marketFixtures } from '../features/market/marketFixture';
 import type { BookEvent } from '../features/market/orderBook';
 
 const watchlist = () =>
@@ -54,30 +55,83 @@ afterEach(() => {
 });
 
 describe('U2a 行情终端', () => {
-  it('switches all nine US equities and three crypto assets through the watchlist', () => {
-    render(<MarketTerminal />);
-    for (const id of [
-      'QQQ.XNAS',
-      'SPY.ARCA',
-      'AAPL.XNAS',
-      'MSFT.XNAS',
-      'NVDA.XNAS',
-      'AMZN.XNAS',
-      'GOOGL.XNAS',
-      'META.XNAS',
-      'TSLA.XNAS',
-      'BTC-USD',
-      'ETH-USD',
-      'SOL-USD',
-    ]) {
-      choose(id === 'SPY.ARCA' ? 'SPY · Arca' : id);
-      expect(chart().getByRole('heading', { name: id })).toBeVisible();
-      expect(
-        quotes().getByRole('table', { name: 'L1 最优报价' }),
-      ).toBeVisible();
-      expect(chart().getByLabelText('K 线精确读数')).toBeVisible();
-    }
-  });
+  it.each([
+    { period: '1h', label: '1 小时' },
+    { period: '4h', label: '4 小时' },
+  ] as const)(
+    'switches all nine US equities and three crypto assets with exact L1 and $period readings',
+    ({ period, label }) => {
+      render(<MarketTerminal />);
+      fireEvent.click(chart().getByRole('button', { name: label }));
+      for (const id of [
+        'QQQ.XNAS',
+        'SPY.ARCA',
+        'AAPL.XNAS',
+        'MSFT.XNAS',
+        'NVDA.XNAS',
+        'AMZN.XNAS',
+        'GOOGL.XNAS',
+        'META.XNAS',
+        'TSLA.XNAS',
+        'BTC-USD',
+        'ETH-USD',
+        'SOL-USD',
+      ]) {
+        const fixture = marketFixtures.find((item) => item.id === id);
+        if (!fixture || !hasQuote(fixture)) {
+          throw new Error(`Missing quoted fixture for ${id}`);
+        }
+        const bars = fixture.bars[period];
+        const closedBar = bars.at(-1);
+        if (!closedBar) throw new Error(`Missing ${period} bars for ${id}`);
+
+        choose(id === 'SPY.ARCA' ? 'SPY · Arca' : id);
+        const selectedChart = chart();
+        const selectedQuotes = quotes();
+        expect(selectedChart.getByRole('heading', { name: id })).toBeVisible();
+        const l1 = selectedQuotes.getByRole('table', { name: 'L1 最优报价' });
+        expect(l1).toBeVisible();
+        expect(
+          within(l1)
+            .getAllByRole('cell')
+            .map((cell) => cell.textContent),
+          `${id} L1 bid and ask`,
+        ).toEqual([
+          fixture.quote.bid.price,
+          fixture.quote.bid.quantity,
+          fixture.quote.ask.price,
+          fixture.quote.ask.quantity,
+        ]);
+        expect(
+          selectedQuotes.getByText(fixture.quote.price, { exact: true }),
+        ).toBeVisible();
+
+        if (id === 'AAPL.XNAS') {
+          // AAPL starts on the preview. Select the last closed bar for comparison.
+          fireEvent.change(
+            selectedChart.getByRole('slider', { name: 'K 线时间' }),
+            {
+              target: { value: String(bars.length - 1) },
+            },
+          );
+        }
+        const exact = selectedChart.getByLabelText('K 线精确读数');
+        expect(exact).toBeVisible();
+        expect(
+          within(exact)
+            .getAllByRole('definition')
+            .map((value) => value.textContent),
+          `${id} ${period} closed bar`,
+        ).toEqual([
+          closedBar.open,
+          closedBar.high,
+          closedBar.low,
+          closedBar.close,
+          closedBar.volume,
+        ]);
+      }
+    },
+  );
 
   it('shows only consolidated L1 for SPY and keeps order books separate from prints on the trading route', () => {
     mountTrading();
