@@ -5,9 +5,16 @@ import {
   createChart,
   CrosshairMode,
   HistogramSeries,
+  LineSeries,
+  TickMarkType,
+  type Time,
   type UTCTimestamp,
 } from 'lightweight-charts';
-import { DataState, displayDataTime } from './TerminalStates';
+import {
+  DataState,
+  displayDataTime,
+  type DisplayTimeZone,
+} from './TerminalStates';
 import './market-chart.css';
 
 export type ChartBar = {
@@ -17,7 +24,54 @@ export type ChartBar = {
   low: string;
   close: string;
   volume: string;
+  provisional?: boolean;
 };
+
+type IndicatorPoint =
+  | { status: 'ready'; values: readonly string[] }
+  | { status: 'warmup' | 'undefined' };
+
+export type ChartIndicator = {
+  id: string;
+  label: string;
+  pane: 0 | 2;
+  lines: readonly { label: string; color: string; histogram?: boolean }[];
+  points: readonly IndicatorPoint[];
+};
+
+function chartTimes(timeZone: DisplayTimeZone) {
+  const time = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const month = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    month: 'short',
+  });
+  const day = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: '2-digit',
+  });
+  const year = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+  });
+  const formatters = {
+    [TickMarkType.Year]: year,
+    [TickMarkType.Month]: month,
+    [TickMarkType.DayOfMonth]: day,
+    [TickMarkType.Time]: time,
+    [TickMarkType.TimeWithSeconds]: new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  };
+  return (value: Time, type: TickMarkType) =>
+    typeof value === 'number' ? formatters[type].format(value * 1000) : null;
+}
 
 const background = '#15172a';
 const upColor = '#70d6ba';
@@ -75,14 +129,27 @@ type TooltipProps = {
   bar: ChartBar;
   currency: string;
   quantityUnit?: string;
+  timeZone: DisplayTimeZone;
+  indicator?: ChartIndicator;
+  index: number;
 };
 
-function ExactValueTooltip({ id, bar, currency, quantityUnit }: TooltipProps) {
+function ExactValueTooltip({
+  id,
+  bar,
+  currency,
+  quantityUnit,
+  timeZone,
+  indicator,
+  index,
+}: TooltipProps) {
   const direction = candleDirection(bar.open, bar.close);
+  const point = indicator?.points[index];
   return (
     <div className="market-chart-reading" id={id}>
       <div className="market-chart-reading-heading">
-        <time dateTime={bar.time}>{displayDataTime(bar.time)}</time>
+        <time dateTime={bar.time}>{displayDataTime(bar.time, timeZone)}</time>
+        {bar.provisional && <strong>未闭合预览</strong>}
         <strong className={`market-chart-direction ${direction}`}>
           {directionLabels[direction]}
         </strong>
@@ -101,6 +168,23 @@ function ExactValueTooltip({ id, bar, currency, quantityUnit }: TooltipProps) {
           </div>
         ))}
       </dl>
+      {indicator && (
+        <div className="market-chart-indicator">
+          <strong>{indicator.label}</strong>
+          {point?.status === 'ready' ? (
+            <dl className="market-chart-values" aria-label="指标精确读数">
+              {indicator.lines.map(({ label, color }, column) => (
+                <div key={label}>
+                  <dt style={{ color }}>{label}</dt>
+                  <dd>{point.values[column]}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <span>{point?.status === 'warmup' ? '预热中' : '指标不可用'}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -110,6 +194,8 @@ type MarketChartProps = {
   instrument: string;
   currency: string;
   quantityUnit?: string;
+  timeZone?: DisplayTimeZone;
+  indicator?: ChartIndicator;
 };
 
 export function MarketChart({
@@ -117,6 +203,8 @@ export function MarketChart({
   instrument,
   currency,
   quantityUnit,
+  timeZone = 'UTC',
+  indicator,
 }: MarketChartProps) {
   const host = useRef<HTMLDivElement>(null);
   const moveCrosshair = useRef<(index: number) => void>(null);
@@ -155,7 +243,17 @@ export function MarketChart({
         },
         crosshair: { mode: CrosshairMode.Magnet },
         rightPriceScale: { borderColor: '#44415d' },
-        timeScale: { borderColor: '#44415d', timeVisible: true },
+        localization: {
+          timeFormatter: (time: Time) =>
+            typeof time === 'number'
+              ? displayDataTime(new Date(time * 1000).toISOString(), timeZone)
+              : String(time),
+        },
+        timeScale: {
+          borderColor: '#44415d',
+          timeVisible: true,
+          tickMarkFormatter: chartTimes(timeZone),
+        },
         handleScroll: { vertTouchDrag: false },
       });
       const candles = chart.addSeries(CandlestickSeries, {
@@ -175,6 +273,31 @@ export function MarketChart({
       volume.setData(data.map(({ volume }) => volume));
       candles.getPane().setStretchFactor(3);
       volume.getPane().setStretchFactor(1);
+      if (indicator) {
+        for (const [column, line] of indicator.lines.entries()) {
+          const options = {
+            color: line.color,
+            priceLineVisible: false,
+            lastValueVisible: false,
+          };
+          const series = line.histogram
+            ? chart.addSeries(HistogramSeries, options, indicator.pane)
+            : chart.addSeries(
+                LineSeries,
+                { ...options, lineWidth: 1 },
+                indicator.pane,
+              );
+          series.setData(
+            data.map(({ candle: { time } }, index) => {
+              const point = indicator.points[index];
+              return point?.status === 'ready'
+                ? { time, value: Number(point.values[column]) }
+                : { time };
+            }),
+          );
+          if (indicator.pane === 2) series.getPane().setStretchFactor(1);
+        }
+      }
       const timescale = chart.timeScale();
       timescale.fitContent();
 
@@ -215,7 +338,7 @@ export function MarketChart({
       moveCrosshair.current = null;
       chart.remove();
     };
-  }, [bars]);
+  }, [bars, indicator, timeZone]);
 
   if (!bar) return <DataState kind="empty" title="暂无 K 线" />;
 
@@ -226,6 +349,9 @@ export function MarketChart({
         bar={bar}
         currency={currency}
         quantityUnit={quantityUnit}
+        timeZone={timeZone}
+        indicator={indicator}
+        index={index}
       />
       <div
         aria-hidden="true"
@@ -244,7 +370,7 @@ export function MarketChart({
             <span>K 线时间</span>
             <input
               aria-describedby={tooltipId}
-              aria-valuetext={`${displayDataTime(bar.time)}，收盘 ${bar.close} ${currency}`}
+              aria-valuetext={`${displayDataTime(bar.time, timeZone)}，收盘 ${bar.close} ${currency}`}
               type="range"
               min={0}
               max={bars.length - 1}

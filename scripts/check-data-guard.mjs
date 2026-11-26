@@ -51,6 +51,10 @@ const fixtureSources = new Map([
     'src/features/market/marketFixture.ts',
     '// Deterministic synthetic offsets and volumes, without vendor or historical data.',
   ],
+  [
+    'src/features/market/fixtureAdapter.ts',
+    '// synthetic points, independent of the production indicator algorithms.',
+  ],
   ...[
     'src/features/research/fixtureAdapter.ts',
     'src/features/research/fixtureYaml.ts',

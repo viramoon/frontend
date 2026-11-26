@@ -157,6 +157,44 @@ describe('终端图表', () => {
     view.unmount();
     expect(chartMock.chart.remove).toHaveBeenCalledOnce();
   });
+
+  it('draws an indicator pane with gaps and retains exact provisional indicator text', () => {
+    vi.stubGlobal('ResizeObserver', class ResizeObserver {});
+    vi.stubGlobal(
+      'CanvasRenderingContext2D',
+      class CanvasRenderingContext2D {},
+    );
+
+    const value = '-9007199254740993.000000000001';
+    render(
+      <MarketChart
+        bars={[bars[0], { ...bars[1], provisional: true }]}
+        instrument="DEMO"
+        currency="USD"
+        indicator={{
+          id: 'demo',
+          label: '演示指标',
+          pane: 2,
+          lines: [{ label: '柱值', color: '#ba9de1', histogram: true }],
+          points: [
+            { status: 'undefined' },
+            { status: 'ready', values: [value] },
+          ],
+        }}
+      />,
+    );
+
+    expect(chartMock.chart.addSeries.mock.calls[2][2]).toBe(2);
+    expect(chartMock.candle.setData).toHaveBeenCalledWith([
+      { time: Date.parse(bars[0].time) / 1000 },
+      { time: Date.parse(bars[1].time) / 1000, value: Number(value) },
+    ]);
+    expect(screen.getByText(value)).toBeVisible();
+    expect(screen.getByText('未闭合预览')).toBeVisible();
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '0' } });
+    expect(screen.getByText('指标不可用')).toBeVisible();
+    expect(screen.queryByText(value)).toBeNull();
+  });
 });
 
 describe('共享行情状态', () => {
