@@ -1,7 +1,6 @@
-declare module 'js-yaml' {
+declare module 'js-yaml/mapping-loader' {
   export class Type {
     readonly tag: string;
-    readonly resolve: (input: string | null) => boolean;
     constructor(
       tag: string,
       options: {
@@ -29,6 +28,7 @@ declare module 'js-yaml' {
     options: {
       schema: Schema;
       maxDepth: number;
+      onMappingKey: (mapping: object, key: unknown, offset: number) => boolean;
       listener?: (
         event: 'open' | 'close',
         state: {

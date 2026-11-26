@@ -1,0 +1,18 @@
+diff --git a/lib/loader.js b/lib/loader.js
+index 62cee3c..bc69e26 100644
+--- a/lib/loader.js
++++ b/lib/loader.js
+@@ -153,0 +154 @@ function State (input, options) {
++  this.onMappingKey = options['onMappingKey'] || null
+@@ -405,0 +407,5 @@ function storeMappingPair (state, _result, overridableKeys, keyTag, keyNode, val
++  if (state.onMappingKey !== null) {
++    if (_result === null) _result = {}
++    if (state.onMappingKey(_result, keyNode, startPos == null ? state.position : startPos) === false) return _result
++  }
++
+diff --git a/package.json b/package.json
+index f02c218..3c2797e 100644
+--- a/package.json
++++ b/package.json
+@@ -46,0 +47 @@
++    "./mapping-loader": "./index.js",

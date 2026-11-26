@@ -1,2 +1,5 @@
 allowBuilds:
   esbuild: true
+
+patchedDependencies:
+  js-yaml@4.3.2: patches/js-yaml@4.3.2.txt

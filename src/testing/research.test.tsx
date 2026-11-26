@@ -234,6 +234,78 @@ describe('配置策略与因子工作台', () => {
     );
   });
 
+  it.each([
+    [
+      'flow sequence',
+      sample.yaml.replace(
+        'lookback_sessions: 20',
+        '? [lookback_sessions] : 20',
+      ),
+      '/spec/factors/mom20/params',
+      30,
+      19,
+    ],
+    [
+      'block sequence at root',
+      sample.yaml.replace('kind: StrategyBundle', '? [kind]\n: StrategyBundle'),
+      '文档根节点',
+      2,
+      3,
+    ],
+    [
+      'nested mapping',
+      sample.yaml.replace(
+        'lookback_sessions: 20',
+        '? {lookback_sessions: 20} : 20',
+      ),
+      '/spec/factors/mom20/params',
+      30,
+      19,
+    ],
+    [
+      'unquoted number',
+      sample.yaml.replace('lookback_sessions: 20', '10: 20'),
+      '/spec/factors/mom20/params',
+      30,
+      17,
+    ],
+    [
+      'boolean at root',
+      sample.yaml.replace('kind: StrategyBundle', '? true\n: StrategyBundle'),
+      '文档根节点',
+      2,
+      3,
+    ],
+    [
+      'empty explicit root key',
+      sample.yaml.replace('kind: StrategyBundle', '?\n: StrategyBundle'),
+      '文档根节点',
+      2,
+      2,
+    ],
+  ] as const)(
+    'rejects a non-string mapping key (%s) before binding a version or offering a run',
+    async (_label, content, path, line, column) => {
+      const user = userEvent.setup();
+      mount('/strategies');
+      await previewRegistered(user);
+      expect(content).not.toBe(sample.yaml);
+      await upload(user, content);
+      const diagnostic = await screen.findByRole('alert');
+      expect(diagnostic).toHaveTextContent(
+        `第 ${line} 行，第 ${column} 列 · NON_STRING_KEY`,
+      );
+      expect(diagnostic).toHaveTextContent(path);
+      expect(
+        screen.queryByRole('region', { name: '编译预览' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: '运行示例回测' }),
+      ).not.toBeInTheDocument();
+      expect(await fixtureResearch.listRuns()).toEqual([]);
+    },
+  );
+
   it.each(['20.000000000000000001', '2.0000000000000000001e1'])(
     'rejects the exact fractional YAML number %s instead of reusing version 1.0.0',
     async (numericInput) => {
@@ -245,8 +317,12 @@ describe('配置策略与因子工作台', () => {
       );
       expect(changed).not.toBe(sample.yaml);
       await upload(user, changed);
-      expect(await screen.findByRole('alert')).toHaveTextContent(
-        'INVALID_NUMBER',
+      const diagnostic = await screen.findByRole('alert');
+      expect(diagnostic).toHaveTextContent(
+        '第 30 行，第 36 列 · INVALID_NUMBER',
+      );
+      expect(diagnostic).toHaveTextContent(
+        '/spec/factors/mom20/params/lookback_sessions',
       );
       expect(
         screen.queryByRole('region', { name: '编译预览' }),
@@ -256,6 +332,44 @@ describe('配置策略与因子工作台', () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it.each([
+    ['unsafe integer', '9007199254740993'],
+    ['overflowing exponent', '1e309'],
+    ['non-finite literal', '-.nan'],
+    ['overflowing hexadecimal', `0x${'f'.repeat(300)}`],
+  ])(
+    'reports the sequence field path for an invalid numeric scalar (%s)',
+    async (_label, numericInput) => {
+      const content = sample.yaml.replace(
+        'priority: 10',
+        `priority: ${numericInput}`,
+      );
+      expect(content).not.toBe(sample.yaml);
+      expect(
+        await fixtureResearch.compile({ kind: 'yaml', content }),
+      ).toMatchObject({
+        kind: 'invalid',
+        diagnostics: [
+          {
+            code: 'INVALID_NUMBER',
+            path: '/spec/portfolio/sleeves/0/priority',
+            location: { line: 97, column: 59 },
+          },
+        ],
+      });
+    },
+  );
+
+  it('accepts quoted and explicit string keys in an equivalent upload', async () => {
+    const content = sample.yaml
+      .replace('kind: StrategyBundle', '? "kind"\n: StrategyBundle')
+      .replace('lookback_sessions: 20', '"lookback_sessions": 20');
+    expect(await fixtureResearch.compile({ kind: 'yaml', content })).toEqual({
+      kind: 'compiled',
+      plan: sample.plan,
+    });
+  });
 
   it.each(['20.000', '2e1', '0x14'])(
     'accepts %s as an exact integer 20',
