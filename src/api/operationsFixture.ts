@@ -327,7 +327,7 @@ export function createOperationsFixture(
 
   function syncBackupAlert() {
     const backup = readBackup();
-    const active = backup.state !== 'disabled' && backup.alert;
+    const active = backup.state === 'verified' && backup.overdue;
     const current = alerts.get('backup');
     if (active && !current) {
       alerts.set('backup', {

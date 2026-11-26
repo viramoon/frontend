@@ -70,8 +70,10 @@ function alertView(alert: WebAlert, backup: DriveBackup | null): Alert {
       : backupEvent
         ? backup?.state === 'disabled'
           ? false
-          : backup && backup.state !== 'unavailable'
-            ? backup.alert
+          : backup &&
+              backup.state !== 'unavailable' &&
+              backup.ageSeconds !== null
+            ? backup.overdue
             : null
         : alert.disposition === 'observed' || alert.disposition === 'ignored'
           ? null
@@ -85,7 +87,9 @@ function alertView(alert: WebAlert, backup: DriveBackup | null): Alert {
       backupEvent && alert.phase === 'triggered' && active === false
         ? backup?.state === 'disabled'
           ? 'backup_disabled'
-          : 'backup_no_alert'
+          : backup?.alert
+            ? 'backup_timeout_unconfirmed'
+            : 'backup_no_alert'
         : undefined,
     observedAt: alert.observed_at,
     acknowledgedAt: alert.acknowledged_at ?? null,

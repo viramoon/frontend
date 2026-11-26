@@ -13,6 +13,12 @@ import {
 } from '../../components/OperationsStates';
 import { DataState } from '../../components/TerminalStates';
 
+const inactiveLabels: Record<NonNullable<Alert['inactiveReason']>, string> = {
+  backup_disabled: '异地备份已关闭',
+  backup_no_alert: '当前备份水位未告警',
+  backup_timeout_unconfirmed: '当前未确认恢复点超时',
+};
+
 function AlertCard({
   alert,
   adapter,
@@ -53,11 +59,9 @@ function AlertCard({
             : '未触发'
           : active
             ? '持续中'
-            : inactiveReason === 'backup_disabled'
-              ? '异地备份已关闭'
-              : inactiveReason === 'backup_no_alert'
-                ? '当前备份水位未告警'
-                : '已恢复'}
+            : inactiveReason
+              ? inactiveLabels[inactiveReason]
+              : '已恢复'}
       </p>
       <dl className="operations-fields">
         <dt>观察时间</dt>

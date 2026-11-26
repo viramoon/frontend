@@ -110,7 +110,10 @@ export type Alert = {
   condition: AlertCondition;
   severity: Severity;
   active: boolean | null;
-  inactiveReason?: 'backup_disabled' | 'backup_no_alert';
+  inactiveReason?:
+    | 'backup_disabled'
+    | 'backup_no_alert'
+    | 'backup_timeout_unconfirmed';
   observedAt: string;
   acknowledgedAt: string | null;
   silencedUntil: string | null;

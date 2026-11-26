@@ -344,6 +344,84 @@ it('writes a W4 credential once and keeps returned masks and raw values out of v
   expect(unexpected).toEqual([]);
 });
 
+const triggeredBackupEvent = {
+  id,
+  condition: 'backup_stale',
+  severity: 'urgent',
+  phase: 'triggered',
+  disposition: 'pending',
+  observed_at: time,
+  created_at: time,
+  sequence: '4',
+  deliveries: [],
+  duplicate_count: 0,
+};
+
+it.each([
+  {
+    description: 'a recent recovery point with producer degradation',
+    backup: {
+      state: 'degraded',
+      age_seconds: 1200,
+      alert: true,
+      degraded: true,
+      last_recoverable_at: time,
+    },
+    title: 'Drive 恢复点超过一小时',
+    status: '当前未确认恢复点超时',
+  },
+  {
+    description: 'producer degradation at the whole-second timeout boundary',
+    backup: {
+      state: 'degraded',
+      age_seconds: 3600,
+      alert: true,
+      degraded: true,
+      last_recoverable_at: time,
+    },
+    title: 'Drive 恢复点超过一小时',
+    status: '当前未确认恢复点超时',
+  },
+  {
+    description: 'no verified recovery point',
+    backup: {
+      state: 'no_verified_point',
+      age_seconds: null,
+      alert: true,
+      degraded: false,
+      last_recoverable_at: null,
+    },
+    title: 'Drive 恢复水位事件',
+    status: '恢复水位当前无法核验',
+  },
+])(
+  'excludes historical backup timeouts from ongoing alerts for $description',
+  async ({ backup, title, status }) => {
+    const { unexpected } = mockWeb((request, url) => {
+      expect(request.method).toBe('GET');
+      if (url.pathname === backupPath) return Response.json(backup);
+      if (url.pathname === '/api/v1/alerts')
+        return Response.json({ items: [triggeredBackupEvent] });
+      throw new Error('unexpected W3/W4 route');
+    });
+    const user = userEvent.setup();
+    mount('/alerts');
+    const event = within(await screen.findByRole('region', { name: title }));
+    expect(event.getByText(status)).toBeVisible();
+    expect(event.queryByText('持续中')).not.toBeInTheDocument();
+    expect(event.queryByText('已恢复')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('checkbox', { name: '只看尚未确认的持续告警' }),
+    );
+    expect(screen.getByText('没有符合条件的告警')).toBeVisible();
+    expect(
+      screen.queryByRole('region', { name: title }),
+    ).not.toBeInTheDocument();
+    expect(unexpected).toEqual([]);
+  },
+);
+
 it('uses web Drive age and alert while the observation stalls, preserves exact watermarks, and ends a disabled alert', async () => {
   let backup: BackupStatus = {
     state: 'healthy',
@@ -399,22 +477,7 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
     if (url.pathname === '/api/v1/backtests/sample')
       return Response.json({}, { status: 404 });
     if (url.pathname === '/api/v1/alerts')
-      return Response.json({
-        items: [
-          {
-            id,
-            condition: 'backup_stale',
-            severity: 'urgent',
-            phase: 'triggered',
-            disposition: 'pending',
-            observed_at: time,
-            created_at: time,
-            sequence: '4',
-            deliveries: [],
-            duplicate_count: 0,
-          },
-        ],
-      });
+      return Response.json({ items: [triggeredBackupEvent] });
     throw new Error('unexpected W4 route');
   });
   const user = userEvent.setup();
@@ -479,6 +542,12 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
   );
   expect(active.getByText('持续中')).toBeVisible();
   expect(active.queryByText('已恢复')).not.toBeInTheDocument();
+  await user.click(
+    screen.getByRole('checkbox', { name: '只看尚未确认的持续告警' }),
+  );
+  expect(
+    screen.getByRole('region', { name: 'Drive 恢复点超过一小时' }),
+  ).toBeVisible();
 
   backup = { ...backup, age_seconds: 1200, degraded: true };
   await user.click(nav.getByRole('link', { name: '系统' }));
@@ -490,10 +559,11 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
   );
   expect(degraded.getByRole('alert')).not.toHaveTextContent('超过一小时');
   await user.click(nav.getByRole('link', { name: '事件' }));
-  const stillActive = within(
+  const recent = within(
     await screen.findByRole('region', { name: 'Drive 恢复点超过一小时' }),
   );
-  expect(stillActive.getByText('持续中')).toBeVisible();
+  expect(await recent.findByText('当前未确认恢复点超时')).toBeVisible();
+  expect(recent.queryByText('持续中')).not.toBeInTheDocument();
 
   // A triggered event remains historical evidence when the current backup alarm clears.
   backup = {
