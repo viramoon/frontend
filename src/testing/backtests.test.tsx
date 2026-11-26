@@ -130,6 +130,7 @@ describe('historical backtests', () => {
 
   it('looks up an accepted job after a timeout without sending another POST', async () => {
     const mutations: string[] = [];
+    const cookies: Array<string | null> = [];
     let key: string | null = null;
     setup(async (request) => {
       const path = new URL(request.url).pathname;
@@ -141,6 +142,7 @@ describe('historical backtests', () => {
         expect(request.headers.get('Authorization')).toBe(
           'Bearer ' + testToken,
         );
+        cookies.push(request.headers.get('Cookie'));
         expect(await request.json()).toEqual(params);
         mutations.push('POST');
         return json({ error: { code: 'finance_timeout' } }, 504);
@@ -150,6 +152,7 @@ describe('historical backtests', () => {
         expect(request.headers.get('Authorization')).toBe(
           'Bearer ' + testToken,
         );
+        cookies.push(request.headers.get('Cookie'));
         mutations.push('LOOKUP');
         return json({ id: 71 });
       }
@@ -160,6 +163,7 @@ describe('historical backtests', () => {
     fireEvent.click(screen.getByRole('button', { name: '提交回测' }));
     await screen.findByText('排队中');
     expect(mutations).toEqual(['POST', 'LOOKUP']);
+    expect(cookies).toEqual([null, null]);
     expect(
       (screen.getByLabelText('回测提交令牌') as HTMLInputElement).value,
     ).toBe('');
