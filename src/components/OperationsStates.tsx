@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import {
   OperationError,
+  operationsFixtureSeed,
   type AlertCondition,
   type CheckOutcome,
   type Delivery,
   type Severity,
 } from '../api/operations';
-import { operationsFixtureSeed } from '../api/operationsFixture';
 import { DataState } from './TerminalStates';
 import './operations.css';
 
@@ -62,7 +62,10 @@ const deliveryLabels: Record<Delivery['status'], string> = {
   suppressed: '已抑制',
 };
 
-const attemptLabels: Record<Delivery['attempts'][number]['outcome'], string> = {
+export const attemptLabels: Record<
+  Delivery['attempts'][number]['outcome'],
+  string
+> = {
   sending: '正在投递',
   accepted: '中继已接受',
   timeout: '中继超时',
@@ -179,4 +182,8 @@ export function useOperation(refresh: () => Promise<unknown>) {
   }
 
   return { pending, error, message, run };
+}
+
+export function W4Unavailable() {
+  return <DataState kind="empty" title="接口未就绪（待 W4）" />;
 }

@@ -14,6 +14,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Job } from '../api';
+import { createOperationsFixture } from '../api/operationsFixture';
 import { AppRoutes } from '../app/routes/AppRoutes';
 
 let client: QueryClient;
@@ -23,12 +24,13 @@ function CurrentAddress() {
   return <output aria-label="当前地址">{pathname + search}</output>;
 }
 
-function mount(path: string) {
+function mount(path: string, fixture = false) {
+  const operations = fixture ? createOperationsFixture() : undefined;
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
+        <AppRoutes operations={operations} />
         <CurrentAddress />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -78,7 +80,7 @@ describe('终端路由', () => {
       const http = vi.fn();
       vi.stubGlobal('fetch', http);
       const user = userEvent.setup();
-      mount('/blog');
+      mount('/blog', issue === 'U4');
 
       const nav = screen.getByRole('navigation', { name: '主导航' });
       const link = within(nav).getByRole('link', { name: label });

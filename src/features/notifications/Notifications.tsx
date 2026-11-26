@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useRef, useState } from 'react';
 import type {
   NotificationRule,
@@ -108,19 +108,28 @@ function EmailTest({
   testKey,
   setTestKey,
   recipientConfigured,
+  fixture,
 }: {
   adapter: NotificationsAdapter;
   testKey: string | null;
   setTestKey: (key: string) => void;
-  recipientConfigured: boolean;
+  recipientConfigured: boolean | null;
+  fixture: boolean;
 }) {
+  const client = useQueryClient();
   const submitting = useRef(false);
   const [starting, setStarting] = useState(false);
   const [startFailed, setStartFailed] = useState(false);
+  const testQueryKey = [
+    'u4',
+    fixture ? 'fixture' : 'web',
+    'email-test',
+    testKey,
+  ];
   const test = useQuery({
-    queryKey: ['u4', 'email-test', testKey],
+    queryKey: testQueryKey,
     enabled: Boolean(testKey) && !starting,
-    queryFn: () => adapter.readEmailTest(testKey!),
+    queryFn: ({ signal }) => adapter.readEmailTest(testKey!, signal),
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       return status === 'pending' || status === 'sending' ? 500 : false;
@@ -140,9 +149,11 @@ function EmailTest({
       setStartFailed(true);
     } finally {
       // Re-read the same key on every outcome. A timed-out write may have succeeded.
+      if (key === testKey) {
+        await client.invalidateQueries({ queryKey: testQueryKey, exact: true });
+      }
       submitting.current = false;
       setStarting(false);
-      if (key === testKey) void test.refetch();
     }
   }
 
@@ -153,14 +164,19 @@ function EmailTest({
     <section className="operations-card" aria-labelledby="email-channel">
       <h2 id="email-channel">邮件渠道</h2>
       <p>
-        收件人 · {recipientConfigured ? '已配置的本人邮箱（已隐藏）' : '待配置'}
+        收件人 ·{' '}
+        {recipientConfigured === null
+          ? '由 web 部署管理'
+          : recipientConfigured
+            ? '已配置的本人邮箱（已隐藏）'
+            : '待配置'}
       </p>
       <div className="operations-actions">
         <button
           type="button"
           className="refresh"
           disabled={
-            !recipientConfigured ||
+            recipientConfigured === false ||
             starting ||
             waiting ||
             checking ||
@@ -209,36 +225,44 @@ export function Notifications({
   adapter,
   testKey,
   setTestKey,
+  fixture = false,
 }: {
   adapter: NotificationsAdapter;
   testKey: string | null;
   setTestKey: (key: string) => void;
+  fixture?: boolean;
 }) {
   const config = useQuery({
-    queryKey: ['u4', 'notifications'],
-    queryFn: adapter.read,
+    queryKey: ['u4', fixture ? 'fixture' : 'web', 'notifications'],
+    queryFn: ({ signal }) => adapter.read(signal),
   });
   return (
     <section className="operations-page" aria-labelledby="notifications-title">
       <h1 id="notifications-title">通知设置</h1>
-      <FixtureNotice />
-      {config.data ? (
+      {fixture && <FixtureNotice />}
+      {config.data && !config.isError ? (
         <>
           <EmailTest
             adapter={adapter}
             testKey={testKey}
             setTestKey={setTestKey}
             recipientConfigured={config.data.recipientConfigured}
+            fixture={fixture}
           />
           <section
             className="operations-section"
             aria-labelledby="notification-rules"
           >
             <h2 id="notification-rules">通知规则</h2>
-            <p>
-              静默时段 {config.data.quietStart}–{config.data.quietEnd} ·{' '}
-              {config.data.timezone}
-            </p>
+            {config.data.timezone &&
+              config.data.quietStart &&
+              config.data.quietEnd && (
+                <p>
+                  静默时段 {config.data.quietStart}–{config.data.quietEnd} ·{' '}
+                  {config.data.timezone}
+                </p>
+              )}
+            {config.data.rules.length === 0 && <p>暂无通知规则。</p>}
             <div className="operations-grid">
               {config.data.rules.map((rule) => (
                 <RuleCard

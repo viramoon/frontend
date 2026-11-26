@@ -1,6 +1,10 @@
 import {
   OperationError,
+  backupMaxAgeMs,
+  isBackupOverdue,
+  type DriveBackup,
   type Alert,
+  type AlertsAdapter,
   type CheckOutcome,
   type Delivery,
   type Integration,
@@ -11,7 +15,7 @@ import {
 } from './operations';
 
 // Hand-authored scenarios, independent of any account, provider or production snapshot.
-export const operationsFixtureSeed = 'u4-operations-v1';
+export { operationsFixtureSeed } from './operations';
 const start = Date.parse('2000-01-03T12:00:00Z');
 const minute = 60_000;
 const mailCompletedAfterMs = 1000;
@@ -171,9 +175,13 @@ const rejectedMail: Delivery = {
   attempts: [{ startedAt: beforeStart(25), outcome: 'rejected' }],
 };
 
-export function createOperationsFixture(clock = Date.now): OperationsAdapter {
+export function createOperationsFixture(
+  clock = Date.now,
+  initialRecoveryAgeMs = 72 * minute,
+): OperationsAdapter & { alerts: Required<AlertsAdapter> } {
   const initialized = clock();
   const now = () => start + (clock() - initialized);
+  const recoveryPoint = start - initialRecoveryAgeMs;
   const integrations = new Map<Integration['id'], Integration>(
     integrationSpecs.map(({ initiallyActive, ...spec }) => {
       const draft: IntegrationVersion = {
@@ -201,21 +209,19 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
       ];
     }),
   );
-  const alertFixtures: Omit<Alert, 'acknowledgedAt' | 'silencedUntil'>[] = [
-    {
-      id: 'backup',
-      severity: 'urgent',
-      condition: 'backup_stale',
-      active: true,
-      observedAt: beforeStart(12),
-      deliveries: [
-        {
-          status: 'pending',
-          updatedAt: beforeStart(12),
-          attempts: [],
-        },
-      ],
-    },
+  type AlertSeed = Omit<Alert, 'acknowledgedAt' | 'silencedUntil'>;
+  const thresholdCrossedAt = timestamp(recoveryPoint + backupMaxAgeMs + 1);
+  const backupAlert: AlertSeed = {
+    id: 'backup',
+    severity: 'urgent',
+    condition: 'backup_stale',
+    active: true,
+    observedAt: thresholdCrossedAt,
+    deliveries: [
+      { status: 'pending', updatedAt: thresholdCrossedAt, attempts: [] },
+    ],
+  };
+  const alertFixtures: AlertSeed[] = [
     {
       id: 'market',
       severity: 'important',
@@ -240,7 +246,7 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
     ]),
   );
   const rules = new Map(
-    [...alerts.values()].map(
+    [backupAlert, ...alertFixtures].map(
       ({ id, severity, condition }): [string, NotificationRule] => [
         id,
         {
@@ -282,6 +288,38 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
     };
   }
 
+  function readBackup(observed = now()): DriveBackup {
+    if (!integrations.get('drive')?.active) return { state: 'disabled' };
+    return {
+      state: 'verified',
+      observedAt: timestamp(observed),
+      lastRecoverableAt: timestamp(recoveryPoint),
+      lastFullAt: beforeStart(540),
+      lastHourlyAt: timestamp(recoveryPoint),
+      lastDrill: { finishedAt: beforeStart(1440), passed: true },
+    };
+  }
+
+  function syncBackupAlert() {
+    const backup = readBackup();
+    const active = isBackupOverdue(backup);
+    const current = alerts.get('backup');
+    if (active && !current) {
+      alerts.set('backup', {
+        ...backupAlert,
+        acknowledgedAt: null,
+        silencedUntil: null,
+      });
+    } else if (current && current.active !== active) {
+      alerts.set('backup', {
+        ...current,
+        active,
+        inactiveReason:
+          backup.state === 'disabled' ? 'backup_disabled' : undefined,
+      });
+    }
+  }
+
   return {
     integrations: {
       async list() {
@@ -299,13 +337,17 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
     },
     alerts: {
       async list() {
-        return [...alerts.values()].map((alert) =>
-          alert.silencedUntil && Date.parse(alert.silencedUntil) <= now()
-            ? { ...alert, silencedUntil: null }
-            : alert,
-        );
+        syncBackupAlert();
+        return [...alerts.values()]
+          .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
+          .map((alert) =>
+            alert.silencedUntil && Date.parse(alert.silencedUntil) <= now()
+              ? { ...alert, silencedUntil: null }
+              : alert,
+          );
       },
       async acknowledge(id) {
+        syncBackupAlert();
         const alert = alerts.get(id);
         if (!alert) throw new OperationError('invalid');
         alerts.set(id, {
@@ -314,6 +356,7 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
         });
       },
       async silence(id, durationMinutes) {
+        syncBackupAlert();
         const alert = alerts.get(id);
         if (!alert?.active) throw new OperationError('conflict');
         alerts.set(id, {
@@ -403,7 +446,6 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
         .reverse()
         .find(({ started }) => observed - started >= mailCompletedAfterMs);
       const emailConfigured = Boolean(integrations.get('smtp')?.active);
-      const backupConfigured = Boolean(integrations.get('drive')?.active);
       return {
         sources: [
           {
@@ -425,16 +467,7 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
           publicSource('hyperliquid'),
           publicSource('binance'),
         ],
-        backup: backupConfigured
-          ? {
-              state: 'verified',
-              observedAt: timestamp(observed),
-              lastRecoverableAt: beforeStart(72),
-              lastFullAt: beforeStart(540),
-              lastHourlyAt: beforeStart(72),
-              lastDrill: { finishedAt: beforeStart(1440), passed: true },
-            }
-          : { state: 'disabled' },
+        backup: readBackup(observed),
         email: {
           status: !emailConfigured
             ? 'unavailable'

@@ -1,3 +1,5 @@
+export const operationsFixtureSeed = 'u4-operations-v1';
+
 // View models for the U4 adapter. Future implementations use the same-origin web client.
 export type IntegrationId =
   | 'ibkr-paper'
@@ -107,7 +109,8 @@ export type Alert = {
   id: string;
   condition: AlertCondition;
   severity: Severity;
-  active: boolean;
+  active: boolean | null;
+  inactiveReason?: 'backup_disabled';
   observedAt: string;
   acknowledgedAt: string | null;
   silencedUntil: string | null;
@@ -115,9 +118,9 @@ export type Alert = {
 };
 
 export type AlertsAdapter = {
-  list(): Promise<readonly Alert[]>;
+  list(signal?: AbortSignal): Promise<readonly Alert[]>;
   acknowledge(id: string): Promise<void>;
-  silence(id: string, durationMinutes: 60 | null): Promise<void>;
+  silence?(id: string, durationMinutes: 60 | null): Promise<void>;
 };
 
 export type RuleSettings = {
@@ -135,16 +138,19 @@ export type NotificationRule = RuleSettings & {
 };
 
 export type NotificationsAdapter = {
-  read(): Promise<{
-    recipientConfigured: boolean;
-    timezone: string;
-    quietStart: string;
-    quietEnd: string;
+  read(signal?: AbortSignal): Promise<{
+    recipientConfigured: boolean | null;
+    timezone: string | null;
+    quietStart: string | null;
+    quietEnd: string | null;
     rules: readonly NotificationRule[];
   }>;
   saveRule(id: string, revision: number, settings: RuleSettings): Promise<void>;
   startEmailTest(idempotencyKey: string): Promise<void>;
-  readEmailTest(idempotencyKey: string): Promise<Delivery | null>;
+  readEmailTest(
+    idempotencyKey: string,
+    signal?: AbortSignal,
+  ): Promise<Delivery | null>;
 };
 
 export type DriveBackup =
@@ -195,4 +201,18 @@ export class OperationError extends Error {
   ) {
     super(code);
   }
+}
+
+export function backupAgeMs(backup: DriveBackup): number | null {
+  if (backup.state === 'disabled' || !backup.lastRecoverableAt) return null;
+  const age =
+    Date.parse(backup.observedAt) - Date.parse(backup.lastRecoverableAt);
+  return Number.isFinite(age) && age >= 0 ? age : null;
+}
+
+export const backupMaxAgeMs = 3_600_000;
+
+export function isBackupOverdue(backup: DriveBackup): boolean {
+  const age = backupAgeMs(backup);
+  return age !== null && age > backupMaxAgeMs;
 }

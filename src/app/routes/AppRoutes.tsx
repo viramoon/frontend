@@ -8,7 +8,9 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
-import { createOperationsFixture } from '../../api/operationsFixture';
+import type { OperationsAdapter } from '../../api/operations';
+import { webAlerts, webNotifications } from '../../api/notificationsWeb';
+import { W4Unavailable } from '../../components/OperationsStates';
 import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
@@ -19,7 +21,11 @@ import {
 import { Integrations } from '../../features/integrations/Integrations';
 import { Alerts } from '../../features/notifications/Alerts';
 import { Notifications } from '../../features/notifications/Notifications';
-import { SystemDetails } from '../../features/system/SystemDetails';
+import {
+  SystemDetails,
+  WebSystemDetails,
+} from '../../features/system/SystemDetails';
+import { NotificationAccess } from './NotificationAccess';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
 import { Trading } from '../../features/trading/Trading';
 
@@ -94,10 +100,31 @@ function StrategyDetail() {
   );
 }
 
-export function AppRoutes() {
+export function AppRoutes({
+  operations,
+  w4 = operations,
+}: {
+  operations?: OperationsAdapter;
+  w4?: Pick<OperationsAdapter, 'integrations' | 'readSystem'>;
+} = {}) {
   const { pathname } = useLocation();
-  const [operations] = useState(createOperationsFixture);
   const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
+
+  const resetTest = () => setEmailTestKey(null);
+  const alerts = (
+    <Alerts
+      adapter={operations?.alerts ?? webAlerts}
+      fixture={Boolean(operations)}
+    />
+  );
+  const notifications = (
+    <Notifications
+      adapter={operations?.notifications ?? webNotifications}
+      fixture={Boolean(operations)}
+      testKey={emailTestKey}
+      setTestKey={setEmailTestKey}
+    />
+  );
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -167,20 +194,45 @@ export function AppRoutes() {
           <Route path="/backtests" element={<Backtests />} />
           <Route
             path="/settings/integrations"
-            element={<Integrations adapter={operations.integrations} />}
+            element={
+              w4 ? (
+                <Integrations
+                  adapter={w4.integrations}
+                  fixture={Boolean(operations)}
+                />
+              ) : (
+                <section
+                  className="operations-page"
+                  aria-labelledby="integrations-title"
+                >
+                  <h1 id="integrations-title">接口设置</h1>
+                  <W4Unavailable />
+                </section>
+              )
+            }
           />
           <Route
             path="/alerts"
-            element={<Alerts adapter={operations.alerts} />}
+            element={
+              operations ? (
+                alerts
+              ) : (
+                <NotificationAccess title="事件" resetTest={resetTest}>
+                  {alerts}
+                </NotificationAccess>
+              )
+            }
           />
           <Route
             path="/settings/notifications"
             element={
-              <Notifications
-                adapter={operations.notifications}
-                testKey={emailTestKey}
-                setTestKey={setEmailTestKey}
-              />
+              operations ? (
+                notifications
+              ) : (
+                <NotificationAccess title="通知设置" resetTest={resetTest}>
+                  {notifications}
+                </NotificationAccess>
+              )
             }
           />
           <Route
@@ -188,7 +240,14 @@ export function AppRoutes() {
             element={
               <>
                 <SystemOverview standalone />
-                <SystemDetails read={operations.readSystem} />
+                {w4 ? (
+                  <SystemDetails
+                    read={w4.readSystem}
+                    fixture={Boolean(operations)}
+                  />
+                ) : (
+                  <WebSystemDetails />
+                )}
               </>
             }
           />

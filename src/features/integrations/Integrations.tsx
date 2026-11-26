@@ -232,7 +232,13 @@ function IntegrationCard({
   );
 }
 
-export function Integrations({ adapter }: { adapter: IntegrationsAdapter }) {
+export function Integrations({
+  adapter,
+  fixture = false,
+}: {
+  adapter: IntegrationsAdapter;
+  fixture?: boolean;
+}) {
   const integrations = useQuery({
     queryKey: ['u4', 'integrations'],
     queryFn: adapter.list,
@@ -244,7 +250,7 @@ export function Integrations({ adapter }: { adapter: IntegrationsAdapter }) {
   return (
     <section className="operations-page" aria-labelledby="integrations-title">
       <h1 id="integrations-title">接口设置</h1>
-      <FixtureNotice />
+      {fixture && <FixtureNotice />}
       {integrations.data ? (
         <div className="operations-grid">
           {integrations.data.map((integration) => (

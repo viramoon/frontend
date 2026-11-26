@@ -13,10 +13,10 @@
 | `/strategies`、`/strategies/:id` | 策略列表、版本与详情的页面骨架，列表可打开示例详情。 | U3 · `/strategies`、`/strategies/validate`、`/strategies/{id}/versions/{version}`、`/strategy-schema/{major}` |
 | `/factors` | 因子目录和质量报告页面骨架。 | U3 · `/factors`、`/factors/{id}/versions/{version}/report` |
 | `/backtests` | 现有历史回测工作台读取 `/backtests` 系列接口。可读取标的和日期覆盖，提交单标的均线作业，也可经 `?job=` 查看作业状态、绩效覆盖和成交审计。 | U3 · `/strategy-runs`、`/strategy-runs/{id}`、`/strategy-runs/by-key`、`/strategy-runs/{id}/artifacts`、`/datasets/imports`、`/datasets/imports/{id}` |
-| `/settings/integrations` | 合成接口卡支持查看产品和权限、保存草稿、写入和清除示例凭据、测试、启用、回滚和停用。 | W1 会话、权限和配置版本，W4 提供实际连接、测试证据与配置应用 |
-| `/alerts` | 合成告警列表支持确认、按事件静默和投递状态查看。 | W3 · `/alerts`、`/alerts/{id}`、`/alerts/{id}/ack`；主动静默待 web 契约 |
-| `/settings/notifications` | 合成邮件规则、本人收件地址配置状态与测试发送。 | W3 · `/notification-rules`、`/notification-rules/{id}`、`/notification-channels/email/tests` 与测试详情 |
-| `/system` | 保留现有系统状态和示例回测，另有合成采集质量、SMTP 状态和 Drive 恢复水位。 | U2 分区水位与缺口，W3 邮件健康，T2b 备份状态由 web 提供安全摘要 |
+| `/settings/integrations` | 明确显示接口未就绪。 | W4 提供实际连接、测试证据、启用和回滚 |
+| `/alerts` | 通过 W3 `/alerts`、`/alerts/{id}` 和 `/alerts/{id}/ack` 展示告警、投递与确认。 | 主动静默待 web 契约，Drive 恢复水位由 W4 提供 |
+| `/settings/notifications` | 使用 W3 `/notification-rules` 与 `/notification-channels/email/tests` 读取、更新已有规则并测试邮件。 | 收件地址与 SMTP 配置由 web 部署管理 |
+| `/system` | 保留系统、行情采集状态及示例回测，显示 W3 通知健康。Drive 恢复水位显示接口未就绪。 | W4 提供 T2b 备份摘要，U2 提供分区水位和缺口 |
 | `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
 表中的 API 路径以 `/api/v1` 为前缀。后续列记录 v1 方案 §E2 中各页面对应的路径，实际接入以合入并锁定的 web 契约为准。现有页面继续调用系统和回测接口。
@@ -31,7 +31,7 @@ market feature 的合成行情保留十进制源字符串。图表仅在传入 L
 
 ## 请求、状态与刷新
 
-src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从 `openapi/web.openapi.json` 生成客户端。`openapi/web.commit` 当前锁定 web main 的 `90662dbb904724f119814576cb98128d8cb9ed05`，包含 W1 会话、数据权限和配置生命周期（web #15）及 finance 契约升级（web #18）。管理员会话、当前用户能力和集成配置接口已生成客户端。U4 页面通过只在内存运行的适配层演示，实际接线等待 W3、W4 与 T2b 契约。[U4 适配层](../src/api/README.md#u4-适配层)
+src/api 配置唯一的同源 web client，并将 HTTP 出错状态传给界面。Hey API 与 TanStack Query 插件从锁定的 OpenAPI 生成客户端。U4 使用 web `4c966be225133372ebb5e4eccc64cf6028288c4e` 的 W3 契约。W4 前正式路由显示未就绪，合成适配器仅供离线用例。[U4 适配层](../src/api/README.md#u4-适配层)
 
 查询结果默认在 15 秒内视为新鲜。系统状态每 30 秒刷新，作业列表每 5 秒刷新，排队或运行中的详情每 2 秒刷新。行情新鲜度由 web 根据采集器的时间和阈值报告。
 

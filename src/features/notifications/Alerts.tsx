@@ -27,6 +27,7 @@ function AlertCard({
     condition,
     severity,
     active,
+    inactiveReason,
     observedAt,
     acknowledgedAt,
     silencedUntil,
@@ -34,15 +35,27 @@ function AlertCard({
   } = alert;
   const { pending, error, message, run } = useOperation(refresh);
   const title = `alert-${id}`;
+  const unverifiedBackup = condition === 'backup_stale' && active === null;
+  const silence = adapter.silence;
 
   return (
     <section className="operations-card" aria-labelledby={title}>
-      <h2 id={title}>{conditionLabels[condition]}</h2>
+      <h2 id={title}>
+        {unverifiedBackup ? 'Drive 恢复水位事件' : conditionLabels[condition]}
+      </h2>
       <p>
         <span className="operations-badge" data-status={severity}>
           {severityLabels[severity]}
         </span>{' '}
-        {active ? '持续中' : '已恢复'}
+        {active === null
+          ? condition === 'backup_stale'
+            ? '恢复水位待 W4 核验'
+            : '未触发'
+          : active
+            ? '持续中'
+            : inactiveReason === 'backup_disabled'
+              ? '异地备份已关闭'
+              : '已恢复'}
       </p>
       <dl className="operations-fields">
         <dt>观察时间</dt>
@@ -61,12 +74,16 @@ function AlertCard({
         </dd>
         <dt>静默状态</dt>
         <dd>
-          {silencedUntil ? (
-            <>
-              静默至 <UtcTime value={silencedUntil} />
-            </>
+          {silence ? (
+            silencedUntil ? (
+              <>
+                静默至 <UtcTime value={silencedUntil} />
+              </>
+            ) : (
+              '未静默'
+            )
           ) : (
-            '未静默'
+            '主动静默待 web 接口'
           )}
         </dd>
       </dl>
@@ -92,19 +109,21 @@ function AlertCard({
         >
           确认告警
         </button>
-        <button
-          type="button"
-          className="refresh"
-          disabled={pending || !active}
-          onClick={() => {
-            void run(
-              () => adapter.silence(id, silencedUntil ? null : 60),
-              silencedUntil ? '已解除静默。' : '事件已静默一小时。',
-            );
-          }}
-        >
-          {silencedUntil ? '解除静默' : '静默一小时'}
-        </button>
+        {silence && (
+          <button
+            type="button"
+            className="refresh"
+            disabled={pending || !active}
+            onClick={() => {
+              void run(
+                () => silence(id, silencedUntil ? null : 60),
+                silencedUntil ? '已解除静默。' : '事件已静默一小时。',
+              );
+            }}
+          >
+            {silencedUntil ? '解除静默' : '静默一小时'}
+          </button>
+        )}
         {condition === 'backup_stale' && (
           <Link to="/system#drive-backup">查看恢复水位</Link>
         )}
@@ -119,10 +138,17 @@ function AlertCard({
   );
 }
 
-export function Alerts({ adapter }: { adapter: AlertsAdapter }) {
+export function Alerts({
+  adapter,
+  fixture = false,
+}: {
+  adapter: AlertsAdapter;
+  fixture?: boolean;
+}) {
   const alerts = useQuery({
-    queryKey: ['u4', 'alerts'],
-    queryFn: adapter.list,
+    queryKey: ['u4', fixture ? 'fixture' : 'web', 'alerts'],
+    queryFn: ({ signal }) => adapter.list(signal),
+    staleTime: 0,
     refetchInterval: 30_000,
   });
   const [onlyUnacknowledged, setOnlyUnacknowledged] = useState(false);
@@ -133,8 +159,8 @@ export function Alerts({ adapter }: { adapter: AlertsAdapter }) {
   return (
     <section className="operations-page" aria-labelledby="alerts-title">
       <h1 id="alerts-title">事件</h1>
-      <FixtureNotice />
-      {visible ? (
+      {fixture && <FixtureNotice />}
+      {visible && !alerts.isError ? (
         <>
           <div className="operations-actions">
             <label className="operations-checkbox">

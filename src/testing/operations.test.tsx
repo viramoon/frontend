@@ -52,7 +52,10 @@ describe('U4 接口配置', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const user = userEvent.setup();
-    mount(<AppRoutes />, '/settings/integrations');
+    mount(
+      <AppRoutes operations={createOperationsFixture()} />,
+      '/settings/integrations',
+    );
 
     const ibkr = await card('IBKR paper');
     expect(ibkr.getByText('paper · 只读行情')).toBeVisible();
@@ -87,7 +90,10 @@ describe('U4 接口配置', () => {
 
   it('saves, verifies, activates, rolls back and disables a public integration in the app session', async () => {
     const user = userEvent.setup();
-    mount(<AppRoutes />, '/settings/integrations');
+    mount(
+      <AppRoutes operations={createOperationsFixture()} />,
+      '/settings/integrations',
+    );
     const publicFeed = await card('Hyperliquid');
 
     await user.selectOptions(publicFeed.getByLabelText('产品'), 'ETH 永续');
@@ -240,7 +246,7 @@ describe('U4 告警及邮件', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const user = userEvent.setup();
-    mount(<AppRoutes />, '/alerts');
+    mount(<AppRoutes operations={createOperationsFixture()} />, '/alerts');
     const backup = await card('Drive 恢复点超过一小时');
 
     expect(backup.getByText('等待投递')).toBeVisible();
@@ -315,7 +321,10 @@ describe('U4 告警及邮件', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     const user = userEvent.setup();
-    mount(<AppRoutes />, '/settings/notifications');
+    mount(
+      <AppRoutes operations={createOperationsFixture()} />,
+      '/settings/notifications',
+    );
     const channel = await card('邮件渠道');
 
     expect(channel.getByText(/本人邮箱（已隐藏）/)).toBeVisible();
@@ -372,7 +381,7 @@ describe('U4 告警及邮件', () => {
     expect(channel.getByText(/提交结果未确认.*未查到测试记录/)).toBeVisible();
     expect(startEmailTest).toHaveBeenCalledTimes(1);
     const [key] = startEmailTest.mock.calls[0];
-    expect(readEmailTest).toHaveBeenCalledWith(key);
+    expect(readEmailTest).toHaveBeenCalledWith(key, expect.any(AbortSignal));
     await user.click(retry);
     expect(await channel.findByText('等待投递')).toBeVisible();
     expect(startEmailTest.mock.calls).toEqual([[key], [key]]);
@@ -380,6 +389,68 @@ describe('U4 告警及邮件', () => {
 });
 
 describe('U4 系统与备份', () => {
+  it('keeps Drive alerts and the system watermark consistent at one hour, after the threshold and after disable', async () => {
+    let clock = 0;
+    const fixture = createOperationsFixture(() => clock, 3_599_999);
+    vi.stubGlobal('fetch', (request: Request) => {
+      const path = new URL(request.url).pathname;
+      expect(new URL(request.url).origin).toBe(location.origin);
+      expect(request.method).toBe('GET');
+      if (path === '/api/v1/system/status')
+        return Promise.resolve(Response.json({}, { status: 503 }));
+      if (path === '/api/v1/backtests/sample')
+        return Promise.resolve(Response.json({}, { status: 404 }));
+      throw new Error('Unexpected request in the offline fixture');
+    });
+    const user = userEvent.setup();
+    mount(<AppRoutes operations={fixture} />, '/alerts');
+    await card('Nasdaq 盘口权限失败');
+    const backupEvent = () =>
+      screen.queryByRole('region', { name: 'Drive 恢复点超过一小时' });
+    expect(backupEvent()).not.toBeInTheDocument();
+    const nav = within(screen.getByRole('navigation', { name: '主导航' }));
+
+    clock = 1;
+    expect(
+      (await fixture.alerts.list()).some(
+        (alert) => alert.condition === 'backup_stale',
+      ),
+    ).toBe(false);
+    await user.click(nav.getByRole('link', { name: '系统' }));
+    const atLimit = await card('Google Drive 备份');
+    expect(field(atLimit, '恢复点年龄')).toHaveTextContent('60 分 0 秒');
+    expect(atLimit.queryByRole('alert')).not.toBeInTheDocument();
+
+    clock = 2;
+    await user.click(screen.getByRole('button', { name: '刷新运行与恢复' }));
+    expect(await atLimit.findByRole('alert')).toHaveTextContent('超过一小时');
+    await user.click(nav.getByRole('link', { name: '事件' }));
+    const live = await card('Drive 恢复点超过一小时');
+    expect(live.getByText(/持续中/)).toBeVisible();
+    const observed = field(live, '观察时间').querySelector('time')?.dateTime;
+    expect(observed).toBe('2000-01-03T12:00:00.002Z');
+
+    await user.click(nav.getByRole('link', { name: '接口设置' }));
+    const integration = await card('Google Drive');
+    await user.click(integration.getByRole('button', { name: '停用' }));
+    await waitFor(() =>
+      expect(field(integration, '活动版本')).toHaveTextContent('已停用'),
+    );
+    await user.click(nav.getByRole('link', { name: '系统' }));
+    const disabled = await card('Google Drive 备份');
+    expect(await disabled.findByText('异地备份已关闭')).toBeVisible();
+    expect(disabled.queryByRole('alert')).not.toBeInTheDocument();
+
+    await user.click(nav.getByRole('link', { name: '事件' }));
+    const history = await card('Drive 恢复点超过一小时');
+    await waitFor(() =>
+      expect(history.queryByText(/持续中/)).not.toBeInTheDocument(),
+    );
+    expect(history.getByText('异地备份已关闭')).toBeVisible();
+    await user.click(screen.getByLabelText('只看尚未确认的持续告警'));
+    expect(backupEvent()).not.toBeInTheDocument();
+  });
+
   it('reflects disabled integrations in system status and reports a test failure without active SMTP', async () => {
     let clock = 0;
     const fixture = createOperationsFixture(() => clock);
@@ -414,7 +485,7 @@ describe('U4 系统与备份', () => {
         return Promise.resolve(Response.json({}, { status: 404 }));
       throw new Error('Unexpected request in the offline fixture');
     });
-    mount(<AppRoutes />, '/system');
+    mount(<AppRoutes operations={createOperationsFixture()} />, '/system');
     const drive = await card('Google Drive 备份');
     expect(field(drive, '最后可恢复到').querySelector('time')).toHaveAttribute(
       'datetime',
