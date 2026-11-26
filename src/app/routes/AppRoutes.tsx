@@ -15,6 +15,7 @@ import {
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
+import { OptionsTerminal } from '../../features/options/OptionsTerminal';
 import { Trading } from '../../features/trading/Trading';
 
 const navigation = [
@@ -33,16 +34,6 @@ const navigation = [
 ];
 
 const futurePages = [
-  {
-    path: '/options/flow',
-    title: '期权流水',
-    detail: '后续 U2 将接入期权成交流水、筛选条件和数据来源。',
-  },
-  {
-    path: '/options/exposure',
-    title: '期权敞口',
-    detail: '后续 U2 将按行权价与到期日展示敞口、模型和数据覆盖。',
-  },
   {
     path: '/factors',
     title: '因子',
@@ -170,6 +161,14 @@ export function AppRoutes() {
             />
           ))}
           <Route path="/strategies" element={<Strategies />} />
+          <Route
+            path="/options/flow"
+            element={<OptionsTerminal page="flow" />}
+          />
+          <Route
+            path="/options/exposure"
+            element={<OptionsTerminal page="exposure" />}
+          />
           <Route path="/strategies/:id" element={<StrategyDetail />} />
           <Route path="/backtests" element={<Backtests />} />
           <Route

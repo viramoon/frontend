@@ -1,3 +1,3 @@
 # 功能页面
 
-行情终端的界面和 fixture 同属 market 功能。web 系统状态及示例回测由 dashboard 功能维护。交易、回测、博客各有独立入口，其他 v1 页面在 app 层提供骨架。功能之间由 app 组合。[行情终端](market/README.md) · [系统状态](dashboard/README.md) · [交易](trading/README.md) · [回测](backtest/README.md) · [博客](blog/README.md) · [应用组合](../app/README.md)
+行情终端的界面和 fixture 同属 market 功能。期权流水与敞口由 options 功能维护。web 系统状态及示例回测由 dashboard 功能维护。交易、回测、博客各有独立入口，其他 v1 页面在 app 层提供骨架。功能之间由 app 组合。[行情终端](market/README.md) · [期权](options/README.md) · [系统状态](dashboard/README.md) · [交易](trading/README.md) · [回测](backtest/README.md) · [博客](blog/README.md) · [应用组合](../app/README.md)

@@ -55,6 +55,10 @@ const fixtureSources = new Map([
     'src/features/market/fixtureAdapter.ts',
     '// synthetic points, independent of the production indicator algorithms.',
   ],
+  [
+    'src/features/options/optionsFixture.ts',
+    '// Seeded synthetic options and evidence; no vendor or historical observations.',
+  ],
 ]);
 
 async function git(args, { input, optional = false, binary = false } = {}) {
