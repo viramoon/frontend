@@ -1,8 +1,8 @@
 import {
   OperationError,
-  backupMaxAgeMs,
-  isBackupOverdue,
+  backupMaxAgeSeconds,
   type DriveBackup,
+  type DriveBackupObservation,
   type Alert,
   type AlertsAdapter,
   type CheckOutcome,
@@ -175,6 +175,29 @@ const rejectedMail: Delivery = {
   attempts: [{ startedAt: beforeStart(25), outcome: 'rejected' }],
 };
 
+export function simulateDriveBackup(
+  observation: DriveBackupObservation,
+): DriveBackup {
+  const ageMs =
+    observation.observedAt && observation.lastRecoverableAt
+      ? Date.parse(observation.observedAt) -
+        Date.parse(observation.lastRecoverableAt)
+      : NaN;
+  const ageSeconds =
+    Number.isFinite(ageMs) && ageMs >= 0 ? Math.trunc(ageMs / 1000) : null;
+  const overdue = ageMs > backupMaxAgeSeconds * 1000;
+  return {
+    ...observation,
+    ageSeconds,
+    overdue,
+    alert:
+      overdue ||
+      ageSeconds === null ||
+      observation.state === 'degraded' ||
+      observation.lastDrill?.passed === false,
+  };
+}
+
 export function createOperationsFixture(
   clock = Date.now,
   initialRecoveryAgeMs = 72 * minute,
@@ -210,7 +233,9 @@ export function createOperationsFixture(
     }),
   );
   type AlertSeed = Omit<Alert, 'acknowledgedAt' | 'silencedUntil'>;
-  const thresholdCrossedAt = timestamp(recoveryPoint + backupMaxAgeMs + 1);
+  const thresholdCrossedAt = timestamp(
+    recoveryPoint + backupMaxAgeSeconds * 1000 + 1,
+  );
   const backupAlert: AlertSeed = {
     id: 'backup',
     severity: 'urgent',
@@ -290,19 +315,19 @@ export function createOperationsFixture(
 
   function readBackup(observed = now()): DriveBackup {
     if (!integrations.get('drive')?.active) return { state: 'disabled' };
-    return {
+    return simulateDriveBackup({
       state: 'verified',
       observedAt: timestamp(observed),
       lastRecoverableAt: timestamp(recoveryPoint),
       lastFullAt: beforeStart(540),
       lastHourlyAt: timestamp(recoveryPoint),
       lastDrill: { finishedAt: beforeStart(1440), passed: true },
-    };
+    });
   }
 
   function syncBackupAlert() {
     const backup = readBackup();
-    const active = isBackupOverdue(backup);
+    const active = backup.state !== 'disabled' && backup.alert;
     const current = alerts.get('backup');
     if (active && !current) {
       alerts.set('backup', {

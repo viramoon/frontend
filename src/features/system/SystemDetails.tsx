@@ -2,8 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { statusOptions } from '../../api';
 import {
-  backupAgeNs,
-  isBackupOverdue,
   type DriveBackup,
   type OperationsAdapter,
   type SystemDetails as Details,
@@ -26,7 +24,11 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
         aria-labelledby="drive-backup-title"
       >
         <h3 id="drive-backup-title">Google Drive 备份</h3>
-        <p>
+        <p
+          role={
+            backup.state === 'unavailable' && backup.alert ? 'alert' : undefined
+          }
+        >
           {backup.state === 'disabled' ? '异地备份已关闭' : '备份状态不可用'}
         </p>
         <dl className="operations-fields">
@@ -36,13 +38,17 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
       </section>
     );
   }
-  const { observedAt, lastRecoverableAt, lastFullAt, lastHourlyAt, lastDrill } =
-    backup;
-  const age = backupAgeNs(backup);
-  const overdue = isBackupOverdue(backup);
-  // Round up so an overdue fraction of a second never looks on time.
-  const ageSeconds =
-    age === null ? null : (age + 999_999_999n) / 1_000_000_000n;
+  const {
+    observedAt,
+    lastRecoverableAt,
+    lastFullAt,
+    lastHourlyAt,
+    lastDrill,
+    ageSeconds,
+    overdue,
+  } = backup;
+  const degraded = backup.state === 'degraded';
+  const drillFailed = lastDrill?.passed === false;
 
   return (
     <section
@@ -59,7 +65,7 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
         <dt>恢复点年龄</dt>
         <dd>
           {ageSeconds !== null
-            ? `${ageSeconds / 60n} 分 ${ageSeconds % 60n} 秒`
+            ? `${Math.floor(ageSeconds / 60)} 分 ${ageSeconds % 60} 秒`
             : '未知'}
         </dd>
         <dt>观测时间</dt>
@@ -92,12 +98,9 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
           )}
         </dd>
       </dl>
-      {(overdue ||
-        ageSeconds === null ||
-        backup.state === 'degraded' ||
-        lastDrill?.passed === false) && (
+      {backup.alert && (
         <div role="alert" className="operations-feedback">
-          {overdue && <p>告警：最后可恢复点距观测时间超过一小时。</p>}
+          {overdue && <p>告警：最后可恢复点的年龄超过一小时。</p>}
           {ageSeconds === null && (
             <p>
               {lastRecoverableAt
@@ -105,8 +108,11 @@ export function DriveWatermark({ backup }: { backup: DriveBackup }) {
                 : '告警：暂无已验证恢复点。'}
             </p>
           )}
-          {backup.state === 'degraded' && <p>告警：远端备份验证降级。</p>}
-          {lastDrill?.passed === false && <p>告警：最近恢复演练失败。</p>}
+          {degraded && <p>告警：远端备份验证降级。</p>}
+          {drillFailed && <p>告警：最近恢复演练失败。</p>}
+          {!overdue && ageSeconds !== null && !degraded && !drillFailed && (
+            <p>告警：web 报告恢复水位异常。</p>
+          )}
           <Link to="/alerts">查看告警事件</Link>
         </div>
       )}

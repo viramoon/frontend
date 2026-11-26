@@ -55,7 +55,9 @@ function AlertCard({
             ? '持续中'
             : inactiveReason === 'backup_disabled'
               ? '异地备份已关闭'
-              : '已恢复'}
+              : inactiveReason === 'backup_no_alert'
+                ? '当前备份水位未告警'
+                : '已恢复'}
       </p>
       <dl className="operations-fields">
         <dt>观察时间</dt>

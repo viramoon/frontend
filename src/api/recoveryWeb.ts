@@ -1,7 +1,7 @@
 import { privateOptions, privateRequest } from './adminWeb';
 import { backupStatus, qualityGaps } from './generated/sdk.gen';
 import type { QualityGapsPage } from './generated/types.gen';
-import type { DriveBackup } from './operations';
+import { backupMaxAgeSeconds, type DriveBackup } from './operations';
 
 export type RecoveryAdapter = {
   backup(signal?: AbortSignal): Promise<DriveBackup>;
@@ -13,10 +13,26 @@ export const webRecovery: RecoveryAdapter = {
     privateRequest(async () => {
       const { data } = await backupStatus({ ...privateOptions, signal });
       if (data.state === 'disabled') return { state: 'disabled' };
-      if (data.state === 'unavailable') return { state: 'unavailable' };
+      if (data.state === 'unavailable') {
+        return { state: 'unavailable', alert: data.alert };
+      }
+      const ageSeconds =
+        data.age_seconds != null && data.age_seconds >= 0
+          ? data.age_seconds
+          : null;
+      // web evaluates the precise duration before truncating age_seconds.
+      // At 3600 whole seconds, alert identifies a fractional overrun unless
+      // producer degradation could itself have caused the alert.
+      const overdue =
+        data.alert &&
+        ageSeconds !== null &&
+        (ageSeconds > backupMaxAgeSeconds ||
+          (ageSeconds === backupMaxAgeSeconds && !data.degraded));
       return {
-        state:
-          data.degraded || data.state === 'degraded' ? 'degraded' : 'verified',
+        state: data.degraded ? 'degraded' : 'verified',
+        ageSeconds,
+        alert: data.alert,
+        overdue,
         observedAt: data.observed_at ?? null,
         lastRecoverableAt: data.last_recoverable_at ?? null,
         lastFullAt: data.last_full_at ?? null,

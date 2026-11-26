@@ -22,8 +22,6 @@ import type {
 } from './generated/types.gen';
 import {
   OperationError,
-  isBackupOverdue,
-  backupAgeNs,
   type DriveBackup,
   type Alert,
   type AlertsAdapter,
@@ -72,8 +70,8 @@ function alertView(alert: WebAlert, backup: DriveBackup | null): Alert {
       : backupEvent
         ? backup?.state === 'disabled'
           ? false
-          : backup && backupAgeNs(backup) !== null
-            ? isBackupOverdue(backup)
+          : backup && backup.state !== 'unavailable'
+            ? backup.alert
             : null
         : alert.disposition === 'observed' || alert.disposition === 'ignored'
           ? null
@@ -84,8 +82,10 @@ function alertView(alert: WebAlert, backup: DriveBackup | null): Alert {
     severity: alert.severity,
     active,
     inactiveReason:
-      backupEvent && backup?.state === 'disabled'
-        ? 'backup_disabled'
+      backupEvent && alert.phase === 'triggered' && active === false
+        ? backup?.state === 'disabled'
+          ? 'backup_disabled'
+          : 'backup_no_alert'
         : undefined,
     observedAt: alert.observed_at,
     acknowledgedAt: alert.acknowledged_at ?? null,

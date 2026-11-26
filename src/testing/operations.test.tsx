@@ -10,10 +10,14 @@ import {
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { DriveBackup, NotificationsAdapter } from '../api/operations';
+import type {
+  DriveBackupObservation,
+  NotificationsAdapter,
+} from '../api/operations';
 import {
   createOperationsFixture,
   operationsFixtureSeed,
+  simulateDriveBackup,
 } from '../api/operationsFixture';
 import { AppRoutes } from '../app/routes/AppRoutes';
 import { Integrations } from '../features/integrations/Integrations';
@@ -516,6 +520,7 @@ describe('U4 系统与备份', () => {
       'data-fixture-seed',
       operationsFixtureSeed,
     );
+    expect(screen.getByText(/后续 U2.*分区水位/)).toBeVisible();
     expect(await screen.findByText('暂无示例回测')).toBeVisible();
     expect(requests.sort()).toEqual([
       '/api/v1/backtests/sample',
@@ -530,12 +535,12 @@ describe('U4 系统与备份', () => {
     lastFullAt: '2000-01-03T03:00:00.000Z',
     lastHourlyAt: '2000-01-03T11:55:00.000Z',
     lastDrill: null,
-  } satisfies DriveBackup;
+  } satisfies DriveBackupObservation;
 
   it('warns strictly after one hour of verified-point age, irrespective of a newer hourly upload', () => {
     const { rerender } = render(
       <MemoryRouter>
-        <DriveWatermark backup={backup} />
+        <DriveWatermark backup={simulateDriveBackup(backup)} />
       </MemoryRouter>,
     );
     expect(screen.getByText('60 分 0 秒')).toBeVisible();
@@ -543,7 +548,10 @@ describe('U4 系统与备份', () => {
     rerender(
       <MemoryRouter>
         <DriveWatermark
-          backup={{ ...backup, observedAt: '2000-01-03T12:00:00.001Z' }}
+          backup={simulateDriveBackup({
+            ...backup,
+            observedAt: '2000-01-03T12:00:00.001Z',
+          })}
         />
       </MemoryRouter>,
     );
@@ -573,7 +581,7 @@ describe('U4 系统与备份', () => {
   ] as const)('warns separately about %s', (_name, record, message) => {
     render(
       <MemoryRouter>
-        <DriveWatermark backup={record} />
+        <DriveWatermark backup={simulateDriveBackup(record)} />
       </MemoryRouter>,
     );
     const warning = screen.getByRole('alert');

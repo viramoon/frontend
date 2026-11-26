@@ -110,7 +110,7 @@ export type Alert = {
   condition: AlertCondition;
   severity: Severity;
   active: boolean | null;
-  inactiveReason?: 'backup_disabled';
+  inactiveReason?: 'backup_disabled' | 'backup_no_alert';
   observedAt: string;
   acknowledgedAt: string | null;
   silencedUntil: string | null;
@@ -153,21 +153,29 @@ export type NotificationsAdapter = {
   ): Promise<Delivery | null>;
 };
 
+export type DriveBackupObservation = {
+  state: 'verified' | 'degraded';
+  observedAt: string | null;
+  lastRecoverableAt: string | null;
+  lastFullAt: string | null;
+  lastHourlyAt: string | null;
+  lastDrill: {
+    finishedAt: string;
+    passed: boolean;
+    recoverableAt?: string;
+  } | null;
+};
+
 export type DriveBackup =
   | { state: 'disabled' }
-  | { state: 'unavailable' }
-  | {
-      state: 'verified' | 'degraded';
-      observedAt: string | null;
-      lastRecoverableAt: string | null;
-      lastFullAt: string | null;
-      lastHourlyAt: string | null;
-      lastDrill: {
-        finishedAt: string;
-        passed: boolean;
-        recoverableAt?: string;
-      } | null;
-    };
+  | { state: 'unavailable'; alert: boolean }
+  | (DriveBackupObservation & {
+      ageSeconds: number | null;
+      alert: boolean;
+      overdue: boolean;
+    });
+
+export const backupMaxAgeSeconds = 3600;
 
 export type SystemDetails = {
   sources: readonly {
@@ -211,34 +219,4 @@ export class OperationError extends Error {
   ) {
     super(code);
   }
-}
-
-function timestampNs(value: string): bigint | null {
-  const ms = Date.parse(value);
-  if (!Number.isFinite(ms)) return null;
-  // Date.parse retains milliseconds. Add the RFC 3339 sub-millisecond digits.
-  const fraction = /\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/i.exec(value)?.[1] ?? '';
-  return BigInt(ms) * 1_000_000n + BigInt(fraction.padEnd(9, '0').slice(3, 9));
-}
-
-export function backupAgeNs(backup: DriveBackup): bigint | null {
-  if (
-    backup.state === 'disabled' ||
-    backup.state === 'unavailable' ||
-    !backup.observedAt ||
-    !backup.lastRecoverableAt
-  )
-    return null;
-  const observed = timestampNs(backup.observedAt);
-  const recoverable = timestampNs(backup.lastRecoverableAt);
-  if (observed === null || recoverable === null || observed < recoverable)
-    return null;
-  return observed - recoverable;
-}
-
-export const backupMaxAgeMs = 3_600_000;
-
-export function isBackupOverdue(backup: DriveBackup): boolean {
-  const age = backupAgeNs(backup);
-  return age !== null && age > BigInt(backupMaxAgeMs) * 1_000_000n;
 }

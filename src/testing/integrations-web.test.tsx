@@ -344,12 +344,13 @@ it('writes a W4 credential once and keeps returned masks and raw values out of v
   expect(unexpected).toEqual([]);
 });
 
-it('reads live Drive and exact quality watermarks, warns only past one hour, and ends a live alert when backup is disabled', async () => {
+it('uses web Drive age and alert while the observation stalls, preserves exact watermarks, and ends a disabled alert', async () => {
   let backup: BackupStatus = {
     state: 'healthy',
     alert: false,
     degraded: false,
-    observed_at: '2000-01-03T12:00:00.000000001Z',
+    observed_at: '2000-01-03T11:20:00.000000001Z',
+    age_seconds: 3600,
     last_recoverable_at: '2000-01-03T11:00:00.000000001Z',
     last_hourly_at: '2000-01-03T11:55:00Z',
     last_full_at: '2000-01-03T03:00:00Z',
@@ -452,17 +453,63 @@ it('reads live Drive and exact quality watermarks, warns only past one hour, and
 
   backup = {
     ...backup,
-    observed_at: '2000-01-03T12:00:00.000000002Z',
+    state: 'degraded',
+    // web truncates the age to whole seconds, but evaluates the alert before truncating.
     alert: true,
   };
   await user.click(screen.getByRole('button', { name: '刷新备份状态' }));
   expect(await drive.findByRole('alert')).toHaveTextContent('超过一小时');
+  expect(drive.getByRole('alert')).not.toHaveTextContent('远端备份验证降级');
+
+  // The producer file has stopped updating. Only the server's current age changes.
+  backup = { ...backup, age_seconds: 4320 };
+  await user.click(screen.getByRole('button', { name: '刷新备份状态' }));
+  await waitFor(() =>
+    expect(field(drive, '恢复点年龄')).toHaveTextContent('72 分 0 秒'),
+  );
+  expect(field(drive, '观测时间').querySelector('time')).toHaveAttribute(
+    'datetime',
+    '2000-01-03T11:20:00.000000001Z',
+  );
+  expect(drive.getByRole('alert')).toHaveTextContent('超过一小时');
   const nav = within(screen.getByRole('navigation', { name: '主导航' }));
   await user.click(nav.getByRole('link', { name: '事件' }));
   const active = within(
     await screen.findByRole('region', { name: 'Drive 恢复点超过一小时' }),
   );
   expect(active.getByText('持续中')).toBeVisible();
+  expect(active.queryByText('已恢复')).not.toBeInTheDocument();
+
+  backup = { ...backup, age_seconds: 1200, degraded: true };
+  await user.click(nav.getByRole('link', { name: '系统' }));
+  const degraded = within(
+    await screen.findByRole('region', { name: 'Google Drive 备份' }),
+  );
+  await waitFor(() =>
+    expect(degraded.getByRole('alert')).toHaveTextContent('远端备份验证降级'),
+  );
+  expect(degraded.getByRole('alert')).not.toHaveTextContent('超过一小时');
+  await user.click(nav.getByRole('link', { name: '事件' }));
+  const stillActive = within(
+    await screen.findByRole('region', { name: 'Drive 恢复点超过一小时' }),
+  );
+  expect(stillActive.getByText('持续中')).toBeVisible();
+
+  // A triggered event remains historical evidence when the current backup alarm clears.
+  backup = {
+    ...backup,
+    state: 'healthy',
+    alert: false,
+    age_seconds: 1200,
+    degraded: false,
+  };
+  await user.click(nav.getByRole('link', { name: '系统' }));
+  await user.click(nav.getByRole('link', { name: '事件' }));
+  const cleared = within(
+    await screen.findByRole('region', { name: 'Drive 恢复点超过一小时' }),
+  );
+  expect(await cleared.findByText('当前备份水位未告警')).toBeVisible();
+  expect(cleared.queryByText('已恢复')).not.toBeInTheDocument();
 
   backup = { state: 'disabled', alert: false, degraded: false };
   await user.click(nav.getByRole('link', { name: '系统' }));
