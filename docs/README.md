@@ -34,6 +34,7 @@ fertile 以 git submodule 引入 finance、web、frontend；agent 是独立仓�
 
 - [功能、数据与实时边界](architecture.md)
 - [构建与 web 托管](build.md)
+- [行情样本与截图防护](data-guard.md)
 - [技术栈决策](adr/ADR-0001-tech-stack.md)
 - [目录索引](../src/README.md)
 - [功能边界](../src/features/README.md)

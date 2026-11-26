@@ -17,9 +17,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - name: Check Git blobs for restricted data and captures
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          node scripts/check-data-guard.mjs --range "$BASE_SHA" HEAD
+          node --test --test-isolation=none scripts/check-data-guard.test.mjs
       - name: Install pinned pnpm
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - id: store
@@ -35,3 +42,4 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm test:visual
