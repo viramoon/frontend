@@ -111,9 +111,7 @@ describe('U4 接口配置', () => {
     await waitFor(() =>
       expect(field(publicFeed, '活动版本')).toHaveTextContent('v1 · BTC 永续'),
     );
-    await user.click(
-      publicFeed.getByRole('button', { name: '停用' }),
-    );
+    await user.click(publicFeed.getByRole('button', { name: '停用' }));
     await waitFor(() =>
       expect(field(publicFeed, '活动版本')).toHaveTextContent('已停用'),
     );
@@ -275,7 +273,9 @@ describe('U4 告警及邮件', () => {
 
   it('expires silence, keeps the first acknowledgement time and deduplicates a test email key', async () => {
     let clock = 0;
-    const { alerts, notifications } = createOperationsFixture(() => clock);
+    const { alerts, notifications, readSystem } = createOperationsFixture(
+      () => clock,
+    );
     await alerts.acknowledge('backup');
     await alerts.silence('backup', 60);
     const first = (await alerts.list()).find(({ id }) => id === 'backup')!;
@@ -303,6 +303,11 @@ describe('U4 告警及邮件', () => {
     expect(await notifications.readEmailTest(key)).toMatchObject({
       status: 'accepted',
       attempts: [{ outcome: 'accepted' }],
+    });
+    await notifications.startEmailTest('second-test-email-fixture-key');
+    expect((await readSystem()).email).toMatchObject({
+      status: 'healthy',
+      lastAttempt: { status: 'pending' },
     });
   });
 
@@ -375,6 +380,27 @@ describe('U4 告警及邮件', () => {
 });
 
 describe('U4 系统与备份', () => {
+  it('reflects disabled integrations in system status and reports a test failure without active SMTP', async () => {
+    let clock = 0;
+    const fixture = createOperationsFixture(() => clock);
+    await fixture.integrations.change('drive', 1, { kind: 'disable' });
+    await fixture.integrations.change('smtp', 1, { kind: 'disable' });
+    await fixture.notifications.startEmailTest('inactive-smtp-fixture-key');
+    clock += 1000;
+    expect(
+      await fixture.notifications.readEmailTest('inactive-smtp-fixture-key'),
+    ).toMatchObject({
+      status: 'failed',
+      attempts: [{ outcome: 'configuration_error' }],
+    });
+    expect(await fixture.readSystem()).toMatchObject({
+      backup: { state: 'disabled' },
+      email: { status: 'unavailable', lastAttempt: { status: 'failed' } },
+    });
+    await fixture.integrations.change('drive', 2, { kind: 'rollback' });
+    expect((await fixture.readSystem()).backup.state).toBe('verified');
+  });
+
   it('shows the verified Drive watermark, overdue alert, source gaps and existing same-origin reads', async () => {
     const requests: string[] = [];
     vi.stubGlobal('fetch', (request: Request) => {
@@ -401,9 +427,14 @@ describe('U4 系统与备份', () => {
       'href',
       '/alerts',
     );
-    expect(field(await card('IBKR paper'), '最近缺口')).toHaveTextContent(
-      '仅 K 线补齐',
+    const ibkr = await card('IBKR paper');
+    expect(field(ibkr, '产品权限')).toHaveTextContent(
+      '期权 L1、OI 与 Greeks · 收盘待验',
     );
+    expect(field(ibkr, '产品权限')).toHaveTextContent(
+      'Nasdaq 多档盘口 · 权限失败',
+    );
+    expect(field(ibkr, '最近缺口')).toHaveTextContent('仅 K 线补齐');
     expect(field(await card('Binance'), '采集状态')).toHaveTextContent(
       '按配置关闭',
     );

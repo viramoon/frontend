@@ -14,6 +14,7 @@ import {
 export const operationsFixtureSeed = 'u4-operations-v1';
 const start = Date.parse('2000-01-03T12:00:00Z');
 const minute = 60_000;
+const mailCompletedAfterMs = 1000;
 const timestamp = (time: number) => new Date(time).toISOString();
 const beforeStart = (minutes: number) => timestamp(start - minutes * minute);
 const stocks = '综合股票 L1';
@@ -255,23 +256,29 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
       ],
     ),
   );
-  const mailTests = new Map<string, number>();
-  let lastEmailTest: number | null = null;
+  type MailTest = { started: number; configured: boolean };
+  const mailTests = new Map<string, MailTest>();
+  let lastEmailTest: MailTest | null = null;
 
-  function testDelivery(started: number): Delivery {
+  function testDelivery({ started, configured }: MailTest): Delivery {
     const elapsed = now() - started;
     if (elapsed < 300)
       return { status: 'pending', updatedAt: timestamp(started), attempts: [] };
-    if (elapsed < 1000)
+    if (elapsed < mailCompletedAfterMs)
       return {
         status: 'sending',
         updatedAt: timestamp(started + 300),
         attempts: [],
       };
     return {
-      status: 'accepted',
-      updatedAt: timestamp(started + 1000),
-      attempts: [{ startedAt: timestamp(started + 300), outcome: 'accepted' }],
+      status: configured ? 'accepted' : 'failed',
+      updatedAt: timestamp(started + mailCompletedAfterMs),
+      attempts: [
+        {
+          startedAt: timestamp(started + 300),
+          outcome: configured ? 'accepted' : 'configuration_error',
+        },
+      ],
     };
   }
 
@@ -357,12 +364,15 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
       },
       async startEmailTest(key) {
         if (mailTests.has(key)) return;
-        lastEmailTest = now();
+        lastEmailTest = {
+          started: now(),
+          configured: Boolean(integrations.get('smtp')?.active),
+        };
         mailTests.set(key, lastEmailTest);
       },
       async readEmailTest(key) {
-        const started = mailTests.get(key);
-        return started === undefined ? null : testDelivery(started);
+        const test = mailTests.get(key);
+        return test ? testDelivery(test) : null;
       },
     },
     async readSystem() {
@@ -377,6 +387,7 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
             : active
               ? ('verified' as const)
               : ('disabled' as const),
+          permissions: [],
           lines: null,
           depth: null,
           lastEventAt: active ? beforeStart(1) : null,
@@ -387,12 +398,19 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
       };
       const lastAttempt =
         lastEmailTest === null ? rejectedMail : testDelivery(lastEmailTest);
+      const observed = now();
+      const lastCompletedTest = [...mailTests.values()]
+        .reverse()
+        .find(({ started }) => observed - started >= mailCompletedAfterMs);
+      const emailConfigured = Boolean(integrations.get('smtp')?.active);
+      const backupConfigured = Boolean(integrations.get('drive')?.active);
       return {
         sources: [
           {
             id: ibkr.id,
             name: ibkr.name,
             status: ibkr.active ? 'verified' : 'disabled',
+            permissions: ibkr.active ? ibkrChecks.slice(1) : [],
             lines: ibkr.active ? { inUse: 70, limit: 100 } : null,
             depth: ibkr.active ? { inUse: 2, limit: 3 } : null,
             lastEventAt: ibkr.active ? beforeStart(1) : null,
@@ -407,16 +425,22 @@ export function createOperationsFixture(clock = Date.now): OperationsAdapter {
           publicSource('hyperliquid'),
           publicSource('binance'),
         ],
-        backup: {
-          state: 'verified',
-          observedAt: timestamp(now()),
-          lastRecoverableAt: beforeStart(72),
-          lastFullAt: beforeStart(540),
-          lastHourlyAt: beforeStart(72),
-          lastDrill: { finishedAt: beforeStart(1440), passed: true },
-        },
+        backup: backupConfigured
+          ? {
+              state: 'verified',
+              observedAt: timestamp(observed),
+              lastRecoverableAt: beforeStart(72),
+              lastFullAt: beforeStart(540),
+              lastHourlyAt: beforeStart(72),
+              lastDrill: { finishedAt: beforeStart(1440), passed: true },
+            }
+          : { state: 'disabled' },
         email: {
-          status: lastAttempt.status === 'accepted' ? 'healthy' : 'degraded',
+          status: !emailConfigured
+            ? 'unavailable'
+            : lastCompletedTest?.configured
+              ? 'healthy'
+              : 'degraded',
           lastAttempt,
         },
       };

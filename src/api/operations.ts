@@ -163,6 +163,7 @@ export type SystemDetails = {
     id: IntegrationId;
     name: string;
     status: CheckOutcome | 'disabled' | 'disabled_by_profile';
+    permissions: readonly IntegrationCheck[];
     lines: { inUse: number; limit: number } | null;
     depth: { inUse: number; limit: number } | null;
     lastEventAt: string | null;

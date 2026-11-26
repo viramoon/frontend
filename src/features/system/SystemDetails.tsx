@@ -120,6 +120,20 @@ function SourceCard({ source }: { source: Details['sources'][number] }) {
         <dd>
           <CheckStatus outcome={source.status} />
         </dd>
+        <dt>产品权限</dt>
+        <dd>
+          {source.permissions.length ? (
+            <ul className="operations-list source-permissions">
+              {source.permissions.map(({ name, outcome }) => (
+                <li key={name}>
+                  {name} · <CheckStatus outcome={outcome} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            '暂无验证明细'
+          )}
+        </dd>
         <dt>行情行数</dt>
         <dd>
           {source.lines
