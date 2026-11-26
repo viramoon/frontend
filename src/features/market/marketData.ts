@@ -112,7 +112,7 @@ export type SubscriptionBudget = {
 // this view asynchronously and notify React through subscribe.
 export interface MarketDataAdapter {
   instruments: readonly MarketInstrument[];
-  fixture?: { replayTime: string };
+  fixture?: { seed: string; replayTime: string };
   budget: SubscriptionBudget;
   subscribe(listener: () => void): () => void;
   revision(): number;

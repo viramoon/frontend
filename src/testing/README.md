@@ -8,6 +8,8 @@
 
 行情终端测试在 jsdom 下检查 fixture、状态标记和来源。图表用例验证精确读数、交互及 Canvas 不可用时的降级。[终端测试](market.test.tsx) · [图表测试](chart.test.tsx)
 
+Git 防护测试在临时仓库生成合规和违规样本。浏览器渲染用例单独使用本地构建，检查宽屏与窄屏渲染。执行方式见[防护本地复测](../../docs/data-guard.md#本地复测)。
+
 路由用例覆盖新旧深链、策略详情及系统和示例回测的 404 处理。键盘用例用 Testing Library 的 user-event 模拟 `Tab` 和 `Enter`，验证焦点顺序和导航结果。焦点样式用例将实际样式表的 `:focus-visible` 映射为 jsdom 支持的 `:focus`，再检查计算出的轮廓。在浏览器中验收实际 Canvas、焦点轮廓和窄屏抽屉焦点。[路由测试](routes.test.tsx) · [终端验收](../../RUNBOOK.md#验证行情终端)
 
 U2a 覆盖十二个自选标的、SPY 的 L1 限制、marketDataType 与独立新鲜度、市场时区与周期持久化、合成指标列、Binance 部署开关和区域限制、深度额度、盘口失同步、恢复与迟到事件。订单簿单元测试使用超过 JS 安全整数的序号和价格。[U2a 行情用例](market-u2a.test.tsx) · [订单簿状态用例](order-book.test.ts)

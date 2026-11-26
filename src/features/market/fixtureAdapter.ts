@@ -3,6 +3,7 @@ import {
   binanceFixtures,
   formatFixed,
   hasQuote,
+  marketFixtureSeed,
   marketFixtures,
   replayTime,
   type QuotedFixture,
@@ -254,7 +255,7 @@ function createFixtureAdapter(binanceDemo = false): MarketDataAdapter {
   }
   return {
     instruments,
-    fixture: { replayTime },
+    fixture: { seed: marketFixtureSeed, replayTime },
     budget: {
       stocks: 9,
       hotOptions: 16,

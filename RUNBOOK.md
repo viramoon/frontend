@@ -2,6 +2,23 @@
 
 frontend 交付给 web 的产物是 dist/。在盒子运行服务时，Ruler 使用 fertile 的部署命令统一选择前后端构建。前端开发和本地验证步骤见 [构建说明](docs/build.md)。
 
+## 安装提交与推送钩子
+
+每个新克隆先按[构建说明](docs/build.md)准备锁定依赖，再在首次开发提交或推送前执行以下命令。Git 子模块克隆也需要在它自己的工作树执行。检查器使用随前端依赖安装的 YAML 解析器。
+
+```sh
+git config --local core.hooksPath .githooks
+node scripts/check-data-guard.mjs --staged
+```
+
+如命中检查，按错误中的路径定位文件，将本地采集数据、截图、录像或报告移到工作树之外，并更新暂存区。若违规内容已经进入待推送提交，处置这段本地历史后重新检查整个范围。仅在后一条提交删除文件，前一条提交仍会被检查。协作时只汇报规则和脱敏结论。[规则与范围](docs/data-guard.md)
+
+获准的静态资产先合入白名单更新，再从包含批准记录的目标分支建立后续资产 PR。出现 `allowlist-change` 时，核对审批记录是否已进入基准。[白名单登记流程](docs/data-guard.md#文件白名单)
+
+## 离线检查行情渲染
+
+使用已有依赖和系统 Chrome 运行 `pnpm build`，再运行 `pnpm test:visual`。测试进程拦截页面所有 HTTP 和 WebSocket 请求，从内存返回构建资源和模拟 API 状态。使用宽屏和窄屏视口检查 Canvas、报价及抽屉焦点。无需启动 Vite、web 或 IBKR，截图只在测试进程内存中处理。
+
 ## 验证 web 托管
 
 在 web 启动前将 WEB_STATIC_ROOT 设为已完成构建的 dist 绝对路径。用本地入口检查静态文件、刷新回落和数据接口：
@@ -19,9 +36,9 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 
 ## 验证行情终端
 
-U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的系统状态与示例回测仍使用 web 同源接口。
+U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的系统状态与示例回测仍使用 web 同源接口。人工验收仅保存脱敏结论，数据和画面按[防护规则](docs/data-guard.md)处理。
 
-1. 从 `/` 进入 `/dashboard`，在自选中逐个切换 QQQ、SPY、AAPL、MSFT、NVDA、AMZN、GOOGL、META、TSLA、BTC、ETH、SOL。保存或移出自选，切换 1 小时、4 小时及 UTC、市场时区，刷新后核对偏好。主图显示「价量历史」、来源、未复权、样本覆盖和精确 OHLCV。
+1. 从 `/` 进入 `/dashboard`，在自选中逐个切换 QQQ、SPY、AAPL、MSFT、NVDA、AMZN、GOOGL、META、TSLA、BTC、ETH、SOL。保存或移出自选，切换 1 小时、4 小时及 UTC、市场时区，刷新后核对偏好。行情区域应显示「Fixture」标记。主图显示「价量历史」、来源、未复权、样本覆盖和精确 OHLCV。
 2. 选择 AAPL，切换 SMA、EMA、Wilder RSI、布林带和 MACD。指标值是合成示意。用「K 线时间」查看起点的「预热中」及末尾的「未闭合预览」。MSFT、NVDA、AMZN 分别显示 marketDataType 2、3、4。QQQ 同时显示延迟与陈旧。
 3. 进入 `/trading`。SPY 仅展示美国综合 L1。AAPL 分区展示 Nasdaq 场所订单簿和逐笔成交。核对 9/16/45/30 行与两个固定、一个跟随深度名额。取消固定 MSFT，再固定 NVDA，核对已固定标的不会再占跟随名额。点击「回放盘口断序」和「回放后续增量」，核对旧盘口档位均已隐藏，再点「回放恢复快照」检查新档位。
 4. 切换 BTC、ETH、SOL 核对 Hyperliquid 永续。选择 Binance 现货或永续，默认显示部署配置已关闭。勾选「启用 Binance 合成回放」可查看两种产品的模拟读数，永续显示标记价格、资金费率和未平仓量。刷新后模拟开关关闭。
