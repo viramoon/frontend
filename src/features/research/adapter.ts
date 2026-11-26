@@ -1,0 +1,155 @@
+// View models for the research screens. The W2b adapter will map the generated
+// web contract to these types.
+export type Version = { id: string; version: string };
+export type Revision = Version & { contentSha256: string };
+export type DecimalText = string;
+
+type StrategyVersion = Version & { title: string };
+export type Strategy = StrategyVersion &
+  (
+    | { kind: 'backtest' }
+    | { kind: 'research_only'; definition: string; conclusion: string }
+  );
+
+export type StrategySource =
+  | { kind: 'registered'; selection: Version }
+  | { kind: 'yaml'; content: string };
+
+export type Diagnostic = {
+  code: string;
+  message: string;
+  path?: string;
+  location?: { line: number; column: number };
+};
+
+export type CompiledPlan = {
+  revision: Revision;
+  title: string;
+  planVersion: string;
+  engine: string;
+  bars: string;
+  universe: string;
+  calendar: string;
+  warmupSessions: number;
+  timing: string;
+  dependencies: { name: string; ref: string }[];
+  sleeves: { recipe: string; budgetWeight: DecimalText; priority: number }[];
+  cash: DecimalText;
+  currency: string;
+  commissionBps: DecimalText;
+  slippageBps: DecimalText;
+};
+
+export type Compilation =
+  | { kind: 'compiled'; plan: CompiledPlan }
+  | { kind: 'invalid'; diagnostics: Diagnostic[] };
+
+export type DateWindow = { start: string; end: string };
+export type Dataset = {
+  id: string;
+  title: string;
+  bars: string;
+  universe: string;
+  windows: DateWindow[];
+};
+
+export type Factor = Version & {
+  title: string;
+  definition: string;
+  dataVersion: string;
+  availability: string;
+  warmupSessions: number;
+  state:
+    | 'research'
+    | 'out_of_sample_validation'
+    | 'observe_only'
+    | 'backtest_selectable';
+};
+
+export type FactorReport = {
+  costBps: DecimalText;
+  windows: (DateWindow & {
+    phase: 'train' | 'validation' | 'out_of_sample';
+    coverage: DecimalText;
+    scored: number;
+    eligible: number;
+    decay: {
+      sessions: number;
+      observations: number;
+      rankIc: DecimalText | null;
+      icir: DecimalText | null;
+    }[];
+    quantiles: {
+      name: string;
+      grossReturn: DecimalText | null;
+      netReturn: DecimalText | null;
+      turnover: DecimalText | null;
+    }[];
+    benchmarkNetReturn: DecimalText | null;
+  })[];
+};
+
+// Only immutable references are needed to recover a submission after a reload.
+export type RunRequest = DateWindow & { revision: Revision; datasetId: string };
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'timed_out';
+export type RunSummary = {
+  id: string;
+  request: RunRequest;
+  status: RunStatus;
+};
+
+export type RunResult = {
+  manifest: {
+    planVersion: string;
+    engine: string;
+    snapshotSha256: string;
+    universe: string;
+    calendar: string;
+    timezone: string;
+    warmupSessions: number;
+    priceBasis: string;
+    commissionBps: DecimalText;
+    slippageBps: DecimalText;
+  };
+  currency: string;
+  finalEquity: DecimalText;
+  benchmark: { title: string; finalEquity: DecimalText };
+  ledger: {
+    session: string;
+    instrument: string;
+    recipe: string;
+    quantity: DecimalText;
+    price: DecimalText;
+    fee: DecimalText;
+    cashAfter: DecimalText;
+  }[];
+};
+
+export type RunDetail = RunSummary &
+  (
+    | { status: 'queued' | 'running' }
+    | { status: 'failed' | 'timed_out'; message: string }
+    | { status: 'succeeded'; result: RunResult }
+  );
+
+export type RunLookup = { kind: 'found'; id: string } | { kind: 'missing' };
+
+export interface ResearchAdapter {
+  readonly source: 'fixture' | 'web';
+  listStrategies(): Promise<Strategy[]>;
+  compile(source: StrategySource): Promise<Compilation>;
+  listDatasets(
+    input: Pick<CompiledPlan, 'bars' | 'universe'>,
+  ): Promise<Dataset[]>;
+  listFactors(): Promise<Factor[]>;
+  factorReport(selection: Version): Promise<FactorReport | null>;
+  listRuns(): Promise<RunSummary[]>;
+  run(id: string): Promise<RunDetail | null>;
+  submit(request: RunRequest, key: string): Promise<{ id: string }>;
+  byKey(key: string): Promise<RunLookup>;
+}

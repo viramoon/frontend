@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Link,
   Navigate,
@@ -5,7 +6,9 @@ import {
   Route,
   Routes,
   useLocation,
+  useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom';
 import { DataState } from '../../components/TerminalStates';
 import { Backtests } from '../../features/backtest/Backtests';
@@ -15,6 +18,16 @@ import {
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
+import type { ResearchAdapter } from '../../features/research/adapter';
+import { FactorCatalog } from '../../features/research/FactorCatalog';
+import { fixtureResearch } from '../../features/research/fixtureAdapter';
+import { RunWorkbench } from '../../features/research/RunWorkbench';
+import { StrategyWorkbench } from '../../features/research/StrategyWorkbench';
+import '../../features/research/research.css';
+import {
+  useRunSubmission,
+  type RunSubmission,
+} from '../../features/research/useRunSubmission';
 import { Trading } from '../../features/trading/Trading';
 
 const navigation = [
@@ -44,11 +57,6 @@ const futurePages = [
     detail: '后续 U2 将按行权价与到期日展示敞口、模型和数据覆盖。',
   },
   {
-    path: '/factors',
-    title: '因子',
-    detail: '后续 U3 将展示可引用因子版本、覆盖率、IC 和换手。',
-  },
-  {
     path: '/settings/integrations',
     title: '接口设置',
     detail: '后续 U4 将接入配置版本、权限、预算状态与连接验证。',
@@ -74,37 +82,59 @@ function FuturePage({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-function Strategies() {
-  return (
-    <>
-      <FuturePage
-        title="策略"
-        detail="后续 U3 将接入配置校验、不可变版本和策略依赖。"
-      />
-      <p className="route-action">
-        <Link to="/strategies/example">查看策略详情骨架</Link>
-      </p>
-    </>
-  );
-}
+type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
-function StrategyDetail() {
+function StrategyDetail({ adapter, submission }: ResearchProps) {
   const { id } = useParams();
   return (
+    <StrategyWorkbench
+      key={id}
+      adapter={adapter}
+      routeId={id}
+      submission={submission}
+    />
+  );
+}
+
+function BacktestRoute({ adapter, submission }: ResearchProps) {
+  const [search] = useSearchParams();
+  const configured =
+    !search.has('job') &&
+    (search.has('run') || search.get('view') === 'strategy');
+  return (
     <>
-      <FuturePage
-        title="策略详情"
-        detail={`路径中的策略 ID 为 ${id}。后续 U3 将显示策略版本、校验结果与依赖。`}
-      />
-      <p className="route-action">
-        <Link to="/strategies">返回策略</Link>
-      </p>
+      <nav className="research-nav" aria-label="回测模式">
+        <Link to="/backtests" aria-current={configured ? undefined : 'page'}>
+          历史均线回测
+        </Link>
+        <Link
+          to="/backtests?view=strategy"
+          aria-current={configured ? 'page' : undefined}
+        >
+          配置策略回测
+        </Link>
+      </nav>
+      {configured ? (
+        <RunWorkbench adapter={adapter} submission={submission} />
+      ) : (
+        <Backtests />
+      )}
     </>
   );
 }
 
-export function AppRoutes() {
+export function AppRoutes({
+  research = fixtureResearch,
+}: { research?: ResearchAdapter } = {}) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const submission = useRunSubmission(research, (run) => {
+    void queryClient.invalidateQueries({
+      queryKey: ['research', research.source, 'runs'],
+    });
+    void navigate(`/backtests?run=${encodeURIComponent(run)}`);
+  });
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -162,9 +192,28 @@ export function AppRoutes() {
               element={<FuturePage title={title} detail={detail} />}
             />
           ))}
-          <Route path="/strategies" element={<Strategies />} />
-          <Route path="/strategies/:id" element={<StrategyDetail />} />
-          <Route path="/backtests" element={<Backtests />} />
+          <Route
+            path="/strategies"
+            element={
+              <StrategyWorkbench adapter={research} submission={submission} />
+            }
+          />
+          <Route
+            path="/strategies/:id"
+            element={
+              <StrategyDetail adapter={research} submission={submission} />
+            }
+          />
+          <Route
+            path="/factors"
+            element={<FactorCatalog adapter={research} />}
+          />
+          <Route
+            path="/backtests"
+            element={
+              <BacktestRoute adapter={research} submission={submission} />
+            }
+          />
           <Route
             path="/system"
             element={
