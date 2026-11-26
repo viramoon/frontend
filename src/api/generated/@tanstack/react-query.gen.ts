@@ -3,8 +3,36 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { byKey, datasets, detail, list, live, marketStatus, type Options, ready, sample, status, submit } from '../sdk.gen';
-import type { ByKeyData, ByKeyError, ByKeyResponse, DatasetsData, DatasetsError, DatasetsResponse, DetailData, DetailError, DetailResponse, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse } from '../types.gen';
+import { byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getTest, list, list2, live, marketStatus, type Options, putCredential, ready, sample, startTest, status, submit, update } from '../sdk.gen';
+import type { ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
+
+export const deleteSessionMutation = (options?: Partial<Options<DeleteSessionData>>): UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> => {
+    const mutationOptions: UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const createSessionMutation = (options?: Partial<Options<CreateSessionData>>): UseMutationOptions<CreateSessionResponse, CreateSessionError, Options<CreateSessionData>> => {
+    const mutationOptions: UseMutationOptions<CreateSessionResponse, CreateSessionError, Options<CreateSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -184,6 +212,121 @@ export const detailOptions = (options: Options<DetailData>) => queryOptions<Deta
     queryKey: detailQueryKey(options)
 });
 
+export const getTestQueryKey = (options: Options<GetTestData>) => createQueryKey('getTest', options);
+
+export const getTestOptions = (options: Options<GetTestData>) => queryOptions<GetTestResponse, GetTestError, GetTestResponse, ReturnType<typeof getTestQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getTest({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getTestQueryKey(options)
+});
+
+export const list2QueryKey = (options?: Options<List2Data>) => createQueryKey('list2', options);
+
+export const list2Options = (options?: Options<List2Data>) => queryOptions<List2Response, List2Error, List2Response, ReturnType<typeof list2QueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await list2({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: list2QueryKey(options)
+});
+
+export const createMutation = (options?: Partial<Options<CreateData>>): UseMutationOptions<CreateResponse, CreateError, Options<CreateData>> => {
+    const mutationOptions: UseMutationOptions<CreateResponse, CreateError, Options<CreateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await create({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const catalogQueryKey = (options?: Options<CatalogData>) => createQueryKey('catalog', options);
+
+export const catalogOptions = (options?: Options<CatalogData>) => queryOptions<CatalogResponse, CatalogError, CatalogResponse, ReturnType<typeof catalogQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await catalog({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: catalogQueryKey(options)
+});
+
+export const updateMutation = (options?: Partial<Options<UpdateData>>): UseMutationOptions<UpdateResponse, UpdateError, Options<UpdateData>> => {
+    const mutationOptions: UseMutationOptions<UpdateResponse, UpdateError, Options<UpdateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await update({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const deleteCredentialMutation = (options?: Partial<Options<DeleteCredentialData>>): UseMutationOptions<DeleteCredentialResponse, DeleteCredentialError, Options<DeleteCredentialData>> => {
+    const mutationOptions: UseMutationOptions<DeleteCredentialResponse, DeleteCredentialError, Options<DeleteCredentialData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteCredential({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const putCredentialMutation = (options?: Partial<Options<PutCredentialData>>): UseMutationOptions<PutCredentialResponse, PutCredentialError, Options<PutCredentialData>> => {
+    const mutationOptions: UseMutationOptions<PutCredentialResponse, PutCredentialError, Options<PutCredentialData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putCredential({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const startTestMutation = (options?: Partial<Options<StartTestData>>): UseMutationOptions<StartTestResponse, StartTestError, Options<StartTestData>> => {
+    const mutationOptions: UseMutationOptions<StartTestResponse, StartTestError, Options<StartTestData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startTest({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const marketStatusQueryKey = (options?: Options<MarketStatusData>) => createQueryKey('marketStatus', options);
 
 export const marketStatusOptions = (options?: Options<MarketStatusData>) => queryOptions<MarketStatusResponse, MarketStatusError, MarketStatusResponse, ReturnType<typeof marketStatusQueryKey>>({
@@ -197,6 +340,21 @@ export const marketStatusOptions = (options?: Options<MarketStatusData>) => quer
         return data;
     },
     queryKey: marketStatusQueryKey(options)
+});
+
+export const capabilitiesQueryKey = (options?: Options<CapabilitiesData>) => createQueryKey('capabilities', options);
+
+export const capabilitiesOptions = (options?: Options<CapabilitiesData>) => queryOptions<CapabilitiesResponse, DefaultError, CapabilitiesResponse, ReturnType<typeof capabilitiesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await capabilities({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: capabilitiesQueryKey(options)
 });
 
 export const statusQueryKey = (options?: Options<StatusData>) => createQueryKey('status', options);

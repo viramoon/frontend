@@ -6,6 +6,164 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/api/v1/admin/session": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "create_session",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Configured HTTPS origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "HttpOnly, Secure, SameSite=Strict session cookie"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "delete_session",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Configured HTTPS origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Token for the administrator session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "",
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Expires the session cookie"
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/backtests": {
       "get": {
         "tags": [
@@ -101,6 +259,30 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Configured HTTPS origin with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -218,6 +400,9 @@
         "security": [
           {
             "adminBearer": []
+          },
+          {
+            "adminSession": []
           }
         ]
       }
@@ -324,6 +509,9 @@
         "security": [
           {
             "adminBearer": []
+          },
+          {
+            "adminSession": []
           }
         ]
       }
@@ -517,6 +705,1023 @@
         }
       }
     },
+    "/api/v1/integration-tests/{id}": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "get_test",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "list",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Integration"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "create",
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Matches the configured HTTPS origin when sent and is required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Create"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/catalog": {
+      "get": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "catalog",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/{id}": {
+      "patch": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted integration revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Matches the configured HTTPS origin when sent and is required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Update"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/{id}/credential": {
+      "put": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "put_credential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted integration revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Matches the configured HTTPS origin when sent and is required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credential"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "delete_credential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted integration revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Matches the configured HTTPS origin when sent and is required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/integrations/{id}/tests": {
+      "post": {
+        "tags": [
+          "integrations"
+        ],
+        "operationId": "start_test",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Quoted integration revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "description": "Matches the configured HTTPS origin when sent and is required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "Required with the session cookie",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
+      }
+    },
     "/api/v1/market/status": {
       "get": {
         "tags": [
@@ -565,6 +1770,35 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/me/capabilities": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "capabilities",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "adminBearer": []
+          },
+          {
+            "adminSession": []
+          }
+        ]
       }
     },
     "/api/v1/system/status": {
@@ -645,6 +1879,13 @@
             "format": "int64"
           }
         }
+      },
+      "AuthKind": {
+        "type": "string",
+        "enum": [
+          "none",
+          "api_token"
+        ]
       },
       "BacktestSummary": {
         "type": "object",
@@ -744,6 +1985,97 @@
           }
         }
       },
+      "Capabilities": {
+        "type": "object",
+        "required": [
+          "subject",
+          "products"
+        ],
+        "properties": {
+          "csrf_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          }
+        }
+      },
+      "CatalogEntry": {
+        "type": "object",
+        "required": [
+          "connector",
+          "title",
+          "product",
+          "auth_kind",
+          "settings_fields",
+          "credential_fields",
+          "file_types",
+          "symbols",
+          "test_method",
+          "test_available",
+          "fee_class",
+          "auto_backfill"
+        ],
+        "properties": {
+          "auth_kind": {
+            "$ref": "#/components/schemas/AuthKind"
+          },
+          "auto_backfill": {
+            "type": "boolean"
+          },
+          "connector": {
+            "$ref": "#/components/schemas/Connector"
+          },
+          "credential_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fee_class": {
+            "$ref": "#/components/schemas/FeeClass"
+          },
+          "file_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "settings_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "symbols": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Symbol"
+            }
+          },
+          "test_available": {
+            "type": "boolean"
+          },
+          "test_method": {
+            "$ref": "#/components/schemas/TestMethod"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "Check": {
         "type": "object",
         "required": [
@@ -763,12 +2095,74 @@
           }
         }
       },
+      "Connector": {
+        "type": "string",
+        "enum": [
+          "binance_spot",
+          "binance_usd_m",
+          "hyperliquid_perp",
+          "licensed_options"
+        ]
+      },
       "Coverage": {
         "type": "string",
         "enum": [
           "full",
           "insufficient"
         ]
+      },
+      "Create": {
+        "type": "object",
+        "required": [
+          "connector",
+          "settings"
+        ],
+        "properties": {
+          "connector": {
+            "$ref": "#/components/schemas/Connector"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/Settings"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Credential": {
+        "type": "object",
+        "required": [
+          "api_token"
+        ],
+        "properties": {
+          "api_token": {
+            "type": "string",
+            "writeOnly": true,
+            "maxLength": 4096,
+            "minLength": 16,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._~+-]*={0,2}(?![\\s\\S])"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CredentialView": {
+        "type": "object",
+        "required": [
+          "version",
+          "mask",
+          "rotated_at"
+        ],
+        "properties": {
+          "mask": {
+            "type": "string"
+          },
+          "rotated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "Dataset": {
         "type": "object",
@@ -935,6 +2329,13 @@
           }
         }
       },
+      "FeeClass": {
+        "type": "string",
+        "enum": [
+          "free",
+          "unavailable"
+        ]
+      },
       "Fill": {
         "type": "object",
         "required": [
@@ -1044,6 +2445,48 @@
           },
           "stale": {
             "type": "boolean"
+          }
+        }
+      },
+      "Integration": {
+        "type": "object",
+        "required": [
+          "id",
+          "connector",
+          "revision",
+          "latest"
+        ],
+        "properties": {
+          "active": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VersionView"
+              }
+            ]
+          },
+          "connector": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "last_test_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/VersionView"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -1249,6 +2692,17 @@
           }
         }
       },
+      "Product": {
+        "type": "string",
+        "enum": [
+          "system",
+          "backtests",
+          "market_status",
+          "backtest_submission",
+          "integrations",
+          "restricted_market_data"
+        ]
+      },
       "ResearchReport": {
         "type": "object",
         "required": [
@@ -1344,6 +2798,36 @@
           }
         }
       },
+      "SessionCreated": {
+        "type": "object",
+        "required": [
+          "csrf_token",
+          "expires_in"
+        ],
+        "properties": {
+          "csrf_token": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Remaining lifetime of the new session in seconds.",
+            "minimum": 0
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "symbol"
+        ],
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          }
+        },
+        "additionalProperties": false
+      },
       "StrategyParams": {
         "type": "object",
         "properties": {
@@ -1374,6 +2858,23 @@
         },
         "additionalProperties": false
       },
+      "Subject": {
+        "type": "string",
+        "enum": [
+          "anonymous",
+          "admin"
+        ]
+      },
+      "Symbol": {
+        "type": "string",
+        "enum": [
+          "BTCUSDT",
+          "ETHUSDT",
+          "BTC",
+          "ETH",
+          "SPX"
+        ]
+      },
       "SystemStatus": {
         "type": "object",
         "required": [
@@ -1394,6 +2895,138 @@
           },
           "web": {
             "$ref": "#/components/schemas/WebStatus"
+          }
+        }
+      },
+      "TestMethod": {
+        "type": "string",
+        "enum": [
+          "public_market_sample",
+          "authorized_read"
+        ]
+      },
+      "TestStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "passed",
+          "failed",
+          "unavailable",
+          "superseded"
+        ]
+      },
+      "TestView": {
+        "type": "object",
+        "required": [
+          "id",
+          "integration_id",
+          "config_version",
+          "status",
+          "started_at"
+        ],
+        "properties": {
+          "config_version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "integration_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestStatus"
+          }
+        }
+      },
+      "Update": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "settings",
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "configure"
+                ]
+              },
+              "settings": {
+                "$ref": "#/components/schemas/Settings"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": [
+                  "disable"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "VersionState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "candidate",
+          "active",
+          "disabled"
+        ]
+      },
+      "VersionView": {
+        "type": "object",
+        "required": [
+          "version",
+          "state",
+          "settings"
+        ],
+        "properties": {
+          "credential": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CredentialView"
+              }
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/Settings"
+          },
+          "state": {
+            "$ref": "#/components/schemas/VersionState"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -1596,6 +3229,11 @@
       "adminBearer": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "adminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-web_admin_session"
       }
     }
   }

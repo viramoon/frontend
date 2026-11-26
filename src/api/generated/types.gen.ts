@@ -8,6 +8,8 @@ export type Accepted = {
     id: number;
 };
 
+export type AuthKind = 'none' | 'api_token';
+
 export type BacktestSummary = {
     currency: string;
     end: string;
@@ -33,13 +35,51 @@ export type BlockedOrder = {
     signal_session: string;
 };
 
+export type Capabilities = {
+    csrf_token?: string | null;
+    products: Array<Product>;
+    subject: Subject;
+};
+
+export type CatalogEntry = {
+    auth_kind: AuthKind;
+    auto_backfill: boolean;
+    connector: Connector;
+    credential_fields: Array<string>;
+    fee_class: FeeClass;
+    file_types: Array<string>;
+    product: Product;
+    settings_fields: Array<string>;
+    symbols: Array<Symbol>;
+    test_available: boolean;
+    test_method: TestMethod;
+    title: string;
+};
+
 export type Check = {
     name: string;
     ok: boolean;
     required: boolean;
 };
 
+export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options';
+
 export type Coverage = 'full' | 'insufficient';
+
+export type Create = {
+    connector: Connector;
+    settings: Settings;
+};
+
+export type Credential = {
+    api_token: string;
+};
+
+export type CredentialView = {
+    mask: string;
+    rotated_at: string;
+    version: number;
+};
 
 export type Dataset = {
     asset_type: string;
@@ -83,6 +123,8 @@ export type ExecutionAudit = {
     zero_volume_bars: number;
 };
 
+export type FeeClass = 'free' | 'unavailable';
+
 export type Fill = {
     commission: string;
     executed_at: string;
@@ -110,6 +152,15 @@ export type InstrumentStatus = {
     instrument: string;
     last_bar_at?: string | null;
     stale: boolean;
+};
+
+export type Integration = {
+    active?: null | VersionView;
+    connector: string;
+    id: string;
+    last_test_id?: string | null;
+    latest: VersionView;
+    revision: number;
 };
 
 export type Job = {
@@ -168,6 +219,8 @@ export type Page = {
     next_cursor?: number | null;
 };
 
+export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data';
+
 export type ResearchReport = {
     actual_end: string;
     actual_start: string;
@@ -188,17 +241,62 @@ export type ResearchReport = {
     windows: Array<Window>;
 };
 
+export type SessionCreated = {
+    csrf_token: string;
+    /**
+     * Remaining lifetime of the new session in seconds.
+     */
+    expires_in: number;
+};
+
+export type Settings = {
+    symbol: Symbol;
+};
+
 export type StrategyParams = {
     fast_period?: number | null;
     shares?: number | null;
     slow_period?: number | null;
 };
 
+export type Subject = 'anonymous' | 'admin';
+
+export type Symbol = 'BTCUSDT' | 'ETHUSDT' | 'BTC' | 'ETH' | 'SPX';
+
 export type SystemStatus = {
     database: DbStatus;
     finance: FinanceStatus;
     market: MarketSummary;
     web: WebStatus;
+};
+
+export type TestMethod = 'public_market_sample' | 'authorized_read';
+
+export type TestStatus = 'pending' | 'passed' | 'failed' | 'unavailable' | 'superseded';
+
+export type TestView = {
+    config_version: number;
+    finished_at?: string | null;
+    id: string;
+    integration_id: string;
+    started_at: string;
+    status: TestStatus;
+};
+
+export type Update = {
+    action: 'configure';
+    settings: Settings;
+} | {
+    action: 'disable';
+};
+
+export type VersionState = 'draft' | 'candidate' | 'active' | 'disabled';
+
+export type VersionView = {
+    credential?: null | CredentialView;
+    settings: Settings;
+    state: VersionState;
+    version: number;
 };
 
 export type WebStatus = {
@@ -252,6 +350,65 @@ export type WindowMetrics = {
     volatility_pct?: string | null;
 };
 
+export type DeleteSessionData = {
+    body?: never;
+    headers: {
+        /**
+         * Configured HTTPS origin
+         */
+        Origin: string;
+        /**
+         * Token for the administrator session
+         */
+        'X-CSRF-Token': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/session';
+};
+
+export type DeleteSessionErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    413: ErrorBody;
+};
+
+export type DeleteSessionError = DeleteSessionErrors[keyof DeleteSessionErrors];
+
+export type DeleteSessionResponses = {
+    204: void;
+};
+
+export type DeleteSessionResponse = DeleteSessionResponses[keyof DeleteSessionResponses];
+
+export type CreateSessionData = {
+    body?: never;
+    headers: {
+        /**
+         * Configured HTTPS origin
+         */
+        Origin: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/session';
+};
+
+export type CreateSessionErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    413: ErrorBody;
+    429: ErrorBody;
+};
+
+export type CreateSessionError = CreateSessionErrors[keyof CreateSessionErrors];
+
+export type CreateSessionResponses = {
+    201: SessionCreated;
+};
+
+export type CreateSessionResponse = CreateSessionResponses[keyof CreateSessionResponses];
+
 export type ListData = {
     body?: never;
     path?: never;
@@ -290,6 +447,14 @@ export type SubmitData = {
          * Stable key, 1..128 visible ASCII characters
          */
         'Idempotency-Key': string;
+        /**
+         * Configured HTTPS origin with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
     };
     path?: never;
     query?: never;
@@ -415,6 +580,278 @@ export type DetailResponses = {
 
 export type DetailResponse = DetailResponses[keyof DetailResponses];
 
+export type GetTestData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integration-tests/{id}';
+};
+
+export type GetTestErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+};
+
+export type GetTestError = GetTestErrors[keyof GetTestErrors];
+
+export type GetTestResponses = {
+    200: TestView;
+};
+
+export type GetTestResponse = GetTestResponses[keyof GetTestResponses];
+
+export type List2Data = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations';
+};
+
+export type List2Errors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    503: ErrorBody;
+};
+
+export type List2Error = List2Errors[keyof List2Errors];
+
+export type List2Responses = {
+    200: Array<Integration>;
+};
+
+export type List2Response = List2Responses[keyof List2Responses];
+
+export type CreateData = {
+    body: Create;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations';
+};
+
+export type CreateErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type CreateError = CreateErrors[keyof CreateErrors];
+
+export type CreateResponses = {
+    201: Integration;
+};
+
+export type CreateResponse = CreateResponses[keyof CreateResponses];
+
+export type CatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/integrations/catalog';
+};
+
+export type CatalogErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+};
+
+export type CatalogError = CatalogErrors[keyof CatalogErrors];
+
+export type CatalogResponses = {
+    200: Array<CatalogEntry>;
+};
+
+export type CatalogResponse = CatalogResponses[keyof CatalogResponses];
+
+export type UpdateData = {
+    body: Update;
+    headers: {
+        /**
+         * Quoted integration revision
+         */
+        'If-Match': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}';
+};
+
+export type UpdateErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type UpdateError = UpdateErrors[keyof UpdateErrors];
+
+export type UpdateResponses = {
+    200: Integration;
+};
+
+export type UpdateResponse = UpdateResponses[keyof UpdateResponses];
+
+export type DeleteCredentialData = {
+    body?: never;
+    headers: {
+        /**
+         * Quoted integration revision
+         */
+        'If-Match': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/credential';
+};
+
+export type DeleteCredentialErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type DeleteCredentialError = DeleteCredentialErrors[keyof DeleteCredentialErrors];
+
+export type DeleteCredentialResponses = {
+    200: Integration;
+};
+
+export type DeleteCredentialResponse = DeleteCredentialResponses[keyof DeleteCredentialResponses];
+
+export type PutCredentialData = {
+    body: Credential;
+    headers: {
+        /**
+         * Quoted integration revision
+         */
+        'If-Match': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/credential';
+};
+
+export type PutCredentialErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type PutCredentialError = PutCredentialErrors[keyof PutCredentialErrors];
+
+export type PutCredentialResponses = {
+    200: Integration;
+};
+
+export type PutCredentialResponse = PutCredentialResponses[keyof PutCredentialResponses];
+
+export type StartTestData = {
+    body?: never;
+    headers: {
+        /**
+         * Quoted integration revision
+         */
+        'If-Match': string;
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/integrations/{id}/tests';
+};
+
+export type StartTestErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    428: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type StartTestError = StartTestErrors[keyof StartTestErrors];
+
+export type StartTestResponses = {
+    202: TestView;
+};
+
+export type StartTestResponse = StartTestResponses[keyof StartTestResponses];
+
 export type MarketStatusData = {
     body?: never;
     path?: never;
@@ -435,6 +872,19 @@ export type MarketStatusResponses = {
 };
 
 export type MarketStatusResponse = MarketStatusResponses[keyof MarketStatusResponses];
+
+export type CapabilitiesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/capabilities';
+};
+
+export type CapabilitiesResponses = {
+    200: Capabilities;
+};
+
+export type CapabilitiesResponse = CapabilitiesResponses[keyof CapabilitiesResponses];
 
 export type StatusData = {
     body?: never;
