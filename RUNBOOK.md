@@ -13,6 +13,8 @@ node scripts/check-data-guard.mjs --staged
 
 如命中检查，按错误中的路径定位文件，将本地采集数据、截图、录像或报告移到工作树之外，并更新暂存区。若违规内容已经进入待推送提交，处置这段本地历史后重新检查整个范围。仅在后一条提交删除文件，前一条提交仍会被检查。协作时只汇报规则和脱敏结论。[规则与范围](docs/data-guard.md)
 
+获准的静态资产先合入白名单更新，再从包含批准记录的目标分支建立后续资产 PR。出现 `allowlist-change` 时，核对审批记录是否已进入基准。[白名单登记流程](docs/data-guard.md#文件白名单)
+
 ## 离线检查行情渲染
 
 使用已有依赖和系统 Chrome 运行 `pnpm build`，再运行 `pnpm test:visual`。测试进程拦截页面所有 HTTP 和 WebSocket 请求，从内存返回构建资源和模拟 API 状态。使用宽屏和窄屏视口检查 Canvas、报价及抽屉焦点。无需启动 Vite、web 或 IBKR，截图只在测试进程内存中处理。

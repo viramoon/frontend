@@ -21,6 +21,15 @@ const zeroId = '0'.repeat(40);
 const source = 'src/features/market/marketFixture.ts';
 const syntheticSource =
   '// Deterministic synthetic offsets and volumes, without vendor or historical data.\nexport const seed = 16n;\n';
+const allowlistPath = 'scripts/data-guard-allowlist.json';
+// Pillow-generated 1 × 1 RGB PNG with color (43, 119, 166).
+const syntheticPng = Buffer.concat([
+  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+  Buffer.from(
+    'AAAADUlIRFIAAAABAAAAAQgCAAAAkHdT3gAAAAxJREFUeJxj0C5fBgACGQFJ1f0e+gAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+]);
 const execute = promisify(execFile);
 
 async function repository(t) {
@@ -275,20 +284,21 @@ test('the allowlist approves only the registered path and staged SHA-256', async
   const { git, write, run } = await repository(t);
   const icon = 'public/synthetic.png';
   const otherPath = 'public/copy.png';
-  const allowlist = 'scripts/data-guard-allowlist.json';
   const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  write(icon, bytes);
   write(
-    allowlist,
+    allowlistPath,
     JSON.stringify([
       { path: icon, sha256, source: 'Synthetic bytes for a policy test' },
     ]),
   );
-  await git('add', icon, allowlist);
+  await git('add', allowlistPath);
+  await git('commit', '-qm', 'Approve exact synthetic icon separately');
+  write(icon, bytes);
+  await git('add', icon);
 
   write(icon, Buffer.from(marker));
-  write(allowlist, '[]');
+  write(allowlistPath, '[]');
   const staged = await run('./.githooks/pre-commit', []);
   assert.equal(staged.status, 0, staged.stderr);
 
@@ -308,13 +318,150 @@ test('the allowlist approves only the registered path and staged SHA-256', async
     copied.stderr.includes(`restricted-format ${JSON.stringify(otherPath)}`),
   );
 
-  await git('restore', '--staged', otherPath);
-  await git('add', allowlist);
+  await git('restore', '--staged', otherPath, icon);
+  await git('add', allowlistPath);
+  await git('commit', '-qm', 'Revoke approval before staging a new icon');
+  await git('add', icon);
   const removed = await run('./.githooks/pre-commit', []);
   checkRejected(removed, 'restricted-format');
   assert.ok(
     removed.stderr.includes(`restricted-format ${JSON.stringify(icon)}`),
   );
+});
+
+test('a matching allowlist entry cannot approve a capture in the same commit or PR', async (t) => {
+  const { git, write, run, base } = await repository(t);
+  const path = 'public/synthetic.png';
+  const sha256 = createHash('sha256').update(syntheticPng).digest('hex');
+  const manifestBody = JSON.stringify([{ path, sha256, source: marker }]);
+  const scanRange = () =>
+    run(process.execPath, [
+      'scripts/check-data-guard.mjs',
+      '--range',
+      base,
+      'HEAD',
+    ]);
+  function rejectsCapture(result) {
+    checkRejected(result, 'allowlist-change');
+    checkRejected(result, 'restricted-format');
+    assert.ok(
+      result.stderr.includes(`restricted-format ${JSON.stringify(path)}`),
+    );
+  }
+
+  await git('update-ref', 'refs/remotes/origin/main', base);
+  write(path, syntheticPng);
+  write(allowlistPath, manifestBody);
+  await git('add', path, allowlistPath);
+  await t.test('same index', async () => {
+    rejectsCapture(await run('./.githooks/pre-commit', []));
+  });
+  await git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    'commit',
+    '-qm',
+    'Seed synthetic capture and manifest',
+  );
+  await t.test('same PR commit', async () => {
+    rejectsCapture(await scanRange());
+  });
+
+  await git('checkout', '-qb', 'separate-approval', base);
+  write(allowlistPath, manifestBody);
+  await git('add', allowlistPath);
+  await git('commit', '-qm', 'Seed a pending manifest review');
+  const pending = await git('rev-parse', 'HEAD');
+  write(path, syntheticPng);
+  await git('add', path);
+  await git('commit', '-qm', 'Add the proposed asset on the same PR');
+  const tip = await git('rev-parse', 'HEAD');
+  await t.test('same PR split over commits and pushes', async () => {
+    rejectsCapture(await scanRange());
+    rejectsCapture(
+      await run(
+        './.githooks/pre-push',
+        ['origin'],
+        proposedUpdate(tip, pending),
+      ),
+    );
+  });
+});
+
+test('a manifest-only approval on the target enables the exact asset in a later PR', async (t) => {
+  const { git, write, run, base } = await repository(t);
+  const path = 'public/reviewed.png';
+  const sha256 = createHash('sha256').update(syntheticPng).digest('hex');
+  write(
+    allowlistPath,
+    JSON.stringify([
+      { path, sha256, source: 'Generated solid-color icon for this test' },
+    ]),
+  );
+  await git('add', allowlistPath);
+  const pending = await run('./.githooks/pre-commit', []);
+  assert.equal(pending.status, 0, pending.stderr);
+  assert.ok(
+    pending.stderr.includes(
+      `allowlist-change ${JSON.stringify(allowlistPath)}`,
+    ),
+  );
+  await git('commit', '-qm', 'Approve the exact synthetic icon on the target');
+  const approved = await git('rev-parse', 'HEAD');
+  const approvalCheck = await run(process.execPath, [
+    'scripts/check-data-guard.mjs',
+    '--range',
+    base,
+    approved,
+  ]);
+  assert.equal(approvalCheck.status, 0, approvalCheck.stderr);
+  assert.ok(approvalCheck.stderr.includes('data-guard: allowlist-change '));
+
+  await git('update-ref', 'refs/remotes/upstream/main', approved);
+  await git('checkout', '-qb', 'approved-asset', approved);
+  write(path, syntheticPng);
+  await git('add', path);
+  await git('commit', '-qm', 'Add the previously approved synthetic icon');
+  const tip = await git('rev-parse', 'HEAD');
+
+  const ci = await run(process.execPath, [
+    'scripts/check-data-guard.mjs',
+    '--range',
+    approved,
+    tip,
+  ]);
+  assert.equal(ci.status, 0, ci.stderr);
+  const push = await run(
+    './.githooks/pre-push',
+    ['upstream'],
+    proposedUpdate(tip, zeroId),
+  );
+  assert.equal(push.status, 0, push.stderr);
+  checkRejected(
+    await run(
+      './.githooks/pre-push',
+      ['unknown'],
+      proposedUpdate(tip, approved),
+    ),
+    'restricted-format',
+  );
+
+  const replacement = Buffer.concat([syntheticPng, Buffer.from(marker)]);
+  write(path, replacement);
+  write(
+    allowlistPath,
+    JSON.stringify([
+      {
+        path,
+        sha256: createHash('sha256').update(replacement).digest('hex'),
+        source: 'Proposed replacement for the synthetic icon',
+      },
+    ]),
+  );
+  await git('add', path, allowlistPath);
+  const changed = await run('./.githooks/pre-commit', []);
+  checkRejected(changed, 'allowlist-change');
+  checkRejected(changed, 'allowlist-digest');
 });
 
 test('local workflow and nested action references resolve against each Git snapshot', async (t) => {

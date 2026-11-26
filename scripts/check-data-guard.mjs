@@ -92,29 +92,37 @@ async function commitId(ref, optional = false) {
   return result?.trim();
 }
 
-async function range(base, tip) {
+function knownCommit(ref) {
+  return ref && !zeroId.test(ref) ? commitId(ref, true) : undefined;
+}
+
+async function* committedSnapshots(tip, trusted, previous = trusted) {
   const head = await commitId(tip);
-  const revisions = [head];
-  // A new ref or an unavailable remote tip has no local exclusion boundary.
-  const previous = base && !zeroId.test(base) && (await commitId(base, true));
-  if (previous) revisions.push(`^${previous}`);
-  return [
+  const excluded = new Set([trusted, previous].filter(Boolean));
+  const revisions = [head, ...Array.from(excluded, (commit) => `^${commit}`)];
+  const commits = new Set([
     head,
     ...(await git(['rev-list', ...revisions]))
       .trim()
       .split('\n')
       .filter(Boolean),
-  ];
+  ]);
+  for (const commit of commits) {
+    yield {
+      entries: parseEntries(await git(['ls-tree', '-rz', commit])),
+      trusted,
+    };
+  }
 }
 
-async function pushedCommits() {
-  const updates = readFileSync(0, 'utf8')
+function pushUpdates() {
+  return readFileSync(0, 'utf8')
     .trim()
     .split('\n')
     .filter(Boolean)
     .map((row) => {
       const fields = row.split(' ');
-      const [, local, , remote] = fields;
+      const [, local, remoteRef, remote] = fields;
       if (
         fields.length !== 4 ||
         !objectId.test(local) ||
@@ -122,31 +130,33 @@ async function pushedCommits() {
       ) {
         throw new Error('Invalid pre-push ref update');
       }
-      return { local, remote };
+      return { local, remoteRef, remote };
     });
-  const commits = new Set();
-  for (const { local, remote } of updates) {
-    if (zeroId.test(local)) continue;
-    for (const commit of await range(remote, local)) commits.add(commit);
-  }
-  return commits;
 }
 
 async function* snapshots(args) {
   if (args.length === 1 && args[0] === '--staged') {
-    yield parseEntries(await git(['ls-files', '--stage', '-z']));
+    yield {
+      entries: parseEntries(await git(['ls-files', '--stage', '-z'])),
+      trusted: await knownCommit('HEAD'),
+    };
     return;
   }
-  if (args.length === 1 && args[0] === '--push') {
-    for (const commit of await pushedCommits()) {
-      yield parseEntries(await git(['ls-tree', '-rz', commit]));
+  if (args.length <= 2 && args[0] === '--push') {
+    const updates = pushUpdates();
+    const remoteName = args[1] || 'origin';
+    const main = await knownCommit(`refs/remotes/${remoteName}/main`);
+    for (const { local, remoteRef, remote } of updates) {
+      if (zeroId.test(local)) continue;
+      const previous = await knownCommit(remote);
+      // An earlier push to a feature branch does not approve PR entries.
+      const trusted = remoteRef === 'refs/heads/main' ? previous : main;
+      yield* committedSnapshots(local, trusted, previous);
     }
     return;
   }
   if (args.length === 3 && args[0] === '--range') {
-    for (const commit of new Set(await range(args[1], args[2]))) {
-      yield parseEntries(await git(['ls-tree', '-rz', commit]));
-    }
+    yield* committedSnapshots(args[2], await knownCommit(args[1]));
     return;
   }
   throw new Error('Expected --staged, --push or --range BASE HEAD');
@@ -165,8 +175,20 @@ function pathRule(entry, digest) {
     return 'fixture-provenance';
 }
 
-async function readAllowlist(entries, report) {
-  const entry = entries.get(allowlistPath);
+function isAllowlistPath(path) {
+  return (
+    typeof path === 'string' &&
+    !path.includes('\\') &&
+    !path.includes('\0') &&
+    path.split('/').every((part) => part && part !== '.' && part !== '..') &&
+    path !== allowlistPath &&
+    !restrictedPath.test(path) &&
+    !isActionDefinition(path) &&
+    !fixturePath.test(path)
+  );
+}
+
+async function readAllowlist(entry, report) {
   if (!entry) return new Map();
 
   try {
@@ -183,12 +205,8 @@ async function readAllowlist(entries, report) {
     const allowlist = new Map();
     for (const { path, sha256, source } of records) {
       if (
-        typeof path !== 'string' ||
-        path === allowlistPath ||
-        !entries.has(path) ||
+        !isAllowlistPath(path) ||
         allowlist.has(path) ||
-        isActionDefinition(path) ||
-        fixturePath.test(path) ||
         typeof sha256 !== 'string' ||
         !/^[a-f0-9]{64}$/.test(sha256) ||
         typeof source !== 'string' ||
@@ -346,15 +364,22 @@ async function inspectBlob({ path, oid, digest }, size) {
   }
 }
 
-async function checkSnapshot(entries, inspected, report) {
+async function checkSnapshot(entries, approval, inspected, report) {
   const byPath = new Map(entries.map((entry) => [entry.path, entry]));
   if (byPath.size !== entries.length)
     throw new Error('Ambiguous Git snapshot paths');
-  const allowlist = await readAllowlist(byPath, report);
+  const candidateManifest = byPath.get(allowlistPath);
+  if (
+    candidateManifest?.oid !== approval.entry?.oid ||
+    candidateManifest?.mode !== approval.entry?.mode
+  ) {
+    report(allowlistPath, 'allowlist-change');
+    await readAllowlist(candidateManifest, report);
+  }
   const candidates = [];
   const records = [];
   for (const entry of entries) {
-    const digest = allowlist.get(entry.path);
+    const digest = approval.allowlist.get(entry.path);
     const key = JSON.stringify([entry.path, entry.mode, entry.oid, digest]);
     const record = { ...entry, digest, key };
     records.push(record);
@@ -385,19 +410,33 @@ async function checkSnapshot(entries, inspected, report) {
 
 async function check(args) {
   const inspected = new Map();
-  const violations = new Set();
+  const approvals = new Map();
+  const findings = new Set();
+  let violations = 0;
   function report(path, rule) {
     const message = `${rule} ${JSON.stringify(path)}`;
-    if (violations.has(message)) return;
-    violations.add(message);
+    if (findings.has(message)) return;
+    findings.add(message);
+    if (rule !== 'allowlist-change') violations += 1;
     writeSync(2, `data-guard: ${message}\n`);
   }
 
-  for await (const entries of snapshots(args)) {
-    await checkSnapshot(entries, inspected, report);
+  for await (const { entries, trusted } of snapshots(args)) {
+    if (!approvals.has(trusted)) {
+      const [entry] = trusted
+        ? parseEntries(
+            await git(['ls-tree', '-z', trusted, '--', allowlistPath]),
+          )
+        : [];
+      approvals.set(trusted, {
+        entry,
+        allowlist: await readAllowlist(entry, report),
+      });
+    }
+    await checkSnapshot(entries, approvals.get(trusted), inspected, report);
   }
-  if (violations.size) {
-    writeSync(2, `data-guard: ${violations.size} violation(s)\n`);
+  if (violations) {
+    writeSync(2, `data-guard: ${violations} violation(s)\n`);
     process.exitCode = 1;
   } else {
     writeSync(1, 'data-guard: passed\n');

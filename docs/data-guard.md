@@ -18,11 +18,13 @@ v1 的付费数据、真实行情及衍生样本、截图、录屏、数据库�
 
 ## Git 对象检查
 
-| 入口 | 检查范围 |
-| --- | --- |
-| `pre-commit` | Git 索引中的路径和暂存 blob。 |
-| `pre-push` | 每个非删除 ref 的待推送提交和 tip。新 ref 或远端 tip 在本机不可用时，检查所有本机可达的提交。 |
-| 前端 CI | 有基准时检查基准之外的提交和检出的 tip。PR 的 tip 为 CI 的合并结果。使用完整历史，因而会检查分支中已被后续提交移除的内容。 |
+| 入口 | 检查范围 | 生效的白名单 |
+| --- | --- | --- |
+| `pre-commit` | Git 索引中的路径和暂存 blob。 | 当前 `HEAD`。 |
+| `pre-push` | 每个非删除 ref 的待推送提交和 tip。缺少可用的历史边界时扫描全部可达提交。 | 推送远端在本机记录的 `main`。推送目标为 `main` 本身时，使用远端报告的更新前 SHA。 |
+| 前端 CI | 检查基准之外的提交和检出的 tip，包括后来删除的内容。PR 的 tip 为 CI 合并结果。 | PR 的目标基准 SHA。push 事件使用更新前 SHA。 |
+
+找不到可信基准时，白名单为空。一次范围检查始终使用同一基准，推送过的功能分支提交也不会为同一 PR 授权。待检查的白名单发生变更会输出 `allowlist-change`，有效的清单变更可以独立提交和审查。新增或修改的条目只在进入对应可信基准后授权文件。文件内容仍按实际 Git blob 匹配 SHA-256。
 
 检查器以稳定规则名和转义后的路径报告违规，不回显 blob 内容。每个 blob 上限为 256 KiB。普通放行要求文件是已知源码、配置或文档类型，正文为 UTF-8 纯文本，同时通过文件特征检查。识别项包含带 XML 序言的 SVG、XPM、XBM 和 Netpbm 光栅，改名后仍会检查正文。二进制、媒体和无法归类的文件默认拒绝。数据、截图、录屏和报告目录受路径规则保护。LFS 指针和常见行情导出也会被拦截。具名 fixture、sample 和 replay 源须有登记及可审查的合成来源。
 
@@ -32,11 +34,11 @@ v1 的付费数据、真实行情及衍生样本、截图、录屏、数据库�
 
 ## 文件白名单
 
-确需提交获准分发的静态资产时，在同一 PR 提交文件和白名单记录。
+确需提交获准分发的静态资产时，先合入仅包含白名单更新的 PR，再通过后续 PR 提交文件。
 
 1. 核对来源和分发许可。白名单适用于图标、第三方许可证等获准文件。真实行情、衍生样本和截图仍受 v1 数据边界约束。
-2. 用 `sha256sum` 计算文件 SHA-256，在清单写入仓库相对路径 `path`、64 位小写十六进制 `sha256` 和说明来源及用途的 `source`。随文件更新或移除登记。
-3. 将清单与文件一起暂存，运行 `node scripts/check-data-guard.mjs --staged`。检查器用 Git 快照中的实际文件字节核对摘要。改名或改内容须更新登记并重新审查。工作流、本地 action 和行情 fixture 继续走各自的规则。
+2. 在工作树外用 `sha256sum` 计算文件摘要。在清单写入仓库相对路径 `path`、64 位小写十六进制 `sha256` 和说明来源及用途的 `source`。第一个 PR 只提交这项清单更新，由维护者核对来源及摘要。
+3. 清单 PR 合入后，从包含批准记录的目标分支开始后续 PR，再加入文件并运行 `node scripts/check-data-guard.mjs --staged`。改名或改内容须重新审批。工作流、本地 action 和行情 fixture 继续走各自的规则。
 
 [白名单清单](../scripts/data-guard-allowlist.json)
 
@@ -44,7 +46,7 @@ v1 的付费数据、真实行情及衍生样本、截图、录屏、数据库�
 
 ```sh
 node scripts/check-data-guard.mjs --staged
-node scripts/check-data-guard.mjs --range main HEAD
+node scripts/check-data-guard.mjs --range origin/main HEAD
 node --test --test-isolation=none scripts/check-data-guard.test.mjs
 pnpm test
 pnpm build
