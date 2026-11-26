@@ -85,6 +85,7 @@
 .market-instrument-description,
 .market-quote-unavailable,
 .market-depth > p,
+.market-book-status > p,
 .market-source-note p,
 .market-indicators p {
   color: var(--market-weak);
@@ -347,4 +348,87 @@
   .market-drawer-actions button {
     min-height: 2.6rem;
   }
+}
+
+.market-watchlist-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.market-terminal input[type='checkbox'] {
+  width: auto;
+  margin-inline-end: 0.4rem;
+  accent-color: var(--market-accent);
+}
+
+.market-field-label select,
+.market-control {
+  max-width: 100%;
+  padding: 0.35rem 0.5rem;
+  color: var(--ink);
+  background: var(--market-highlight);
+  border: 1px solid var(--market-divider);
+  border-radius: 0.35rem;
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.market-field-label select {
+  margin-inline-start: 0.4rem;
+}
+
+.market-field-label select:focus-visible {
+  outline: 2px solid var(--market-accent);
+  outline-offset: 2px;
+}
+
+.market-chart-provenance {
+  margin: 0.2rem 0.35rem;
+  color: var(--market-weak);
+  font-size: 0.78rem;
+}
+
+.market-trades {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.95rem;
+}
+
+.market-quote table,
+.market-trades table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.market-quote th,
+.market-trades th,
+.market-trades td {
+  padding: 0.3rem 0.1rem;
+  text-align: left;
+}
+
+.market-quote td,
+.market-trades td,
+.market-readings dd {
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.market-trades tbody tr {
+  border-top: 1px solid var(--market-divider);
+}
+
+.market-readings {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.76rem;
+}
+
+.market-readings dd {
+  margin: 0;
 }
