@@ -1,3 +1,4 @@
+import type { RecoveryGapsPage } from '../api/recoveryWeb';
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -15,7 +16,6 @@ import type {
   CatalogEntry,
   Integration,
   MarketResult,
-  QualityGapsPage,
   TestView,
 } from '../api/generated/types.gen';
 import { AppRoutes } from '../app/routes/AppRoutes';
@@ -433,7 +433,7 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
     last_hourly_at: '2000-01-03T11:55:00Z',
     last_full_at: '2000-01-03T03:00:00Z',
   };
-  const snapshot: QualityGapsPage = {
+  const snapshot: RecoveryGapsPage = {
     state: 'available',
     as_of: time,
     next_offset: 20,

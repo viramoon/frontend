@@ -18,7 +18,7 @@ import { decimalKeys } from '../features/options/decimal';
 function mount(page: 'flow' | 'exposure') {
   return render(
     <MemoryRouter initialEntries={[`/options/${page}`]}>
-      <AppRoutes />
+      <AppRoutes marketReplay />
     </MemoryRouter>,
   );
 }

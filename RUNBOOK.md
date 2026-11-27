@@ -36,7 +36,11 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 
 ## 验证行情终端
 
-U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的系统状态与示例回测仍使用 web 同源接口。人工验收仅保存脱敏结论，数据和画面按[防护规则](docs/data-guard.md)处理。
+`/dashboard` 和 `/trading` 默认使用同源 W2a。先运行 `pnpm test src/testing/market-web.test.tsx`，用固定 UTC 模拟 WAL、HTTP、WebSocket 和 SSE 验证选择标的、精确读数、截止日期和权限撤回。在有获准数据的部署上，通过页面中的管理员会话入口登录，查看标的目录、自选保存、深度焦点和 Web 订阅额度。检查盘口失同步后旧档位消失，直到重新取得快照。仪表盘的系统状态与示例回测继续使用同源 web 接口。人工验收仅保存脱敏结论，数据和画面按[防护规则](docs/data-guard.md)处理。
+
+### 离线合成回放
+
+为以下浏览器步骤使用 `/dashboard?market=replay` 或 `/trading?market=replay`。在四个行情和期权页面之间导航会保留显式回放参数。
 
 1. 从 `/` 进入 `/dashboard`，在自选中逐个切换 QQQ、SPY、AAPL、MSFT、NVDA、AMZN、GOOGL、META、TSLA、BTC、ETH、SOL。保存或移出自选，切换 1 小时、4 小时及 UTC、市场时区，刷新后核对偏好。行情区域应显示「Fixture」标记。主图显示「价量历史」、来源、未复权、样本覆盖和精确 OHLCV。
 2. 选择 AAPL，切换 SMA、EMA、Wilder RSI、布林带和 MACD。指标值是合成示意。用「K 线时间」查看起点的「预热中」及末尾的「未闭合预览」。MSFT、NVDA、AMZN 分别显示 marketDataType 2、3、4。QQQ 同时显示延迟与陈旧。
@@ -47,7 +51,7 @@ U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的�
 
 ## 验证期权页
 
-两页使用固定种子合成回放。运行 `pnpm test` 并在 `pnpm build` 后运行 `pnpm test:visual` 可在离线环境复测。前端仍由 web 托管，沿用既有部署配置。
+默认期权页显示 web 返回的 `finance_contract_pending`。下列步骤使用 `/options/flow?market=replay` 和 `/options/exposure?market=replay`。运行 `pnpm test` 并在 `pnpm build` 后运行 `pnpm test:visual` 可在离线环境复测。前端仍由 web 托管，沿用既有部署配置。
 
 1. 打开 `/options/flow` 与 `/options/exposure`。默认 SPY 的页首显示 Fixture、回放标签、2 条观察线索、5 笔已核验成交（其中 2 笔方向未知）、1 个无法回补区间，以及独立的「假设」「实测项」和 OI 基准日 2026-11-18。
 2. 在流水页筛选「只看观察」，用键盘展开「累计放量」证据，核对时标、轮换覆盖、估计权利金额及「单笔规模未知」。选「只看已核验」核对取得时间、匹配报价、原始条件码与推断置信度。选方向未知可看到多腿更正和陈旧报价。已取消的记录可单独查询，权利金从有效结果中移除。用到期日、0DTE、最低权利金额、成交条件和置信度组合筛选。
@@ -79,7 +83,7 @@ U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的�
 
 ### 验证细节可用日期
 
-在 `/trading` 选择 AAPL，盘口与逐笔均显示「订单簿细节（自 2026-11-18 起）」。用「盘口与逐笔日期筛选（UTC）」按下表检查回放。`/dashboard` 的「盘口日期筛选（UTC）」可用相同区间复测盘口，主 K 线、报价和自选读数继续可用。
+在 `/trading?market=replay` 选择 AAPL，盘口与逐笔均显示「订单簿细节（自 2026-11-18 起）」。用「盘口与逐笔日期筛选（UTC）」按下表检查回放。`/dashboard?market=replay` 的「盘口日期筛选（UTC）」可用相同区间复测盘口，主 K 线、报价和自选读数继续可用。
 
 | 起始日期 | 结束日期（不含） | 预期结果 |
 | --- | --- | --- |
@@ -100,7 +104,7 @@ U2a 行情使用随构建发布的合成回放，可离线验证。仪表盘的�
 | 示例回测无结果 | sample 的 404 会显示空状态。在 finance 上按运行手册生成示例，再刷新页面。 |
 | 刷新路由或资源 404 | 确认 web 指向同一份完整 dist，核对 index 引用的资源名和缓存头。 |
 | 客户端与服务不匹配 | 比较 openapi/web.commit 与实际部署的 web 提交，运行 pnpm check:client。按同一组已验证的 fertile 指针恢复。 |
-| 行情采集陈旧 | 在 `/system` 查看 web 报告的数据源、更新时间和陈旧标的数。检查 finance collector、Gateway 或回放源。终端使用合成时间演示陈旧。QQQ 合成盘口默认隐藏，可切 AAPL 验证断序和快照恢复。 |
+| 行情采集陈旧 | 在 `/system` 查看 web 报告的数据源、更新时间和陈旧标的数。检查 finance collector、Gateway 或回放源。显式回放的 QQQ 演示陈旧，AAPL 演示断序和快照恢复。 |
 
 回滚通过 fertile 的运行手册切换匹配的服务与静态资源。记录部署提交、浏览器访问路径、HTTP 状态、request id 和实际恢复时间。勿在浏览器存放管理员令牌或 IBKR 凭据。
 

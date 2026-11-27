@@ -1,4 +1,5 @@
 import type { ChartBar, ChartIndicator } from '../../components/MarketChart';
+import type { DetailDateRange } from '../../components/PanelDataClass';
 import type { BookEvent } from './orderBook';
 
 export const periods = [
@@ -36,6 +37,8 @@ export type MarketQuote = {
   ask: Level;
 };
 
+type DisplayQuote = Partial<MarketQuote>;
+
 export type MarketDataType = 1 | 2 | 3 | 4;
 
 export const marketDataTypes: Record<MarketDataType, string> = {
@@ -50,8 +53,9 @@ export type Trade = Level & { id: string; time: string };
 export type BookSource = {
   instrument: string;
   venue: string;
-  timeliness: '实时' | '延迟' | '回放';
+  timeliness: '实时' | '延迟' | '回放' | '已采集';
   availableFrom?: string;
+  coverage?: string;
   subscribe(receive: (event: BookEvent) => void): () => void;
   replay?: readonly BookEvent[];
 };
@@ -65,14 +69,17 @@ export type MarketReading =
       product: string;
       source: string;
       asOf: string;
+      freshnessUnknown?: boolean;
       fixture?: boolean;
       replay?: boolean;
       delay?: string;
       marketDataType?: MarketDataType;
-      quote: MarketQuote;
+      quote?: DisplayQuote;
       book?: BookSource;
       trades?: readonly Trade[];
       tradesAvailableFrom?: string;
+      tradesCoverage?: string;
+      tradesUnavailable?: boolean;
       derivatives?: { mark: string; fundingRate: string; openInterest: string };
     }
   | {
@@ -80,14 +87,15 @@ export type MarketReading =
         | 'denied'
         | 'empty'
         | 'loading'
+        | 'unavailable'
         | 'disabled_by_profile'
         | 'region_restricted';
     };
 
 export function hasReading(
   reading: MarketReading,
-): reading is Extract<MarketReading, { quote: MarketQuote }> {
-  return 'quote' in reading;
+): reading is Extract<MarketReading, { availability: 'ready' | 'stale' }> {
+  return reading.availability === 'ready' || reading.availability === 'stale';
 }
 
 export type MarketHistory = {
@@ -110,11 +118,25 @@ export type SubscriptionBudget = {
   followingDepth: number;
 };
 
+export type WebMarketControls = {
+  catalog: 'loading' | 'ready' | 'denied' | 'unavailable';
+  saved?: readonly string[];
+  focus?: string | null;
+  quota?: { active: number; available: number; limit: number };
+  financeLines?: 'finance_contract_pending';
+  busy: boolean;
+  message?: string;
+  save(instrumentIds: readonly string[]): Promise<void>;
+  setFocus(instrumentId: string | null): Promise<void>;
+  refresh(): void;
+};
+
 // In-memory view of one adapter. An HTTP/stream implementation can populate
 // this view asynchronously and notify React through subscribe.
 export interface MarketDataAdapter {
   instruments: readonly MarketInstrument[];
   fixture?: { seed: string; replayTime: string };
+  web?: WebMarketControls;
   budget: SubscriptionBudget;
   subscribe(listener: () => void): () => void;
   revision(): number;
@@ -124,6 +146,7 @@ export interface MarketDataAdapter {
       period: MarketPeriod | null;
       pinned: readonly string[];
       follow: string | null;
+      detailRange?: DetailDateRange;
     },
   ): () => void;
   read(request: MarketRequest): MarketReading;

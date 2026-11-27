@@ -22,10 +22,12 @@ import {
   type MarketInstrument,
   type MarketQuote,
   type MarketReading,
+  type WebMarketControls,
 } from './marketData';
 import type { ComponentProps } from 'react';
 
-export function Change({ quote }: { quote: MarketQuote }) {
+export function Change({ quote }: { quote: Partial<MarketQuote> }) {
+  if (!quote.direction || !quote.change) return null;
   const direction = { 上涨: 'up', 下跌: 'down', 持平: 'flat' }[quote.direction];
   return (
     <span className={`market-change market-change--${direction}`}>
@@ -36,13 +38,16 @@ export function Change({ quote }: { quote: MarketQuote }) {
 
 export function Unavailable({
   kind,
+  fixture = true,
 }: {
+  fixture?: boolean;
   kind: Exclude<MarketReading['availability'], 'ready' | 'stale'>;
 }) {
   const titles = {
     denied: '无权读取行情',
-    empty: '暂无回放数据',
+    empty: fixture ? '暂无回放数据' : '暂无已采集行情',
     loading: '正在加载行情',
+    unavailable: '行情暂不可用',
     disabled_by_profile: 'Binance 已由部署配置关闭',
     region_restricted: 'Binance 区域限制（HTTP 451）',
   };
@@ -64,6 +69,7 @@ export function MarketQuotes({
   timeZone,
   replayTime,
   trading,
+  web,
 }: {
   instrument: MarketInstrument;
   reading: MarketReading;
@@ -73,6 +79,7 @@ export function MarketQuotes({
   timeZone: DisplayTimeZone;
   replayTime?: string;
   trading: boolean;
+  web?: WebMarketControls;
 }) {
   const unit = instrument.quantityUnit;
   return (
@@ -85,37 +92,52 @@ export function MarketQuotes({
       </p>
       {hasReading(reading) ? (
         <>
-          <div className="market-quote">
-            <p className="market-quote-label">
-              {reading.venue} {reading.product} · 最近读数（{reading.currency}）
-            </p>
-            <p className="market-quote-price">
-              <strong>{reading.quote.price}</strong>
-            </p>
-            <div className="market-quote-comparison">
-              <Change quote={reading.quote} />
-              {reading.marketDataType !== undefined && (
-                <span className="terminal-badge">
-                  marketDataType {reading.marketDataType} ·{' '}
-                  {marketDataTypes[reading.marketDataType]}
-                </span>
+          {reading.quote ? (
+            <div className="market-quote">
+              <p className="market-quote-label">
+                {reading.venue} {reading.product} · 最近读数（{reading.currency}
+                ）
+              </p>
+              {reading.quote.price !== undefined && (
+                <p className="market-quote-price">
+                  <strong>{reading.quote.price}</strong>
+                </p>
+              )}
+              <div className="market-quote-comparison">
+                <Change quote={reading.quote} />
+                {reading.marketDataType !== undefined && (
+                  <span className="terminal-badge">
+                    marketDataType {reading.marketDataType} ·{' '}
+                    {marketDataTypes[reading.marketDataType]}
+                  </span>
+                )}
+              </div>
+              {instrument.kind === 'l1-only' && (
+                <p className="market-quote-label">SPY 仅启用美国综合 L1。</p>
+              )}
+              {(reading.quote.bid || reading.quote.ask) && (
+                <DepthTable
+                  bids={reading.quote.bid ? [reading.quote.bid] : []}
+                  asks={reading.quote.ask ? [reading.quote.ask] : []}
+                  currency={reading.currency}
+                  unit={unit}
+                  label={web ? '场所最优报价' : 'L1 最优报价'}
+                />
               )}
             </div>
-            {instrument.kind === 'l1-only' && (
-              <p className="market-quote-label">SPY 仅启用美国综合 L1。</p>
-            )}
-            <DepthTable
-              bids={[reading.quote.bid]}
-              asks={[reading.quote.ask]}
-              currency={reading.currency}
-              unit={unit}
-              label="L1 最优报价"
-            />
-          </div>
+          ) : (
+            <DataState kind="empty" title="暂无最优报价" />
+          )}
           <SourceDetails
             source={reading.source}
             asOf={reading.asOf}
-            freshness={reading.availability === 'stale' ? 'stale' : 'current'}
+            freshness={
+              reading.availability === 'stale'
+                ? 'stale'
+                : reading.freshnessUnknown
+                  ? 'unknown'
+                  : 'current'
+            }
             fixture={reading.fixture}
             replay={reading.replay}
             delay={reading.delay}
@@ -147,9 +169,47 @@ export function MarketQuotes({
           )}
         </>
       ) : (
-        <Unavailable kind={reading.availability} />
+        <Unavailable kind={reading.availability} fixture={!web} />
       )}
-      <MarketBudget {...budget} />
+      {web ? (
+        <section className="market-depth" aria-label="订阅额度与深度焦点">
+          <h3>订阅额度与深度焦点</h3>
+          {web.quota && (
+            <p>
+              Web 订阅 {web.quota.active}/{web.quota.limit} · 可用{' '}
+              {web.quota.available}
+            </p>
+          )}
+          {!web.quota && <p>暂无 Web 订阅额度读数</p>}
+          {web.financeLines === 'finance_contract_pending' && (
+            <p>券商线路额度待接入</p>
+          )}
+          {web.focus !== undefined && (
+            <>
+              <p>当前焦点 {web.focus ?? '未设置'}</p>
+              <button
+                type="button"
+                className="market-control"
+                disabled={
+                  web.busy ||
+                  (web.focus !== instrument.id &&
+                    (!hasReading(reading) || !reading.book?.availableFrom))
+                }
+                onClick={() =>
+                  void web.setFocus(
+                    web.focus === instrument.id ? null : instrument.id,
+                  )
+                }
+              >
+                {web.focus === instrument.id ? '清除深度焦点' : '设为深度焦点'}
+              </button>
+            </>
+          )}
+          {web.message && <p role="status">{web.message}</p>}
+        </section>
+      ) : (
+        <MarketBudget {...budget} />
+      )}
       {replayTime && (
         <section className="market-source-note">
           <h3>读数说明</h3>
@@ -197,6 +257,9 @@ export function TradePrints({
         {quoted.availability === 'stale' && ' · 陈旧'}
       </p>
       <DetailPanelData availableFrom={tradesAvailableFrom} range={detailRange}>
+        {quoted.tradesCoverage && (
+          <p className="market-quote-label">{quoted.tradesCoverage}</p>
+        )}
         {prints?.length ? (
           <>
             <p className="market-quote-label">
@@ -233,7 +296,10 @@ export function TradePrints({
             </table>
           </>
         ) : (
-          <DataState kind="empty" title="暂无逐笔成交" />
+          <DataState
+            kind="empty"
+            title={quoted.tradesUnavailable ? '逐笔暂不可用' : '暂无逐笔成交'}
+          />
         )}
       </DetailPanelData>
     </section>

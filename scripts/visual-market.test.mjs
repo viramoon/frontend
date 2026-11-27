@@ -68,7 +68,7 @@ async function withOfflinePage(viewport, path, exercise) {
 
     const page = await context.newPage();
     page.setDefaultTimeout(8000);
-    await page.goto(origin + path);
+    await page.goto(origin + path + '?market=replay');
     await exercise(page);
   } finally {
     await context.close();

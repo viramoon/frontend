@@ -126,6 +126,7 @@ export function MarketDepth({
         {source.instrument} · {source.venue} 场所深度
       </p>
       <DetailPanelData availableFrom={availableFrom} range={detailRange}>
+        {source.coverage && <p>{source.coverage}</p>}
         <div className="market-book-status" aria-live="polite">
           {state.kind === 'current' ? (
             inRange ? (

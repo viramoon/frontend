@@ -34,7 +34,7 @@ const choose = (name: string) =>
 function mountTrading() {
   return render(
     <MemoryRouter initialEntries={['/trading']}>
-      <AppRoutes />
+      <AppRoutes marketReplay />
     </MemoryRouter>,
   );
 }

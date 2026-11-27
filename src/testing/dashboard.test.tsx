@@ -57,7 +57,7 @@ function mount(path = '/dashboard') {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
+        <AppRoutes marketReplay />
       </MemoryRouter>
     </QueryClientProvider>,
   );

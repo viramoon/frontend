@@ -43,7 +43,7 @@ function setDetailDates(start: string, end: string) {
 function mountTrading() {
   return render(
     <MemoryRouter initialEntries={['/trading']}>
-      <AppRoutes />
+      <AppRoutes marketReplay />
     </MemoryRouter>,
   );
 }
