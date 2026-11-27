@@ -1,11 +1,22 @@
 import { privateOptions, privateRequest } from './adminWeb';
 import { backupStatus, qualityGaps } from './generated/sdk.gen';
-import type { QualityGapsPage } from './generated/types.gen';
+import type {
+  QualityCoverage,
+  QualityGapsPage,
+  Watermarks,
+} from './generated/types.gen';
 import { backupMaxAgeSeconds, type DriveBackup } from './operations';
+
+export type RecoveryCoverage = Omit<QualityCoverage, 'watermarks'> & {
+  watermarks?: Partial<Watermarks> | null;
+};
+export type RecoveryGapsPage = Omit<QualityGapsPage, 'coverage'> & {
+  coverage: RecoveryCoverage[];
+};
 
 export type RecoveryAdapter = {
   backup(signal?: AbortSignal): Promise<DriveBackup>;
-  gaps(offset: number, signal?: AbortSignal): Promise<QualityGapsPage>;
+  gaps(offset: number, signal?: AbortSignal): Promise<RecoveryGapsPage>;
 };
 
 export const webRecovery: RecoveryAdapter = {
@@ -53,6 +64,16 @@ export const webRecovery: RecoveryAdapter = {
         signal,
         query: { offset, limit: 20 },
       });
-      return data;
+      // W4 serializes bare watermarks. The W2a OpenAPI component of the
+      // same name describes the wrapper used by /market/watermarks.
+      const coverage = data.coverage.map(({ watermarks, ...item }) => ({
+        ...item,
+        watermarks:
+          watermarks &&
+          ('watermarks' in watermarks
+            ? watermarks.watermarks
+            : (watermarks as Partial<Watermarks>)),
+      }));
+      return { ...data, coverage };
     }),
 };

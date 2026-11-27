@@ -1,3 +1,4 @@
+import { DataClassLabel } from '../../components/PanelDataClass';
 import { useState } from 'react';
 import { DataState, displayDataTime } from '../../components/TerminalStates';
 import { decimalKeys, readPremiumFilter } from './decimal';
@@ -237,10 +238,16 @@ function FlowRecord({
   );
 }
 
-function FlowGaps({ gaps }: { gaps: FlowReading['gaps'] }) {
+function FlowGaps({
+  gaps,
+  availableFrom,
+}: Pick<FlowReading, 'gaps' | 'availableFrom'>) {
   return (
     <section className="option-panel" aria-labelledby="option-gaps">
       <h2 id="option-gaps">未订阅时间段</h2>
+      {availableFrom && (
+        <DataClassLabel kind="detail" availableFrom={availableFrom} />
+      )}
       {gaps.length === 0 ? (
         <p className="option-note">当前快照未报告缺口。</p>
       ) : (
@@ -279,7 +286,7 @@ export function OptionsFlow({ reading }: { reading: FlowReading }) {
   const [minimumText, setMinimumText] = useState('');
   const [condition, setCondition] = useState('');
   const [confidence, setConfidence] = useState('');
-  const { entries, sessionDate } = reading;
+  const { entries, sessionDate, availableFrom } = reading;
   const expiries = [
     ...new Set(entries.map(({ contract }) => contract.expiry)),
   ].sort();
@@ -311,13 +318,19 @@ export function OptionsFlow({ reading }: { reading: FlowReading }) {
       <section className="option-panel" aria-labelledby="option-flow-records">
         <header className="option-section-heading">
           <h2 id="option-flow-records">观察与核验记录</h2>
-          <p className="option-note">数据类别 · 期权衍生统计</p>
+          {availableFrom && (
+            <DataClassLabel kind="detail" availableFrom={availableFrom} />
+          )}
         </header>
-        {entries.length === 0 ? (
+        {entries.length === 0 || !availableFrom ? (
           <DataState
             kind="empty"
             title="暂无期权流水数据"
-            detail="所选标的没有观察线索或历史核验记录。"
+            detail={
+              entries.length === 0
+                ? '所选标的没有观察线索或历史核验记录。'
+                : '采集起点待确认。'
+            }
             illustrated
           />
         ) : (
@@ -423,7 +436,7 @@ export function OptionsFlow({ reading }: { reading: FlowReading }) {
           </>
         )}
       </section>
-      <FlowGaps gaps={reading.gaps} />
+      <FlowGaps gaps={reading.gaps} availableFrom={availableFrom} />
     </>
   );
 }

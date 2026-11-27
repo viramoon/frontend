@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import type { GapCause, GapRecovery } from '../../api/generated/types.gen';
 import type {
-  GapCause,
-  GapRecovery,
-  QualityCoverage,
-  QualityGapsPage,
-} from '../../api/generated/types.gen';
-import type { RecoveryAdapter } from '../../api/recoveryWeb';
+  RecoveryAdapter,
+  RecoveryCoverage,
+  RecoveryGapsPage,
+} from '../../api/recoveryWeb';
 import {
   OperationsReadState,
   UtcTime,
@@ -29,7 +28,7 @@ const outcomes: Record<GapRecovery, string> = {
   history_unrecoverable: '历史缺口不可补',
 };
 
-function Watermarks({ item }: { item: QualityCoverage }) {
+function Watermarks({ item }: { item: RecoveryCoverage }) {
   const {
     source_latest: latest,
     local_durable,
@@ -62,7 +61,7 @@ function Watermarks({ item }: { item: QualityCoverage }) {
   );
 }
 
-function GapPage({ page }: { page: QualityGapsPage }) {
+function GapPage({ page }: { page: RecoveryGapsPage }) {
   if (page.state === 'unavailable') return <p>暂无采集质量观测。</p>;
   return (
     <>

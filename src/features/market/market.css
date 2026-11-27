@@ -79,7 +79,6 @@
 
 .market-field-label,
 .market-chart-heading p,
-.market-chart-toolbar > p,
 .market-quote-label,
 .market-quote-comparison,
 .market-instrument-description,
@@ -364,6 +363,7 @@
 }
 
 .market-field-label select,
+.market-field-label input[type='date'],
 .market-control {
   max-width: 100%;
   padding: 0.35rem 0.5rem;
@@ -375,13 +375,27 @@
   font-size: 0.76rem;
 }
 
-.market-field-label select {
+.market-field-label select,
+.market-field-label input[type='date'] {
   margin-inline-start: 0.4rem;
 }
 
 .market-field-label select:focus-visible {
   outline: 2px solid var(--market-accent);
   outline-offset: 2px;
+}
+
+.market-detail-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  margin: 0;
+  padding: 0.5rem 0.95rem 0.65rem;
+}
+
+.market-detail-range legend {
+  padding-inline: 0.25rem;
+  font-size: 0.79rem;
 }
 
 .market-chart-provenance {

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { ackAlert, activate, backupStatus, byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getAlert, getChannelTest, getIntegration, getRule, getScopedTest, getTest, list, list2, listAlerts, listRules, live, marketStatus, type Options, putCredential, putRule, qualityGaps, ready, rollback, sample, startChannelTest, startTest, status, submit, update } from '../sdk.gen';
-import type { AckAlertData, AckAlertError, AckAlertResponse, ActivateData, ActivateError, ActivateResponse, BackupStatusData, BackupStatusError, BackupStatusResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetAlertData, GetAlertError, GetAlertResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetIntegrationData, GetIntegrationError, GetIntegrationResponse, GetRuleData, GetRuleError, GetRuleResponse, GetScopedTestData, GetScopedTestError, GetScopedTestResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, QualityGapsData, QualityGapsError, QualityGapsResponse, ReadyData, ReadyError, ReadyResponse, RollbackData, RollbackError, RollbackResponse, SampleData, SampleError, SampleResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
+import { ackAlert, activate, backupStatus, byKey, capabilities, catalog, create, createSession, datasets, deleteAlertSilence, deleteCredential, deleteRuleSilence, deleteSession, detail, getAlert, getAlertSilence, getChannelTest, getIntegration, getMarketDepthFocus, getRule, getRuleSilence, getScopedTest, getTest, getWatchlist, list, list2, listAlerts, listRules, live, marketBars, marketBook, marketDerivatives, marketFinanceGaps, marketIndicators, marketIndicatorValues, marketInstruments, marketProducts, marketProjectedEvent, marketQuotes, marketStatus, marketStream, marketSubscriptions, marketTrades, marketWal, marketWatermarks, type Options, optionsChain, optionsExposure, optionsFlow, putAlertSilence, putCredential, putRule, putRuleSilence, putWatchlist, qualityGaps, ready, rollback, sample, setMarketDepthFocus, startChannelTest, startTest, status, submit, update } from '../sdk.gen';
+import type { AckAlertData, AckAlertError, AckAlertResponse, ActivateData, ActivateError, ActivateResponse, BackupStatusData, BackupStatusError, BackupStatusResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteAlertSilenceData, DeleteAlertSilenceError, DeleteAlertSilenceResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteRuleSilenceData, DeleteRuleSilenceError, DeleteRuleSilenceResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetAlertData, GetAlertError, GetAlertResponse, GetAlertSilenceData, GetAlertSilenceError, GetAlertSilenceResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetIntegrationData, GetIntegrationError, GetIntegrationResponse, GetMarketDepthFocusData, GetMarketDepthFocusError, GetMarketDepthFocusResponse, GetRuleData, GetRuleError, GetRuleResponse, GetRuleSilenceData, GetRuleSilenceError, GetRuleSilenceResponse, GetScopedTestData, GetScopedTestError, GetScopedTestResponse, GetTestData, GetTestError, GetTestResponse, GetWatchlistData, GetWatchlistError, GetWatchlistResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketBarsData, MarketBarsError, MarketBarsResponse, MarketBookData, MarketBookError, MarketBookResponse, MarketDerivativesData, MarketDerivativesError, MarketDerivativesResponse, MarketFinanceGapsData, MarketFinanceGapsError, MarketFinanceGapsResponse, MarketIndicatorsData, MarketIndicatorsError, MarketIndicatorsResponse, MarketIndicatorValuesData, MarketIndicatorValuesError, MarketIndicatorValuesResponse, MarketInstrumentsData, MarketInstrumentsError, MarketInstrumentsResponse, MarketProductsData, MarketProductsError, MarketProductsResponse, MarketProjectedEventData, MarketProjectedEventError, MarketProjectedEventResponse, MarketQuotesData, MarketQuotesError, MarketQuotesResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, MarketStreamData, MarketStreamError2, MarketSubscriptionsData, MarketSubscriptionsError, MarketSubscriptionsResponse, MarketTradesData, MarketTradesError, MarketTradesResponse, MarketWalData, MarketWalError, MarketWalResponse, MarketWatermarksData, MarketWatermarksError, MarketWatermarksResponse, OptionsChainData, OptionsChainError, OptionsExposureData, OptionsExposureError, OptionsFlowData, OptionsFlowError, PutAlertSilenceData, PutAlertSilenceError, PutAlertSilenceResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, PutRuleSilenceData, PutRuleSilenceError, PutRuleSilenceResponse, PutWatchlistData, PutWatchlistError, PutWatchlistResponse, QualityGapsData, QualityGapsError, QualityGapsResponse, ReadyData, ReadyError, ReadyResponse, RollbackData, RollbackError, RollbackResponse, SampleData, SampleError, SampleResponse, SetMarketDepthFocusData, SetMarketDepthFocusError, SetMarketDepthFocusResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
 
 export const deleteSessionMutation = (options?: Partial<Options<DeleteSessionData>>): UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> => {
     const mutationOptions: UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> = {
@@ -167,6 +167,58 @@ export const ackAlertMutation = (options?: Partial<Options<AckAlertData>>): UseM
     return mutationOptions;
 };
 
+/**
+ * Release the alert instance's manual silence.
+ */
+export const deleteAlertSilenceMutation = (options?: Partial<Options<DeleteAlertSilenceData>>): UseMutationOptions<DeleteAlertSilenceResponse, DeleteAlertSilenceError, Options<DeleteAlertSilenceData>> => {
+    const mutationOptions: UseMutationOptions<DeleteAlertSilenceResponse, DeleteAlertSilenceError, Options<DeleteAlertSilenceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteAlertSilence({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getAlertSilenceQueryKey = (options: Options<GetAlertSilenceData>) => createQueryKey('getAlertSilence', options);
+
+/**
+ * Read the alert instance's latest manual silence.
+ */
+export const getAlertSilenceOptions = (options: Options<GetAlertSilenceData>) => queryOptions<GetAlertSilenceResponse, GetAlertSilenceError, GetAlertSilenceResponse, ReturnType<typeof getAlertSilenceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAlertSilence({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAlertSilenceQueryKey(options)
+});
+
+/**
+ * Create or replace the alert instance's manual silence.
+ */
+export const putAlertSilenceMutation = (options?: Partial<Options<PutAlertSilenceData>>): UseMutationOptions<PutAlertSilenceResponse, PutAlertSilenceError, Options<PutAlertSilenceData>> => {
+    const mutationOptions: UseMutationOptions<PutAlertSilenceResponse, PutAlertSilenceError, Options<PutAlertSilenceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putAlertSilence({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
 
 export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
@@ -297,6 +349,63 @@ export const backupStatusOptions = (options?: Options<BackupStatusData>) => quer
     },
     queryKey: backupStatusQueryKey(options)
 });
+
+export const marketIndicatorsQueryKey = (options?: Options<MarketIndicatorsData>) => createQueryKey('marketIndicators', options);
+
+export const marketIndicatorsOptions = (options?: Options<MarketIndicatorsData>) => queryOptions<MarketIndicatorsResponse, MarketIndicatorsError, MarketIndicatorsResponse, ReturnType<typeof marketIndicatorsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketIndicators({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketIndicatorsQueryKey(options)
+});
+
+export const marketIndicatorValuesQueryKey = (options: Options<MarketIndicatorValuesData>) => createQueryKey('marketIndicatorValues', options);
+
+export const marketIndicatorValuesOptions = (options: Options<MarketIndicatorValuesData>) => queryOptions<MarketIndicatorValuesResponse, MarketIndicatorValuesError, MarketIndicatorValuesResponse, ReturnType<typeof marketIndicatorValuesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketIndicatorValues({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketIndicatorValuesQueryKey(options)
+});
+
+export const marketIndicatorValuesInfiniteQueryKey = (options: Options<MarketIndicatorValuesData>): QueryKey<Options<MarketIndicatorValuesData>> => createQueryKey('marketIndicatorValues', options, true);
+
+export const marketIndicatorValuesInfiniteOptions = (options: Options<MarketIndicatorValuesData>) => {
+    const opts = infiniteQueryOptions<MarketIndicatorValuesResponse, MarketIndicatorValuesError, InfiniteData<MarketIndicatorValuesResponse>, QueryKey<Options<MarketIndicatorValuesData>>, string | Pick<QueryKey<Options<MarketIndicatorValuesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketIndicatorValuesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketIndicatorValues({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketIndicatorValuesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const getTestQueryKey = (options: Options<GetTestData>) => createQueryKey('getTest', options);
 
@@ -471,6 +580,302 @@ export const getScopedTestOptions = (options: Options<GetScopedTestData>) => que
     queryKey: getScopedTestQueryKey(options)
 });
 
+export const marketBarsQueryKey = (options: Options<MarketBarsData>) => createQueryKey('marketBars', options);
+
+export const marketBarsOptions = (options: Options<MarketBarsData>) => queryOptions<MarketBarsResponse, MarketBarsError, MarketBarsResponse, ReturnType<typeof marketBarsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketBars({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketBarsQueryKey(options)
+});
+
+export const marketBarsInfiniteQueryKey = (options: Options<MarketBarsData>): QueryKey<Options<MarketBarsData>> => createQueryKey('marketBars', options, true);
+
+export const marketBarsInfiniteOptions = (options: Options<MarketBarsData>) => {
+    const opts = infiniteQueryOptions<MarketBarsResponse, MarketBarsError, InfiniteData<MarketBarsResponse>, QueryKey<Options<MarketBarsData>>, string | Pick<QueryKey<Options<MarketBarsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketBarsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketBars({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketBarsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketBookQueryKey = (options: Options<MarketBookData>) => createQueryKey('marketBook', options);
+
+export const marketBookOptions = (options: Options<MarketBookData>) => queryOptions<MarketBookResponse, MarketBookError, MarketBookResponse, ReturnType<typeof marketBookQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketBook({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketBookQueryKey(options)
+});
+
+export const marketBookInfiniteQueryKey = (options: Options<MarketBookData>): QueryKey<Options<MarketBookData>> => createQueryKey('marketBook', options, true);
+
+export const marketBookInfiniteOptions = (options: Options<MarketBookData>) => {
+    const opts = infiniteQueryOptions<MarketBookResponse, MarketBookError, InfiniteData<MarketBookResponse>, QueryKey<Options<MarketBookData>>, string | Pick<QueryKey<Options<MarketBookData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketBookData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketBook({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketBookInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getMarketDepthFocusQueryKey = (options?: Options<GetMarketDepthFocusData>) => createQueryKey('getMarketDepthFocus', options);
+
+export const getMarketDepthFocusOptions = (options?: Options<GetMarketDepthFocusData>) => queryOptions<GetMarketDepthFocusResponse, GetMarketDepthFocusError, GetMarketDepthFocusResponse, ReturnType<typeof getMarketDepthFocusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMarketDepthFocus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMarketDepthFocusQueryKey(options)
+});
+
+export const setMarketDepthFocusMutation = (options?: Partial<Options<SetMarketDepthFocusData>>): UseMutationOptions<SetMarketDepthFocusResponse, SetMarketDepthFocusError, Options<SetMarketDepthFocusData>> => {
+    const mutationOptions: UseMutationOptions<SetMarketDepthFocusResponse, SetMarketDepthFocusError, Options<SetMarketDepthFocusData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setMarketDepthFocus({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const marketDerivativesQueryKey = (options: Options<MarketDerivativesData>) => createQueryKey('marketDerivatives', options);
+
+export const marketDerivativesOptions = (options: Options<MarketDerivativesData>) => queryOptions<MarketDerivativesResponse, MarketDerivativesError, MarketDerivativesResponse, ReturnType<typeof marketDerivativesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketDerivatives({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketDerivativesQueryKey(options)
+});
+
+export const marketDerivativesInfiniteQueryKey = (options: Options<MarketDerivativesData>): QueryKey<Options<MarketDerivativesData>> => createQueryKey('marketDerivatives', options, true);
+
+export const marketDerivativesInfiniteOptions = (options: Options<MarketDerivativesData>) => {
+    const opts = infiniteQueryOptions<MarketDerivativesResponse, MarketDerivativesError, InfiniteData<MarketDerivativesResponse>, QueryKey<Options<MarketDerivativesData>>, string | Pick<QueryKey<Options<MarketDerivativesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketDerivativesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketDerivatives({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketDerivativesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketInstrumentsQueryKey = (options?: Options<MarketInstrumentsData>) => createQueryKey('marketInstruments', options);
+
+export const marketInstrumentsOptions = (options?: Options<MarketInstrumentsData>) => queryOptions<MarketInstrumentsResponse, MarketInstrumentsError, MarketInstrumentsResponse, ReturnType<typeof marketInstrumentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketInstruments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketInstrumentsQueryKey(options)
+});
+
+export const marketInstrumentsInfiniteQueryKey = (options?: Options<MarketInstrumentsData>): QueryKey<Options<MarketInstrumentsData>> => createQueryKey('marketInstruments', options, true);
+
+export const marketInstrumentsInfiniteOptions = (options?: Options<MarketInstrumentsData>) => {
+    const opts = infiniteQueryOptions<MarketInstrumentsResponse, MarketInstrumentsError, InfiniteData<MarketInstrumentsResponse>, QueryKey<Options<MarketInstrumentsData>>, number | Pick<QueryKey<Options<MarketInstrumentsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketInstrumentsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketInstruments({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketInstrumentsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketProductsQueryKey = (options?: Options<MarketProductsData>) => createQueryKey('marketProducts', options);
+
+export const marketProductsOptions = (options?: Options<MarketProductsData>) => queryOptions<MarketProductsResponse, MarketProductsError, MarketProductsResponse, ReturnType<typeof marketProductsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketProducts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketProductsQueryKey(options)
+});
+
+export const marketProductsInfiniteQueryKey = (options?: Options<MarketProductsData>): QueryKey<Options<MarketProductsData>> => createQueryKey('marketProducts', options, true);
+
+export const marketProductsInfiniteOptions = (options?: Options<MarketProductsData>) => {
+    const opts = infiniteQueryOptions<MarketProductsResponse, MarketProductsError, InfiniteData<MarketProductsResponse>, QueryKey<Options<MarketProductsData>>, number | Pick<QueryKey<Options<MarketProductsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketProductsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketProducts({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketProductsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketProjectedEventQueryKey = (options: Options<MarketProjectedEventData>) => createQueryKey('marketProjectedEvent', options);
+
+export const marketProjectedEventOptions = (options: Options<MarketProjectedEventData>) => queryOptions<MarketProjectedEventResponse, MarketProjectedEventError, MarketProjectedEventResponse, ReturnType<typeof marketProjectedEventQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketProjectedEvent({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketProjectedEventQueryKey(options)
+});
+
+export const marketQuotesQueryKey = (options: Options<MarketQuotesData>) => createQueryKey('marketQuotes', options);
+
+export const marketQuotesOptions = (options: Options<MarketQuotesData>) => queryOptions<MarketQuotesResponse, MarketQuotesError, MarketQuotesResponse, ReturnType<typeof marketQuotesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketQuotes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketQuotesQueryKey(options)
+});
+
+export const marketQuotesInfiniteQueryKey = (options: Options<MarketQuotesData>): QueryKey<Options<MarketQuotesData>> => createQueryKey('marketQuotes', options, true);
+
+export const marketQuotesInfiniteOptions = (options: Options<MarketQuotesData>) => {
+    const opts = infiniteQueryOptions<MarketQuotesResponse, MarketQuotesError, InfiniteData<MarketQuotesResponse>, QueryKey<Options<MarketQuotesData>>, string | Pick<QueryKey<Options<MarketQuotesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketQuotesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketQuotes({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketQuotesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
 export const marketStatusQueryKey = (options?: Options<MarketStatusData>) => createQueryKey('marketStatus', options);
 
 export const marketStatusOptions = (options?: Options<MarketStatusData>) => queryOptions<MarketStatusResponse, MarketStatusError, MarketStatusResponse, ReturnType<typeof marketStatusQueryKey>>({
@@ -484,6 +889,120 @@ export const marketStatusOptions = (options?: Options<MarketStatusData>) => quer
         return data;
     },
     queryKey: marketStatusQueryKey(options)
+});
+
+export const marketSubscriptionsQueryKey = (options?: Options<MarketSubscriptionsData>) => createQueryKey('marketSubscriptions', options);
+
+export const marketSubscriptionsOptions = (options?: Options<MarketSubscriptionsData>) => queryOptions<MarketSubscriptionsResponse, MarketSubscriptionsError, MarketSubscriptionsResponse, ReturnType<typeof marketSubscriptionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketSubscriptions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketSubscriptionsQueryKey(options)
+});
+
+export const marketTradesQueryKey = (options: Options<MarketTradesData>) => createQueryKey('marketTrades', options);
+
+export const marketTradesOptions = (options: Options<MarketTradesData>) => queryOptions<MarketTradesResponse, MarketTradesError, MarketTradesResponse, ReturnType<typeof marketTradesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketTrades({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketTradesQueryKey(options)
+});
+
+export const marketTradesInfiniteQueryKey = (options: Options<MarketTradesData>): QueryKey<Options<MarketTradesData>> => createQueryKey('marketTrades', options, true);
+
+export const marketTradesInfiniteOptions = (options: Options<MarketTradesData>) => {
+    const opts = infiniteQueryOptions<MarketTradesResponse, MarketTradesError, InfiniteData<MarketTradesResponse>, QueryKey<Options<MarketTradesData>>, string | Pick<QueryKey<Options<MarketTradesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketTradesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketTrades({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketTradesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketWalQueryKey = (options: Options<MarketWalData>) => createQueryKey('marketWal', options);
+
+export const marketWalOptions = (options: Options<MarketWalData>) => queryOptions<MarketWalResponse, MarketWalError, MarketWalResponse, ReturnType<typeof marketWalQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketWal({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketWalQueryKey(options)
+});
+
+export const marketWalInfiniteQueryKey = (options: Options<MarketWalData>): QueryKey<Options<MarketWalData>> => createQueryKey('marketWal', options, true);
+
+export const marketWalInfiniteOptions = (options: Options<MarketWalData>) => {
+    const opts = infiniteQueryOptions<MarketWalResponse, MarketWalError, InfiniteData<MarketWalResponse>, QueryKey<Options<MarketWalData>>, string | Pick<QueryKey<Options<MarketWalData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketWalData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketWal({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketWalInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketWatermarksQueryKey = (options: Options<MarketWatermarksData>) => createQueryKey('marketWatermarks', options);
+
+export const marketWatermarksOptions = (options: Options<MarketWatermarksData>) => queryOptions<MarketWatermarksResponse, MarketWatermarksError, MarketWatermarksResponse, ReturnType<typeof marketWatermarksQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketWatermarks({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketWatermarksQueryKey(options)
 });
 
 export const capabilitiesQueryKey = (options?: Options<CapabilitiesData>) => createQueryKey('capabilities', options);
@@ -601,6 +1120,199 @@ export const putRuleMutation = (options?: Partial<Options<PutRuleData>>): UseMut
     return mutationOptions;
 };
 
+/**
+ * Release the rule's manual silence.
+ */
+export const deleteRuleSilenceMutation = (options?: Partial<Options<DeleteRuleSilenceData>>): UseMutationOptions<DeleteRuleSilenceResponse, DeleteRuleSilenceError, Options<DeleteRuleSilenceData>> => {
+    const mutationOptions: UseMutationOptions<DeleteRuleSilenceResponse, DeleteRuleSilenceError, Options<DeleteRuleSilenceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteRuleSilence({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getRuleSilenceQueryKey = (options: Options<GetRuleSilenceData>) => createQueryKey('getRuleSilence', options);
+
+/**
+ * Read the rule's latest manual silence.
+ */
+export const getRuleSilenceOptions = (options: Options<GetRuleSilenceData>) => queryOptions<GetRuleSilenceResponse, GetRuleSilenceError, GetRuleSilenceResponse, ReturnType<typeof getRuleSilenceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRuleSilence({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRuleSilenceQueryKey(options)
+});
+
+/**
+ * Create or replace the rule's manual silence.
+ */
+export const putRuleSilenceMutation = (options?: Partial<Options<PutRuleSilenceData>>): UseMutationOptions<PutRuleSilenceResponse, PutRuleSilenceError, Options<PutRuleSilenceData>> => {
+    const mutationOptions: UseMutationOptions<PutRuleSilenceResponse, PutRuleSilenceError, Options<PutRuleSilenceData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putRuleSilence({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const optionsChainQueryKey = (options: Options<OptionsChainData>) => createQueryKey('optionsChain', options);
+
+export const optionsChainOptions = (options: Options<OptionsChainData>) => queryOptions<unknown, OptionsChainError, unknown, ReturnType<typeof optionsChainQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsChain({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsChainQueryKey(options)
+});
+
+export const optionsChainInfiniteQueryKey = (options: Options<OptionsChainData>): QueryKey<Options<OptionsChainData>> => createQueryKey('optionsChain', options, true);
+
+export const optionsChainInfiniteOptions = (options: Options<OptionsChainData>) => {
+    const opts = infiniteQueryOptions<unknown, OptionsChainError, InfiniteData<unknown>, QueryKey<Options<OptionsChainData>>, number | Pick<QueryKey<Options<OptionsChainData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<OptionsChainData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await optionsChain({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: optionsChainInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const optionsExposureQueryKey = (options: Options<OptionsExposureData>) => createQueryKey('optionsExposure', options);
+
+export const optionsExposureOptions = (options: Options<OptionsExposureData>) => queryOptions<unknown, OptionsExposureError, unknown, ReturnType<typeof optionsExposureQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsExposure({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsExposureQueryKey(options)
+});
+
+export const optionsFlowQueryKey = (options: Options<OptionsFlowData>) => createQueryKey('optionsFlow', options);
+
+export const optionsFlowOptions = (options: Options<OptionsFlowData>) => queryOptions<unknown, OptionsFlowError, unknown, ReturnType<typeof optionsFlowQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsFlow({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsFlowQueryKey(options)
+});
+
+export const optionsFlowInfiniteQueryKey = (options: Options<OptionsFlowData>): QueryKey<Options<OptionsFlowData>> => createQueryKey('optionsFlow', options, true);
+
+export const optionsFlowInfiniteOptions = (options: Options<OptionsFlowData>) => {
+    const opts = infiniteQueryOptions<unknown, OptionsFlowError, InfiniteData<unknown>, QueryKey<Options<OptionsFlowData>>, number | Pick<QueryKey<Options<OptionsFlowData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<OptionsFlowData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await optionsFlow({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: optionsFlowInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const marketFinanceGapsQueryKey = (options: Options<MarketFinanceGapsData>) => createQueryKey('marketFinanceGaps', options);
+
+export const marketFinanceGapsOptions = (options: Options<MarketFinanceGapsData>) => queryOptions<MarketFinanceGapsResponse, MarketFinanceGapsError, MarketFinanceGapsResponse, ReturnType<typeof marketFinanceGapsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketFinanceGaps({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketFinanceGapsQueryKey(options)
+});
+
+export const marketFinanceGapsInfiniteQueryKey = (options: Options<MarketFinanceGapsData>): QueryKey<Options<MarketFinanceGapsData>> => createQueryKey('marketFinanceGaps', options, true);
+
+export const marketFinanceGapsInfiniteOptions = (options: Options<MarketFinanceGapsData>) => {
+    const opts = infiniteQueryOptions<MarketFinanceGapsResponse, MarketFinanceGapsError, InfiniteData<MarketFinanceGapsResponse>, QueryKey<Options<MarketFinanceGapsData>>, number | Pick<QueryKey<Options<MarketFinanceGapsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketFinanceGapsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketFinanceGaps({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketFinanceGapsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
 export const qualityGapsQueryKey = (options?: Options<QualityGapsData>) => createQueryKey('qualityGaps', options);
 
 export const qualityGapsOptions = (options?: Options<QualityGapsData>) => queryOptions<QualityGapsResponse, QualityGapsError, QualityGapsResponse, ReturnType<typeof qualityGapsQueryKey>>({
@@ -643,6 +1355,24 @@ export const qualityGapsInfiniteOptions = (options?: Options<QualityGapsData>) =
     return opts as Omit<typeof opts, 'initialData'>;
 };
 
+export const marketStreamQueryKey = (options?: Options<MarketStreamData>) => createQueryKey('marketStream', options);
+
+/**
+ * RFC 6455 upgrade for authorized F10a WAL replay. See MarketStreamCommand and MarketStreamControl.
+ */
+export const marketStreamOptions = (options?: Options<MarketStreamData>) => queryOptions<unknown, MarketStreamError2, unknown, ReturnType<typeof marketStreamQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketStream({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketStreamQueryKey(options)
+});
+
 export const statusQueryKey = (options?: Options<StatusData>) => createQueryKey('status', options);
 
 export const statusOptions = (options?: Options<StatusData>) => queryOptions<StatusResponse, DefaultError, StatusResponse, ReturnType<typeof statusQueryKey>>({
@@ -657,6 +1387,35 @@ export const statusOptions = (options?: Options<StatusData>) => queryOptions<Sta
     },
     queryKey: statusQueryKey(options)
 });
+
+export const getWatchlistQueryKey = (options: Options<GetWatchlistData>) => createQueryKey('getWatchlist', options);
+
+export const getWatchlistOptions = (options: Options<GetWatchlistData>) => queryOptions<GetWatchlistResponse, GetWatchlistError, GetWatchlistResponse, ReturnType<typeof getWatchlistQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWatchlist({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWatchlistQueryKey(options)
+});
+
+export const putWatchlistMutation = (options?: Partial<Options<PutWatchlistData>>): UseMutationOptions<PutWatchlistResponse, PutWatchlistError, Options<PutWatchlistData>> => {
+    const mutationOptions: UseMutationOptions<PutWatchlistResponse, PutWatchlistError, Options<PutWatchlistData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putWatchlist({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const liveQueryKey = (options?: Options<LiveData>) => createQueryKey('live', options);
 

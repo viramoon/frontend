@@ -31,8 +31,7 @@ import {
 } from '../../features/system/SystemDetails';
 import { WebRecovery } from '../../features/system/WebRecovery';
 import { AdminProductAccess } from './AdminProductAccess';
-import { MarketTerminal } from '../../features/market/MarketTerminal';
-import { OptionsTerminal } from '../../features/options/OptionsTerminal';
+import { MarketRoute, OptionsMarketRoute } from './MarketRoutes';
 import type { ResearchAdapter } from '../../features/research/adapter';
 import { FactorCatalog } from '../../features/research/FactorCatalog';
 import { fixtureResearch } from '../../features/research/fixtureAdapter';
@@ -104,11 +103,15 @@ function BacktestRoute({ adapter, submission }: ResearchProps) {
 export function AppRoutes({
   research = fixtureResearch,
   operations,
+  marketReplay = false,
 }: {
   research?: ResearchAdapter;
   operations?: OperationsAdapter;
+  marketReplay?: boolean;
 } = {}) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const replayInUrl = new URLSearchParams(search).get('market') === 'replay';
+  const replay = marketReplay || replayInUrl;
   const navigate = useNavigate();
   const queryClient = useContext(QueryClientContext);
   const submission = useRunSubmission(research, (run) => {
@@ -158,7 +161,12 @@ export function AppRoutes({
             {navigation.map(({ path, label }) => (
               <NavLink
                 key={path}
-                to={path}
+                to={
+                  replayInUrl &&
+                  /^(?:\/dashboard$|\/trading$|\/options\/)/.test(path)
+                    ? path + '?market=replay'
+                    : path
+                }
                 className={({ isActive }) =>
                   isActive ? 'nav-link current' : 'nav-link'
                 }
@@ -172,13 +180,21 @@ export function AppRoutes({
       </header>
       <main id="workspace" className="workspace" tabIndex={-1}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to={replayInUrl ? '/dashboard?market=replay' : '/dashboard'}
+                replace
+              />
+            }
+          />
           <Route
             path="/dashboard"
             element={
               <>
                 <h1 className="terminal-title">仪表盘</h1>
-                <MarketTerminal />
+                <MarketRoute replay={replay} />
                 <SystemOverview />
               </>
             }
@@ -187,17 +203,17 @@ export function AppRoutes({
             path="/trading"
             element={
               <Trading>
-                <MarketTerminal trading />
+                <MarketRoute replay={replay} trading />
               </Trading>
             }
           />
           <Route
             path="/options/flow"
-            element={<OptionsTerminal page="flow" />}
+            element={<OptionsMarketRoute replay={replay} page="flow" />}
           />
           <Route
             path="/options/exposure"
-            element={<OptionsTerminal page="exposure" />}
+            element={<OptionsMarketRoute replay={replay} page="exposure" />}
           />
           <Route
             path="/strategies"

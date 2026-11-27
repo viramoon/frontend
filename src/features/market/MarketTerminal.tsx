@@ -6,6 +6,10 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { MarketChart } from '../../components/MarketChart';
+import {
+  DataClassLabel,
+  type DetailDateRange,
+} from '../../components/PanelDataClass';
 import { DataBadges, DataState } from '../../components/TerminalStates';
 import { binanceReplayAdapter, fixtureAdapter } from './fixtureAdapter';
 import { useMarketDepth } from './MarketDepth';
@@ -34,6 +38,7 @@ function Watchlist({
   prefs,
   query,
   fixture,
+  saveDisabled,
   readQuote,
   onQueryChange,
   onSelect,
@@ -43,6 +48,7 @@ function Watchlist({
   prefs: MarketPreferences;
   query: string;
   fixture: boolean;
+  saveDisabled: boolean;
   readQuote: (instrument: MarketInstrument) => MarketReading;
   onQueryChange: (query: string) => void;
   onSelect: (id: string) => void;
@@ -65,6 +71,7 @@ function Watchlist({
         <h2>自选</h2>
         <DataBadges fixture={fixture} />
       </div>
+      <DataClassLabel kind="price-volume" />
       <label htmlFor={searchId} className="market-field-label">
         搜索自选标的
       </label>
@@ -90,6 +97,7 @@ function Watchlist({
           <button
             type="button"
             className="market-control"
+            disabled={saveDisabled}
             onClick={() =>
               onPreferencesChange({
                 saved: isSaved
@@ -123,11 +131,14 @@ function Watchlist({
                   <span className="market-instrument-price">
                     {hasReading(reading) ? (
                       <>
-                        <span>{reading.quote.price}</span>
+                        <span>
+                          {reading.quote?.price ??
+                            (reading.quote ? '已观测报价' : '暂无报价')}
+                        </span>
                         {reading.availability === 'stale' ? (
                           <span className="market-stale-label">陈旧</span>
                         ) : (
-                          <Change quote={reading.quote} />
+                          reading.quote && <Change quote={reading.quote} />
                         )}
                       </>
                     ) : (
@@ -137,6 +148,7 @@ function Watchlist({
                             denied: '无权',
                             empty: '无数据',
                             loading: '加载中',
+                            unavailable: '暂不可用',
                             disabled_by_profile: '配置已关闭',
                             region_restricted: '区域限制',
                           }[reading.availability]
@@ -165,15 +177,23 @@ export function MarketTerminal({
   const adapter =
     providedAdapter ?? (binanceDemo ? binanceReplayAdapter : fixtureAdapter);
   useSyncExternalStore(adapter.subscribe, adapter.revision);
-  const [prefs, setPreferences] = useState(() =>
+  const [localPrefs, setPreferences] = useState(() =>
     readPreferences(adapter.instruments),
   );
   const [indicatorId, setIndicatorId] = useState('');
   const [query, setQuery] = useState('');
+  const [detailRange, setDetailRange] = useState<DetailDateRange>({
+    start: '',
+    end: '',
+  });
   const [drawer, setDrawer] = useState<Drawer | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const dialogId = useId();
+  const web = adapter.web;
+  const prefs = web
+    ? { ...localPrefs, saved: [...(web.saved ?? [])] }
+    : localPrefs;
 
   const selected =
     adapter.instruments.find(({ id }) => id === prefs.selected) ??
@@ -187,9 +207,8 @@ export function MarketTerminal({
   const unavailable = hasReading(reading) ? undefined : reading.availability;
   const history =
     quoted && !trading ? adapter.history(request, prefs.period) : undefined;
-  const depth = useMarketDepth(
-    selected?.kind === 'l1-only' ? undefined : quoted?.book,
-  );
+  const book = selected?.kind === 'l1-only' ? undefined : quoted?.book;
+  const depth = useMarketDepth(book?.availableFrom ? book : undefined);
   const pinnedDepth = adapter.budget.pinnedDepth;
   const pinned = prefs.pinned.slice(0, pinnedDepth);
   const eligible = selected?.kind === 'nasdaq' ? selected.id : undefined;
@@ -206,7 +225,12 @@ export function MarketTerminal({
     if (!requestId) return;
     return adapter.watch?.(
       { id: requestId, cryptoMarket },
-      { period, pinned: prefs.pinned.slice(0, pinnedDepth), follow },
+      {
+        period,
+        pinned: prefs.pinned.slice(0, pinnedDepth),
+        follow,
+        detailRange,
+      },
     );
   }, [
     adapter,
@@ -216,8 +240,12 @@ export function MarketTerminal({
     prefs.pinned,
     pinnedDepth,
     follow,
+    detailRange,
   ]);
-  useEffect(() => writePreferences(prefs), [prefs]);
+  const hasInstruments = adapter.instruments.length > 0;
+  useEffect(() => {
+    if (hasInstruments) writePreferences(localPrefs);
+  }, [hasInstruments, localPrefs]);
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
@@ -230,10 +258,31 @@ export function MarketTerminal({
   }
 
   function updatePreferences(changes: Partial<MarketPreferences>) {
+    if (web && changes.saved) {
+      void web.save(changes.saved);
+      return;
+    }
     setPreferences((previous) => ({ ...previous, ...changes }));
   }
 
-  if (!selected) return <DataState kind="empty" title="暂无标的" />;
+  if (!selected) {
+    if (!web || web.catalog === 'ready')
+      return <DataState kind="empty" title="暂无标的" />;
+    return (
+      <section aria-label="行情终端" className="market-terminal">
+        <Unavailable kind={web.catalog} />
+        {web.catalog === 'unavailable' && (
+          <button
+            type="button"
+            className="market-control"
+            onClick={web.refresh}
+          >
+            重新读取行情
+          </button>
+        )}
+      </section>
+    );
+  }
 
   const watchlist = (
     <Watchlist
@@ -241,6 +290,7 @@ export function MarketTerminal({
       prefs={prefs}
       query={query}
       fixture={!!adapter.fixture}
+      saveDisabled={!!web && (web.saved === undefined || web.busy)}
       readQuote={({ id, kind }) =>
         adapter.read({
           id,
@@ -261,9 +311,11 @@ export function MarketTerminal({
       instrument={selected}
       reading={reading}
       depth={depth}
+      detailRange={detailRange}
       timeZone={timeZone}
       replayTime={adapter.fixture?.replayTime}
       trading={trading}
+      web={web}
       budget={{
         budget: adapter.budget,
         pinned,
@@ -315,6 +367,43 @@ export function MarketTerminal({
           {watchlist}
         </aside>
         <div className="market-centre">
+          {selected.kind !== 'l1-only' &&
+            (book?.availableFrom ||
+              (trading && quoted?.tradesAvailableFrom)) && (
+              <fieldset className="market-panel market-detail-range">
+                <legend>
+                  {trading
+                    ? '盘口与逐笔日期筛选（UTC）'
+                    : '盘口日期筛选（UTC）'}
+                </legend>
+                <label className="market-field-label">
+                  起始日期
+                  <input
+                    type="date"
+                    value={detailRange.start}
+                    onChange={(event) =>
+                      setDetailRange({
+                        ...detailRange,
+                        start: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="market-field-label">
+                  结束日期（不含）
+                  <input
+                    type="date"
+                    value={detailRange.end}
+                    onChange={(event) =>
+                      setDetailRange({
+                        ...detailRange,
+                        end: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </fieldset>
+            )}
           <section
             aria-label={trading ? '市场选择' : '主 K 线与成交量'}
             className="market-panel"
@@ -334,7 +423,7 @@ export function MarketTerminal({
                 />
               </div>
               <div className="market-chart-toolbar">
-                {!trading && <p>数据类别 · 价量历史</p>}
+                {!trading && <DataClassLabel kind="price-volume" />}
                 <label className="market-field-label">
                   时间显示
                   <select
@@ -352,7 +441,7 @@ export function MarketTerminal({
                     </option>
                   </select>
                 </label>
-                {selected.kind === 'crypto' && (
+                {selected.kind === 'crypto' && !web && (
                   <>
                     <label className="market-field-label">
                       加密场所与产品
@@ -459,13 +548,13 @@ export function MarketTerminal({
                     <DataState kind="empty" title="暂无 K 线" />
                   )
                 ) : (
-                  <Unavailable kind={unavailable ?? 'empty'} />
+                  <Unavailable kind={unavailable ?? 'empty'} fixture={!web} />
                 )}
               </div>
             )}
             {trading && !quoted && (
               <div className="market-chart-body">
-                <Unavailable kind={unavailable ?? 'empty'} />
+                <Unavailable kind={unavailable ?? 'empty'} fixture={!web} />
               </div>
             )}
           </section>
@@ -474,6 +563,7 @@ export function MarketTerminal({
               reading={reading}
               instrument={selected}
               timeZone={timeZone}
+              detailRange={detailRange}
             />
           )}
         </div>

@@ -177,6 +177,7 @@ function makeFlow(
   ];
   entries.sort((left, right) => right.eventTime.localeCompare(left.eventTime));
   return {
+    availableFrom: sessionDate,
     sessionDate,
     entries,
     gaps: [

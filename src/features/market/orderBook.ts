@@ -12,7 +12,10 @@ export type BookEvent =
       updates: readonly (Level & { side: Side })[];
     } & Position)
   | ({ kind: 'reset' } & Position)
-  | { kind: 'unavailable'; reason: '盘口陈旧' | '连接中断' | '权限失效' };
+  | {
+      kind: 'unavailable';
+      reason: '盘口陈旧' | '连接中断' | '权限失效' | '盘口失同步';
+    };
 
 export type BookState =
   | ({ kind: 'current'; asOf: string } & Position & Levels)

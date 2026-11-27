@@ -63,6 +63,10 @@ const fixtureSources = new Map([
     'src/features/options/optionsFixture.ts',
     '// Seeded synthetic options and evidence; no vendor or historical observations.',
   ],
+  [
+    'src/testing/market-web.test.tsx',
+    '// A fixed clock and literals generate each mock WAL row. No provider samples are used.',
+  ],
   ...[
     'src/features/research/fixtureAdapter.ts',
     'src/features/research/fixtureYaml.ts',

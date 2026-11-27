@@ -30,7 +30,7 @@ function mount(path: string, fixture = false) {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
-        <AppRoutes operations={operations} />
+        <AppRoutes operations={operations} marketReplay />
         <CurrentAddress />
       </MemoryRouter>
     </QueryClientProvider>,

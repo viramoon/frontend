@@ -18,7 +18,7 @@ import { decimalKeys } from '../features/options/decimal';
 function mount(page: 'flow' | 'exposure') {
   return render(
     <MemoryRouter initialEntries={[`/options/${page}`]}>
-      <AppRoutes />
+      <AppRoutes marketReplay />
     </MemoryRouter>,
   );
 }
@@ -45,6 +45,36 @@ afterEach(() => {
 });
 
 describe('U2b 期权终端', () => {
+  it('labels replay flow with the collection date and exposure panels as price-volume', async () => {
+    const flow = mount('flow');
+    await screen.findByRole('list', { name: '流水结果' });
+    for (const name of ['观察与核验记录', '未订阅时间段']) {
+      const panel = within(screen.getByRole('region', { name }));
+      const label = panel.getByText('数据类别 · 订单簿细节').parentElement!;
+      expect(label).toHaveTextContent('订单簿细节（自 2026-11-19 起）');
+      expect(within(label).getByText('2026-11-19')).toHaveAttribute(
+        'datetime',
+        '2026-11-19',
+      );
+    }
+    choose('标的', 'QQQ');
+    expect(await screen.findByText('暂无期权流水数据')).toBeVisible();
+    expect(screen.queryByText('数据类别 · 订单簿细节')).toBeNull();
+    flow.unmount();
+
+    mount('exposure');
+    await screen.findByRole('region', { name: 'GEX 分布' });
+    for (const name of [
+      'GEX 分布',
+      '覆盖与输入时间',
+      'Gamma flip',
+      '合约级输入',
+    ]) {
+      const panel = within(screen.getByRole('region', { name }));
+      expect(panel.getByText('数据类别 · 价量历史')).toBeVisible();
+    }
+  });
+
   it.each(['flow', 'exposure'] as const)(
     'shows observations, verification, hypothesis, source inputs and OI date together on /options/%s without network or orders',
     async (page) => {

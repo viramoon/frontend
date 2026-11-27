@@ -56,6 +56,7 @@ export type FlowGap = {
 };
 
 export type FlowReading = {
+  availableFrom?: string;
   sessionDate: string;
   entries: readonly FlowEntry[];
   gaps: readonly FlowGap[];

@@ -45,6 +45,12 @@
   color: #d7bde8;
 }
 
+.terminal-data-class {
+  color: var(--muted, #beb5d2);
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
 .terminal-data-badges {
   display: flex;
   flex-wrap: wrap;

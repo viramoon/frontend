@@ -133,7 +133,10 @@ export function Backtests() {
                       onClick={() => show(job.id)}
                     >
                       <span>
-                        <strong>#{job.id}</strong> {job.request.instrument}
+                        <strong>#{job.id}</strong>{' '}
+                        {'instrument' in job.request
+                          ? job.request.instrument
+                          : '策略包'}
                       </span>
                       <span className={`job-status ${job.status}`}>
                         {statuses[job.status]}
@@ -410,8 +413,8 @@ function JobDetail({ job }: { job: Job }) {
           {statuses[job.status]}
         </span>
         <span>
-          {job.request.instrument} · {job.request.strategy} · 第 {job.attempt}{' '}
-          次执行
+          {'instrument' in job.request ? job.request.instrument : '策略包'} ·{' '}
+          {job.request.strategy} · 第 {job.attempt} 次执行
         </span>
       </div>
       {active(job) && <p role="status">页面会自动更新此作业的状态。</p>}

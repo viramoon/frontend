@@ -1,3 +1,4 @@
+import { DataClassLabel } from '../../components/PanelDataClass';
 import { useState } from 'react';
 import { DataState, displayDataTime } from '../../components/TerminalStates';
 import { decimalKeys, scaledDecimal } from './decimal';
@@ -90,6 +91,7 @@ function ExposureFlip({
   return (
     <section className="option-panel" aria-labelledby="option-flip">
       <h2 id="option-flip">Gamma flip</h2>
+      <DataClassLabel kind="price-volume" />
       {flip.kind === 'not_evaluated' ? (
         <DataState kind="empty" title="未评估 flip" detail={flip.reason} />
       ) : (
@@ -177,6 +179,7 @@ function ExposureCoverage({ reading }: { reading: ReadyExposure }) {
         <h2 id="option-coverage">覆盖与输入时间</h2>
         {partial && <span className="terminal-badge delay">局部估算</span>}
       </header>
+      <DataClassLabel kind="price-volume" />
       <dl className="option-facts option-grid-facts">
         <div>
           <dt>有效 / 候选合约</dt>
@@ -223,6 +226,7 @@ function ExposureInputs({ reading }: { reading: ReadyExposure }) {
   return (
     <section className="option-panel" aria-labelledby="option-contracts">
       <h2 id="option-contracts">合约级输入</h2>
+      <DataClassLabel kind="price-volume" />
       <p className="option-note">OI 用张数，IV 用小数。— 表示缺值。</p>
       <div
         className="option-table-scroll"
@@ -297,7 +301,7 @@ export function OptionsExposure({
         <header className="option-section-heading">
           <div>
             <h2 id="option-exposure-series">GEX 分布</h2>
-            <p className="option-note">数据类别 · 期权敞口估算</p>
+            <DataClassLabel kind="price-volume" />
           </div>
           <label className="option-field">
             敞口情景
