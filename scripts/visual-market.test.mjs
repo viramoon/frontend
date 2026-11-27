@@ -40,7 +40,12 @@ before(async () => {
 
 after(async () => browser?.close());
 
-async function withOfflinePage(viewport, path, exercise) {
+async function withOfflinePage(
+  viewport,
+  path,
+  exercise,
+  { search = '?market=replay', api = new Map() } = {},
+) {
   const context = await browser.newContext({
     viewport,
     locale: 'zh-CN',
@@ -53,7 +58,7 @@ async function withOfflinePage(viewport, path, exercise) {
     await context.route('**/*', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
-      const response = responses.get(url.pathname);
+      const response = api.get(url.pathname) ?? responses.get(url.pathname);
       if (url.origin === origin && request.method() === 'GET' && response) {
         await route.fulfill(response);
       } else {
@@ -68,7 +73,7 @@ async function withOfflinePage(viewport, path, exercise) {
 
     const page = await context.newPage();
     page.setDefaultTimeout(8000);
-    await page.goto(origin + path + '?market=replay');
+    await page.goto(origin + path + search);
     await exercise(page);
   } finally {
     await context.close();
@@ -247,5 +252,69 @@ test('mobile options keeps evidence keyboard-accessible and contains wide input 
         390,
       );
     },
+  );
+});
+
+test('mobile W8 uses the live depth route and keeps the depth table keyboard accessible', async () => {
+  const api = new Map([
+    [
+      '/api/v1/me/capabilities',
+      { json: { subject: 'admin', products: ['restricted_market_data'] } },
+    ],
+    [
+      '/api/v1/options/exposure',
+      { status: 503, json: { error: { code: 'finance_contract_pending' } } },
+    ],
+    [
+      '/api/v1/market/depth',
+      {
+        json: {
+          access: {
+            source: 'ibkr',
+            product: 'nasdaq-totalview',
+            license: 'synthetic',
+          },
+          symbol: 'AAPL',
+          venue: 'XNAS',
+          state: 'receiving',
+          market_data_type: null,
+          permissions: {
+            equity_l1_confirmed: true,
+            totalview_confirmed: true,
+            eds_confirmed: true,
+          },
+          received_at: '2026-11-19T14:00:00Z',
+          returned_rows: 1,
+          requested_rows: 2,
+          bids: [{ price: '123.1234567890123', size: '0.0000000123' }],
+          asks: [],
+        },
+      },
+    ],
+  ]);
+  await withOfflinePage(
+    { width: 390, height: 844 },
+    '/options/exposure',
+    async (page) => {
+      await page.getByText('敞口待接入').waitFor();
+      const symbol = page.getByLabel('Nasdaq 深度标的');
+      await symbol.focus();
+      await page.keyboard.press('a');
+      assert.equal(await symbol.inputValue(), 'AAPL');
+      const table = page.getByRole('region', { name: '场所深度档位' });
+      await table.getByText('123.1234567890123').waitFor();
+      await table.focus();
+      assert.equal(
+        await table.evaluate(
+          (element) => element.ownerDocument.activeElement === element,
+        ),
+        true,
+      );
+      assert.equal(
+        await page.locator('html').evaluate((element) => element.scrollWidth),
+        390,
+      );
+    },
+    { search: '', api },
   );
 });

@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import type { ErrorDetail } from './generated/types.gen';
 import type { Auth } from './generated/client';
 import { client } from './generated/client.gen';
 
@@ -30,6 +31,7 @@ export class WebRequestError extends Error {
     readonly status: number | undefined,
     message: string,
     readonly code?: string,
+    readonly detail?: Partial<ErrorDetail>,
   ) {
     super(message);
     this.name = 'WebRequestError';
@@ -45,20 +47,20 @@ client.interceptors.error.use((error, response) => {
       return error;
     return new WebRequestError(undefined, '网络连接失败');
   }
-  const code =
+  const detail =
     typeof error === 'object' &&
     error !== null &&
     'error' in error &&
     typeof error.error === 'object' &&
-    error.error !== null &&
-    'code' in error.error &&
-    typeof error.error.code === 'string'
-      ? error.error.code
+    error.error !== null
+      ? (error.error as Partial<ErrorDetail>)
       : undefined;
+  const code = typeof detail?.code === 'string' ? detail.code : undefined;
   return new WebRequestError(
     response.status,
     'HTTP ' + response.status + (code ? ' · ' + code : ''),
     code,
+    detail,
   );
 });
 

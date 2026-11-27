@@ -1,7 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { WebRequestError } from '../../api';
+import { validationDiagnostic } from '../../api/researchWeb';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  researchHref,
   researchNetworkMode,
   type Compilation,
   type CompiledPlan,
@@ -78,10 +81,12 @@ export function StrategyWorkbench({
   const version = search.get('version');
   const catalog = useQuery({
     networkMode: researchNetworkMode(adapter.source),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
     queryKey: ['research', adapter.source, 'strategies'],
     queryFn: () => adapter.listStrategies(),
   });
-  const id = routeId === 'example' ? exampleId : routeId;
+  const id =
+    routeId === 'example' && adapter.source === 'fixture' ? exampleId : routeId;
   const versions = (catalog.data ?? []).filter(
     (strategy) => strategy.id === id,
   );
@@ -106,15 +111,18 @@ export function StrategyWorkbench({
             detail="内置 YAML 与回测作业用于预览研究工作流。"
           />
         </div>
-        {routeId && <Link to="/strategies">返回策略</Link>}
+        {routeId && (
+          <Link to={researchHref('/strategies', search)}>返回策略</Link>
+        )}
       </header>
       {catalog.isPending && <p role="status">正在读取策略目录…</p>}
       {catalog.isError && (
-        <LoadFailure retry={() => void catalog.refetch()}>
+        <LoadFailure error={catalog.error} retry={() => void catalog.refetch()}>
           策略目录读取失败。
         </LoadFailure>
       )}
-      {catalog.data &&
+      {!catalog.isError &&
+        catalog.data &&
         (routeId ? (
           selected ? (
             <>
@@ -123,7 +131,7 @@ export function StrategyWorkbench({
                   {versions.map((strategy) => (
                     <Link
                       key={versionKey(strategy)}
-                      to={versionHref(strategy)}
+                      to={researchHref(versionHref(strategy), search)}
                       aria-current={
                         selected.version === strategy.version
                           ? 'page'
@@ -184,7 +192,9 @@ export function StrategyWorkbench({
                 {catalog.data.map((strategy) => (
                   <li key={versionKey(strategy)}>
                     <div>
-                      <Link to={versionHref(strategy)}>{strategy.title}</Link>
+                      <Link to={researchHref(versionHref(strategy), search)}>
+                        {strategy.title}
+                      </Link>
                       <code>{versionKey(strategy)}</code>
                     </div>
                     <span className="job-status">
@@ -200,7 +210,9 @@ export function StrategyWorkbench({
         ))}
       {!routeId && adapter.source === 'fixture' && (
         <p className="research-example-link">
-          <Link to="/strategies/example">查看策略详情骨架</Link>
+          <Link to={researchHref('/strategies/example', search)}>
+            查看策略详情骨架
+          </Link>
         </p>
       )}
     </section>
@@ -222,7 +234,10 @@ function CompileForm({
   const [file, setFile] = useState<File>();
   const [compiling, setCompiling] = useState(false);
   const [compilation, setCompilation] = useState<Compilation>();
-  const [failed, setFailed] = useState(false);
+  const queryClient = useQueryClient();
+  const [failed, setFailed] = useState('');
+  const [upload, setUpload] = useState<string>();
+  const [registerMessage, setRegisterMessage] = useState('');
   const strategy = choice
     ? registered.find((option) => versionKey(option) === choice)
     : registered[0];
@@ -236,7 +251,9 @@ function CompileForm({
 
   function reset() {
     setCompilation(undefined);
-    setFailed(false);
+    setFailed('');
+    setUpload(undefined);
+    setRegisterMessage('');
   }
 
   async function compile(type: StrategySource['kind']) {
@@ -251,18 +268,62 @@ function CompileForm({
           }),
         );
       } else if (type === 'yaml' && file) {
-        setCompilation(
-          await adapter.compile({
-            kind: 'yaml',
-            content: await yamlContent(file),
-          }),
-        );
+        const content = await yamlContent(file);
+        const result = await adapter.compile({ kind: 'yaml', content });
+        setCompilation(result);
+        if (adapter.register && result.kind === 'compiled') setUpload(content);
       }
     } catch (error) {
       if (error instanceof InvalidYaml) {
         setCompilation({ kind: 'invalid', diagnostics: [error.diagnostic] });
       } else {
-        setFailed(true);
+        setFailed(
+          error instanceof WebRequestError
+            ? error.code === 'finance_contract_pending'
+              ? '待接入 · finance_contract_pending'
+              : error.message
+            : '无法读取编译结果，请重试。',
+        );
+      }
+    } finally {
+      setCompiling(false);
+    }
+  }
+
+  async function registerUpload(plan: CompiledPlan) {
+    if (!adapter.register || upload === undefined || compiling) return;
+    setCompiling(true);
+    setRegisterMessage('');
+    try {
+      const actual = await adapter.register(upload);
+      const expected = plan.revision;
+      if (
+        actual.id !== expected.id ||
+        actual.version !== expected.version ||
+        actual.contentSha256 !== expected.contentSha256
+      ) {
+        reset();
+        setFailed('登记结果与编译预览不一致，请重新校验。');
+        return;
+      }
+      setUpload(undefined);
+      setRegisterMessage('策略版本已登记。');
+      void queryClient.invalidateQueries({
+        queryKey: ['research', adapter.source, 'strategies'],
+      });
+    } catch (error) {
+      const diagnostic = validationDiagnostic(error);
+      if (diagnostic) {
+        setCompilation({ kind: 'invalid', diagnostics: [diagnostic] });
+        setUpload(undefined);
+      } else {
+        setRegisterMessage(
+          error instanceof WebRequestError
+            ? error.code === 'finance_contract_pending'
+              ? '待接入 · finance_contract_pending'
+              : error.message
+            : '登记失败，请重试。',
+        );
       }
     } finally {
       setCompiling(false);
@@ -354,7 +415,7 @@ function CompileForm({
         {compiling && <p role="status">正在读取并校验 YAML 配置…</p>}
         {failed && (
           <p role="alert" className="job-message">
-            无法读取编译结果，请重试。
+            {failed}
           </p>
         )}
         {compilation?.kind === 'invalid' && (
@@ -379,15 +440,36 @@ function CompileForm({
         )}
       </section>
       {compilation?.kind === 'compiled' && (
-        <PlanPreview plan={compilation.plan} />
-      )}
-      {compilation?.kind === 'compiled' && (
-        <RunForm
-          key={compilation.plan.revision.contentSha256}
-          adapter={adapter}
-          plan={compilation.plan}
-          submission={submission}
-        />
+        <>
+          <PlanPreview plan={compilation.plan} />
+          {upload !== undefined && (
+            <div className="backtest-actions">
+              <button
+                type="button"
+                disabled={compiling}
+                onClick={() => void registerUpload(compilation.plan)}
+              >
+                登记已校验的版本
+              </button>
+            </div>
+          )}
+          {registerMessage && <p role="status">{registerMessage}</p>}
+          {upload === undefined &&
+            (adapter.source === 'web' && adapter.register ? (
+              <WebRunForm
+                key={compilation.plan.revision.contentSha256}
+                plan={compilation.plan}
+                submission={submission}
+              />
+            ) : (
+              <RunForm
+                key={compilation.plan.revision.contentSha256}
+                adapter={adapter}
+                plan={compilation.plan}
+                submission={submission}
+              />
+            ))}
+        </>
       )}
       {(submission.pending || submission.notice) && (
         <section className="backtest-panel" aria-label="作业恢复">
@@ -491,6 +573,79 @@ function PlanPreview({ plan }: { plan: CompiledPlan }) {
   );
 }
 
+function WebRunForm({
+  plan,
+  submission,
+}: {
+  plan: CompiledPlan;
+  submission: RunSubmission;
+}) {
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [search] = useSearchParams();
+  const valid = start >= '1970-01-01' && end <= '2101-01-01' && start < end;
+  return (
+    <section
+      className="backtest-panel research-stack"
+      aria-labelledby="launch-strategy-heading"
+    >
+      <h2 id="launch-strategy-heading">配置回测</h2>
+      <p>
+        日线来源 <code>{plan.bars}</code> · 点时股票池{' '}
+        <code>{plan.universe}</code>
+      </p>
+      <form
+        className="research-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (valid && !submission.pending)
+            void submission.create({
+              revision: plan.revision,
+              datasetId: plan.bars,
+              start,
+              end,
+            });
+        }}
+      >
+        <fieldset disabled={submission.busy || Boolean(submission.pending)}>
+          <div className="research-source-grid">
+            <label>
+              开始日（UTC）
+              <input
+                type="date"
+                required
+                min="1970-01-01"
+                max="2100-12-31"
+                value={start}
+                onChange={(event) => setStart(event.target.value)}
+              />
+            </label>
+            <label>
+              结束日（UTC，不含）
+              <input
+                type="date"
+                required
+                min={start || '1970-01-01'}
+                max="2101-01-01"
+                value={end}
+                onChange={(event) => setEnd(event.target.value)}
+              />
+            </label>
+          </div>
+          <div className="backtest-actions">
+            <button type="submit" className="submit-backtest" disabled={!valid}>
+              提交配置回测
+            </button>
+            <Link to={researchHref('/backtests?view=strategy', search)}>
+              打开配置作业列表
+            </Link>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  );
+}
+
 function RunForm({
   adapter,
   plan,
@@ -500,8 +655,10 @@ function RunForm({
   plan: CompiledPlan;
   submission: RunSubmission;
 }) {
+  const [search] = useSearchParams();
   const datasets = useQuery({
     networkMode: researchNetworkMode(adapter.source),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
     queryKey: [
       'research',
       adapter.source,
@@ -537,7 +694,10 @@ function RunForm({
       <h2 id="launch-strategy-heading">配置回测</h2>
       {datasets.isPending && <p role="status">正在读取匹配的数据集…</p>}
       {datasets.isError && (
-        <LoadFailure retry={() => void datasets.refetch()}>
+        <LoadFailure
+          error={datasets.error}
+          retry={() => void datasets.refetch()}
+        >
           数据集读取失败。
         </LoadFailure>
       )}
@@ -589,7 +749,9 @@ function RunForm({
               >
                 {adapter.source === 'fixture' ? '运行示例回测' : '提交配置回测'}
               </button>
-              <Link to="/backtests?view=strategy">打开配置作业列表</Link>
+              <Link to={researchHref('/backtests?view=strategy', search)}>
+                打开配置作业列表
+              </Link>
             </div>
           </fieldset>
         </form>

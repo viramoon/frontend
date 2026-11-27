@@ -1,7 +1,9 @@
+import { WebRequestError } from '../../api';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  researchHref,
   researchNetworkMode,
   type ResearchAdapter,
   type RunRequest,
@@ -21,6 +23,7 @@ const statuses = {
   succeeded: '已完成',
   failed: '失败',
   timed_out: '已超时',
+  cancelled: '已取消',
 };
 const active = (status: RunStatus | undefined) =>
   status === 'queued' || status === 'running';
@@ -39,15 +42,22 @@ export function RunWorkbench({
 }) {
   const [search, setSearch] = useSearchParams();
   const id = search.get('run') || '';
+  const [cursor, setCursor] = useState<string>();
   const list = useQuery({
     networkMode: researchNetworkMode(adapter.source),
-    queryKey: ['research', adapter.source, 'runs'],
-    queryFn: () => adapter.listRuns(),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
+    queryKey: ['research', adapter.source, 'runs', cursor],
+    queryFn: async () =>
+      adapter.listRunPage?.(cursor) ?? {
+        runs: await adapter.listRuns(),
+        next: undefined,
+      },
     refetchInterval: (query) =>
-      query.state.data?.some((run) => active(run.status)) ? 1000 : false,
+      query.state.data?.runs.some((run) => active(run.status)) ? 1000 : false,
   });
   const detail = useQuery({
     networkMode: researchNetworkMode(adapter.source),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
     queryKey: ['research', adapter.source, 'run', id],
     queryFn: () => adapter.run(id),
     enabled: Boolean(id),
@@ -56,7 +66,11 @@ export function RunWorkbench({
   });
 
   function open(runId: string) {
-    setSearch({ run: runId });
+    setSearch(
+      search.get('research') === 'replay'
+        ? { run: runId, research: 'replay' }
+        : { run: runId },
+    );
   }
 
   return (
@@ -69,7 +83,7 @@ export function RunWorkbench({
             detail="作业进度与结果均为合成演示，记录保存在当前浏览器会话。"
           />
         </div>
-        <Link to="/strategies">选择策略</Link>
+        <Link to={researchHref('/strategies', search)}>选择策略</Link>
       </header>
       <div className="backtest-columns">
         <section
@@ -84,20 +98,20 @@ export function RunWorkbench({
           </div>
           {list.isPending && <p role="status">正在读取配置作业…</p>}
           {list.isError && (
-            <LoadFailure retry={() => void list.refetch()}>
+            <LoadFailure error={list.error} retry={() => void list.refetch()}>
               配置作业列表读取失败。
             </LoadFailure>
           )}
-          {list.data?.length === 0 && (
+          {list.data?.runs.length === 0 && (
             <p className="job-note">暂无配置作业。</p>
           )}
-          {Boolean(list.data?.length) && (
+          {!list.isError && Boolean(list.data?.runs.length) && (
             <ul className="research-catalog">
-              {list.data?.map((run) => (
+              {list.data?.runs.map((run) => (
                 <li key={run.id}>
                   <div>
                     <Link
-                      to={runHref(run.id)}
+                      to={researchHref(runHref(run.id), search)}
                       aria-current={id === run.id ? 'page' : undefined}
                     >
                       {run.id}
@@ -110,6 +124,23 @@ export function RunWorkbench({
                 </li>
               ))}
             </ul>
+          )}
+          {(cursor || list.data?.next) && (
+            <div className="backtest-actions">
+              {cursor && (
+                <button type="button" onClick={() => setCursor(undefined)}>
+                  首页
+                </button>
+              )}
+              {list.data?.next && (
+                <button
+                  type="button"
+                  onClick={() => setCursor(list.data?.next)}
+                >
+                  下一页
+                </button>
+              )}
+            </div>
           )}
         </section>
         <section
@@ -131,18 +162,23 @@ export function RunWorkbench({
         >
           <div className="panel-heading research-panel-heading">
             <h2 id="strategy-run-detail">配置作业 {id}</h2>
-            {detail.data && <Status status={detail.data.status} />}
+            {!detail.isError && detail.data && (
+              <Status status={detail.data.status} />
+            )}
           </div>
           {detail.isPending && <p role="status">正在读取配置作业详情…</p>}
           {detail.isError && (
-            <LoadFailure retry={() => void detail.refetch()}>
+            <LoadFailure
+              error={detail.error}
+              retry={() => void detail.refetch()}
+            >
               配置作业详情读取失败。
             </LoadFailure>
           )}
           {detail.data === null && (
             <p className="job-note">此会话中没有该配置作业。</p>
           )}
-          {detail.data && (
+          {!detail.isError && detail.data && (
             <>
               <RunParameters request={detail.data.request} />
               {active(detail.data.status) && (
@@ -151,14 +187,20 @@ export function RunWorkbench({
                 </p>
               )}
               {(detail.data.status === 'failed' ||
-                detail.data.status === 'timed_out') && (
+                detail.data.status === 'timed_out' ||
+                detail.data.status === 'cancelled') && (
                 <p role="alert" className="job-message">
                   {detail.data.message}
                 </p>
               )}
-              {detail.data.status === 'succeeded' && (
-                <Result result={detail.data.result} />
-              )}
+              {detail.data.status === 'succeeded' &&
+                (detail.data.result ? (
+                  <Result result={detail.data.result} />
+                ) : (
+                  <p role="status">
+                    作业已完成，服务暂未提供运行清单和模拟成交。
+                  </p>
+                ))}
             </>
           )}
         </section>
@@ -187,8 +229,13 @@ function KeyLookup({
       const result = await adapter.byKey(key.trim());
       if (result.kind === 'found') found(result.id);
       else setNotice('未查到该作业键。');
-    } catch {
-      setNotice('无法查询作业键，请稍后重试。');
+    } catch (error) {
+      setNotice(
+        error instanceof WebRequestError &&
+          error.code === 'finance_contract_pending'
+          ? '作业查询待接入 · finance_contract_pending'
+          : '无法查询作业键，请稍后重试。',
+      );
     } finally {
       setLooking(false);
     }
@@ -261,14 +308,16 @@ function Result({ result }: { result: RunResult }) {
             <span className="currency">{result.currency}</span>
           </p>
         </div>
-        <dl className="result-metrics">
-          <div>
-            <dt>{result.benchmark.title} · 期末权益</dt>
-            <dd>
-              {result.benchmark.finalEquity} {result.currency}
-            </dd>
-          </div>
-        </dl>
+        {result.benchmark && (
+          <dl className="result-metrics">
+            <div>
+              <dt>{result.benchmark.title} · 期末权益</dt>
+              <dd>
+                {result.benchmark.finalEquity} {result.currency}
+              </dd>
+            </div>
+          </dl>
+        )}
       </div>
       <section className="result-section" aria-labelledby="strategy-manifest">
         <h3 id="strategy-manifest">运行清单</h3>
@@ -331,11 +380,11 @@ function Result({ result }: { result: RunResult }) {
                 <tr>
                   <th scope="col">会话</th>
                   <th scope="col">标的</th>
-                  <th scope="col">配方</th>
+                  <th scope="col">{result.benchmark ? '配方' : '方向'}</th>
                   <th scope="col">数量</th>
                   <th scope="col">成交价</th>
                   <th scope="col">费用</th>
-                  <th scope="col">剩余现金</th>
+                  {result.benchmark && <th scope="col">剩余现金</th>}
                 </tr>
               </thead>
               <tbody>
@@ -346,12 +395,12 @@ function Result({ result }: { result: RunResult }) {
                       <code>{fill.instrument}</code>
                     </td>
                     <td>
-                      <code>{fill.recipe}</code>
+                      <code>{fill.recipe ?? fill.side ?? '未提供'}</code>
                     </td>
                     <td>{fill.quantity}</td>
                     <td>{fill.price}</td>
                     <td>{fill.fee}</td>
-                    <td>{fill.cashAfter}</td>
+                    {result.benchmark && <td>{fill.cashAfter}</td>}
                   </tr>
                 ))}
               </tbody>

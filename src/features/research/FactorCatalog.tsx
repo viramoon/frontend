@@ -9,6 +9,7 @@ import {
 import { FixtureNotice, LoadFailure } from './ResearchStates';
 
 const stateLabel = {
+  research_only: '研究专用 · 只读',
   research: '研究中',
   out_of_sample_validation: '样本外验证',
   observe_only: '仅观察',
@@ -26,6 +27,7 @@ export function FactorCatalog({ adapter }: { adapter: ResearchAdapter }) {
   const [choice, setChoice] = useState('');
   const catalog = useQuery({
     networkMode: researchNetworkMode(adapter.source),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
     queryKey: ['research', adapter.source, 'factors'],
     queryFn: () => adapter.listFactors(),
   });
@@ -46,12 +48,12 @@ export function FactorCatalog({ adapter }: { adapter: ResearchAdapter }) {
       </header>
       {catalog.isPending && <p role="status">正在读取因子目录…</p>}
       {catalog.isError && (
-        <LoadFailure retry={() => void catalog.refetch()}>
+        <LoadFailure error={catalog.error} retry={() => void catalog.refetch()}>
           因子目录读取失败。
         </LoadFailure>
       )}
       {catalog.data?.length === 0 && <p className="feedback">暂无因子版本。</p>}
-      {catalog.data && selected && (
+      {!catalog.isError && catalog.data && selected && (
         <>
           <section
             className="backtest-panel research-stack"
@@ -93,7 +95,11 @@ export function FactorCatalog({ adapter }: { adapter: ResearchAdapter }) {
               </div>
               <div>
                 <dt>预热</dt>
-                <dd>{selected.warmupSessions} 个会话</dd>
+                <dd>
+                  {selected.warmupSessions === null
+                    ? '未提供'
+                    : `${selected.warmupSessions} 个会话`}
+                </dd>
               </div>
             </dl>
           </section>
@@ -113,6 +119,7 @@ function Evaluation({
 }) {
   const report = useQuery({
     networkMode: researchNetworkMode(adapter.source),
+    gcTime: adapter.source === 'web' ? 0 : undefined,
     queryKey: [
       'research',
       adapter.source,
@@ -131,12 +138,12 @@ function Evaluation({
       <h2 id="factor-evaluation">因子评价</h2>
       {report.isPending && <p role="status">正在读取评价报告…</p>}
       {report.isError && (
-        <LoadFailure retry={() => void report.refetch()}>
+        <LoadFailure error={report.error} retry={() => void report.refetch()}>
           评价报告读取失败。
         </LoadFailure>
       )}
       {report.data === null && <p className="job-note">该版本暂无评价报告。</p>}
-      {report.data && (
+      {!report.isError && report.data && (
         <>
           <p className="job-note">
             成本 {report.data.costBps} bp · 覆盖率、收益和换手均以比率展示。
@@ -168,8 +175,11 @@ function EvaluationWindow({
           </p>
         </div>
         <p>
-          覆盖率 <strong>{window.coverage}</strong> · {window.scored} /{' '}
-          {window.eligible}
+          覆盖率 <strong>{digits(window.coverage)}</strong>
+          {window.scored !== undefined &&
+            ` · ${window.scored} / ${window.eligible}`}
+          {window.factorCoverage !== undefined &&
+            ` · 因子覆盖率 ${digits(window.factorCoverage)}`}
         </p>
       </div>
       <div className="research-source-grid">

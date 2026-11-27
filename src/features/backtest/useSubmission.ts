@@ -1,11 +1,6 @@
 import { useRef, useState } from 'react';
-import {
-  bearerAuth,
-  byKey,
-  submit,
-  WebRequestError,
-  type JobRequest,
-} from '../../api';
+import { bearerAuth, WebRequestError, type JobRequest } from '../../api';
+import { lookupBacktest, submitBacktest } from '../../api/backtestsWeb';
 
 type Pending = { key: string; request: JobRequest };
 const storageKey = 'fertile.pending-backtest';
@@ -38,14 +33,14 @@ function knownRejection(error: unknown) {
     : undefined;
 }
 
-export function useSubmission(accepted: (id: number) => void) {
+export function useSubmission(accepted: (id: string) => void) {
   const [pending, setPending] = useState(restore);
   const [busy, setBusy] = useState(false);
   const [absent, setAbsent] = useState(false);
   const [notice, setNotice] = useState('');
   const mutex = useRef(false);
 
-  function finish(id: number) {
+  function finish(id: string) {
     sessionStorage.removeItem(storageKey);
     setPending(null);
     setAbsent(false);
@@ -56,14 +51,8 @@ export function useSubmission(accepted: (id: number) => void) {
   async function check(item: Pending, token: string) {
     setAbsent(false);
     try {
-      const { data } = await byKey({
-        auth: bearerAuth(token),
-        headers: { 'Idempotency-Key': item.key },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(10_000),
-        throwOnError: true,
-      });
-      finish(data.id);
+      const { id } = await lookupBacktest(item.key, bearerAuth(token));
+      finish(id);
     } catch (error) {
       if (
         error instanceof WebRequestError &&
@@ -83,14 +72,13 @@ export function useSubmission(accepted: (id: number) => void) {
 
   async function post(item: Pending, token: string, first: boolean) {
     try {
-      const { data } = await submit({
-        auth: bearerAuth(token),
-        headers: { 'Idempotency-Key': item.key },
-        body: item.request,
-        signal: AbortSignal.timeout(10_000),
-        throwOnError: true,
-      });
-      finish(data.id);
+      const { id } = await submitBacktest(
+        item.request,
+        item.key,
+        undefined,
+        bearerAuth(token),
+      );
+      finish(id);
     } catch (error) {
       const rejected = knownRejection(error);
       if (rejected && first) {

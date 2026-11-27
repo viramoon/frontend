@@ -1,3 +1,4 @@
+import { WebRequestError } from '../../api';
 import type { ResearchAdapter } from './adapter';
 import type { RunSubmission } from './useRunSubmission';
 
@@ -18,14 +19,20 @@ export function FixtureNotice({
 
 export function LoadFailure({
   retry,
+  error,
   children,
 }: {
   retry: () => void;
+  error?: unknown;
   children: string;
 }) {
+  const pending =
+    error instanceof WebRequestError &&
+    error.code === 'finance_contract_pending';
   return (
-    <div className="job-message" role="alert">
-      <p>{children}</p>
+    <div className="job-message" role={pending ? 'status' : 'alert'}>
+      <p>{pending ? '待接入 · finance_contract_pending' : children}</p>
+      {!pending && error instanceof WebRequestError && <p>{error.message}</p>}
       <button type="button" onClick={retry}>
         重新读取
       </button>
