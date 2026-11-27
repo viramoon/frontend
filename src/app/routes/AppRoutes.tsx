@@ -1,3 +1,5 @@
+import { QueryClientContext } from '@tanstack/react-query';
+import { useContext, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -5,16 +7,42 @@ import {
   Route,
   Routes,
   useLocation,
+  useNavigate,
   useParams,
+  useSearchParams,
 } from 'react-router-dom';
-import { DataState } from '../../components/TerminalStates';
+import type { OperationsAdapter } from '../../api/operations';
+import { webAlerts, webNotifications } from '../../api/notificationsWeb';
+import { webIntegrations } from '../../api/integrationsWeb';
+import { webRecovery } from '../../api/recoveryWeb';
 import { Backtests } from '../../features/backtest/Backtests';
 import { Blog } from '../../features/blog/Blog';
 import {
   SystemOverview,
   SystemStatusStrip,
 } from '../../features/dashboard/Dashboard';
+import { Integrations } from '../../features/integrations/Integrations';
+import { WebIntegrations } from '../../features/integrations/WebIntegrations';
+import { Alerts } from '../../features/notifications/Alerts';
+import { Notifications } from '../../features/notifications/Notifications';
+import {
+  SystemDetails,
+  WebSystemDetails,
+} from '../../features/system/SystemDetails';
+import { WebRecovery } from '../../features/system/WebRecovery';
+import { AdminProductAccess } from './AdminProductAccess';
 import { MarketTerminal } from '../../features/market/MarketTerminal';
+import { OptionsTerminal } from '../../features/options/OptionsTerminal';
+import type { ResearchAdapter } from '../../features/research/adapter';
+import { FactorCatalog } from '../../features/research/FactorCatalog';
+import { fixtureResearch } from '../../features/research/fixtureAdapter';
+import { RunWorkbench } from '../../features/research/RunWorkbench';
+import { StrategyWorkbench } from '../../features/research/StrategyWorkbench';
+import '../../features/research/research.css';
+import {
+  useRunSubmission,
+  type RunSubmission,
+} from '../../features/research/useRunSubmission';
 import { Trading } from '../../features/trading/Trading';
 
 const navigation = [
@@ -32,79 +60,80 @@ const navigation = [
   { path: '/blog', label: '博客' },
 ];
 
-const futurePages = [
-  {
-    path: '/options/flow',
-    title: '期权流水',
-    detail: '后续 U2 将接入期权成交流水、筛选条件和数据来源。',
-  },
-  {
-    path: '/options/exposure',
-    title: '期权敞口',
-    detail: '后续 U2 将按行权价与到期日展示敞口、模型和数据覆盖。',
-  },
-  {
-    path: '/factors',
-    title: '因子',
-    detail: '后续 U3 将展示可引用因子版本、覆盖率、IC 和换手。',
-  },
-  {
-    path: '/settings/integrations',
-    title: '接口设置',
-    detail: '后续 U4 将接入配置版本、权限、预算状态与连接验证。',
-  },
-  {
-    path: '/alerts',
-    title: '事件',
-    detail: '后续 U4 将提供事件确认、静默与投递记录。',
-  },
-  {
-    path: '/settings/notifications',
-    title: '通知设置',
-    detail: '后续 U4 将提供通知目的地验证与测试发送。',
-  },
-];
+type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
-function FuturePage({ title, detail }: { title: string; detail: string }) {
-  return (
-    <section className="simple-page">
-      <h1>{title}</h1>
-      <DataState kind="empty" title="功能待接入" detail={detail} illustrated />
-    </section>
-  );
-}
-
-function Strategies() {
-  return (
-    <>
-      <FuturePage
-        title="策略"
-        detail="后续 U3 将接入配置校验、不可变版本和策略依赖。"
-      />
-      <p className="route-action">
-        <Link to="/strategies/example">查看策略详情骨架</Link>
-      </p>
-    </>
-  );
-}
-
-function StrategyDetail() {
+function StrategyDetail({ adapter, submission }: ResearchProps) {
   const { id } = useParams();
   return (
+    <StrategyWorkbench
+      key={id}
+      adapter={adapter}
+      routeId={id}
+      submission={submission}
+    />
+  );
+}
+
+function BacktestRoute({ adapter, submission }: ResearchProps) {
+  const [search] = useSearchParams();
+  const configured =
+    !search.has('job') &&
+    (search.has('run') || search.get('view') === 'strategy');
+  return (
     <>
-      <FuturePage
-        title="策略详情"
-        detail={`路径中的策略 ID 为 ${id}。后续 U3 将显示策略版本、校验结果与依赖。`}
-      />
-      <p className="route-action">
-        <Link to="/strategies">返回策略</Link>
-      </p>
+      <nav className="research-nav" aria-label="回测模式">
+        <Link to="/backtests" aria-current={configured ? undefined : 'page'}>
+          历史均线回测
+        </Link>
+        <Link
+          to="/backtests?view=strategy"
+          aria-current={configured ? 'page' : undefined}
+        >
+          配置策略回测
+        </Link>
+      </nav>
+      {configured ? (
+        <RunWorkbench adapter={adapter} submission={submission} />
+      ) : (
+        <Backtests />
+      )}
     </>
   );
 }
 
-export function AppRoutes() {
+export function AppRoutes({
+  research = fixtureResearch,
+  operations,
+}: {
+  research?: ResearchAdapter;
+  operations?: OperationsAdapter;
+} = {}) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useContext(QueryClientContext);
+  const submission = useRunSubmission(research, (run) => {
+    void queryClient?.invalidateQueries({
+      queryKey: ['research', research.source, 'runs'],
+    });
+    void navigate(`/backtests?run=${encodeURIComponent(run)}`);
+  });
+  const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
+
+  const resetTest = () => setEmailTestKey(null);
+  const alerts = (
+    <Alerts
+      adapter={operations?.alerts ?? webAlerts}
+      fixture={Boolean(operations)}
+    />
+  );
+  const notifications = (
+    <Notifications
+      adapter={operations?.notifications ?? webNotifications}
+      fixture={Boolean(operations)}
+      testKey={emailTestKey}
+      setTestKey={setEmailTestKey}
+    />
+  );
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -162,32 +191,104 @@ export function AppRoutes() {
               </Trading>
             }
           />
-          {futurePages.map(({ path, title, detail }) => (
-            <Route
-              key={path}
-              path={path}
-              element={<FuturePage title={title} detail={detail} />}
-            />
-          ))}
-          <Route path="/strategies" element={<Strategies />} />
-          <Route path="/strategies/:id" element={<StrategyDetail />} />
-          <Route path="/backtests" element={<Backtests />} />
+          <Route
+            path="/options/flow"
+            element={<OptionsTerminal page="flow" />}
+          />
+          <Route
+            path="/options/exposure"
+            element={<OptionsTerminal page="exposure" />}
+          />
+          <Route
+            path="/strategies"
+            element={
+              <StrategyWorkbench adapter={research} submission={submission} />
+            }
+          />
+          <Route
+            path="/strategies/:id"
+            element={
+              <StrategyDetail adapter={research} submission={submission} />
+            }
+          />
+          <Route
+            path="/factors"
+            element={<FactorCatalog adapter={research} />}
+          />
+          <Route
+            path="/backtests"
+            element={
+              <BacktestRoute adapter={research} submission={submission} />
+            }
+          />
+          <Route
+            path="/settings/integrations"
+            element={
+              operations ? (
+                <Integrations adapter={operations.integrations} fixture />
+              ) : (
+                <AdminProductAccess
+                  title="接口设置"
+                  product="integrations"
+                  resetTest={resetTest}
+                >
+                  <WebIntegrations adapter={webIntegrations} />
+                </AdminProductAccess>
+              )
+            }
+          />
+          <Route
+            path="/alerts"
+            element={
+              operations ? (
+                alerts
+              ) : (
+                <AdminProductAccess
+                  title="事件"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
+                  {alerts}
+                </AdminProductAccess>
+              )
+            }
+          />
+          <Route
+            path="/settings/notifications"
+            element={
+              operations ? (
+                notifications
+              ) : (
+                <AdminProductAccess
+                  title="通知设置"
+                  product="notifications"
+                  resetTest={resetTest}
+                >
+                  {notifications}
+                </AdminProductAccess>
+              )
+            }
+          />
           <Route
             path="/system"
             element={
               <>
                 <SystemOverview standalone />
-                <section
-                  className="dashboard-section"
-                  aria-labelledby="quality-heading"
-                >
-                  <h2 id="quality-heading">数据质量</h2>
-                  <DataState
-                    kind="empty"
-                    title="数据质量摘要待接入"
-                    detail="后续 U2 将接入分区水位与数据缺口。"
-                  />
-                </section>
+                {operations ? (
+                  <SystemDetails read={operations.readSystem} fixture />
+                ) : (
+                  <>
+                    <WebSystemDetails />
+                    <AdminProductAccess
+                      title="备份与采集质量"
+                      product="integrations"
+                      heading="h2"
+                      resetTest={resetTest}
+                    >
+                      <WebRecovery adapter={webRecovery} />
+                    </AdminProductAccess>
+                  </>
+                )}
               </>
             }
           />

@@ -48,12 +48,66 @@ const textPaths = new Set([
 const fixturePath = /fixture|(?:^|\/)(?:replays?|samples?)(?:[./_-]|$)/i;
 const fixtureSources = new Map([
   [
+    'src/api/operationsFixture.ts',
+    '// Hand-authored scenarios, independent of any account, provider or production snapshot.',
+  ],
+  [
     'src/features/market/marketFixture.ts',
     '// Deterministic synthetic offsets and volumes, without vendor or historical data.',
   ],
   [
     'src/features/market/fixtureAdapter.ts',
     '// synthetic points, independent of the production indicator algorithms.',
+  ],
+  [
+    'src/features/options/optionsFixture.ts',
+    '// Seeded synthetic options and evidence; no vendor or historical observations.',
+  ],
+  ...[
+    'src/features/research/fixtureAdapter.ts',
+    'src/features/research/fixtureYaml.ts',
+    'src/features/research/fixtures/catalog.ts',
+  ].map((path) => [
+    path,
+    '// U3 uses only the documented synthetic research inputs.',
+  ]),
+  ...[
+    'src/features/research/fixtures/entry-exit.yaml',
+    'src/features/research/fixtures/future-data.yaml',
+    'src/features/research/fixtures/target-weights.yaml',
+  ].map((path) => [
+    path,
+    '# Synthetic finance StrategyBundle fixture from b21f241.',
+  ]),
+]);
+
+// Issue #19 published these reviewed synthetic inputs before UG added the
+// marker requirement. Match only the exact blobs in that historical snapshot.
+const preGuardResearchCommit = '8dc5842c7d124bd13fb02813d7a1976d26c10fdf';
+const preGuardResearchBlobs = new Map([
+  [
+    'src/features/research/fixtureAdapter.ts',
+    '77f6fe57f732d5fda47144a2365edb52a9718417',
+  ],
+  [
+    'src/features/research/fixtureYaml.ts',
+    '28953b9365f55e50f51fd68eb6970a7fa027eeca',
+  ],
+  [
+    'src/features/research/fixtures/catalog.ts',
+    'f28ae30175d8baf82ca5965d7320ac4723cb3f22',
+  ],
+  [
+    'src/features/research/fixtures/entry-exit.yaml',
+    '229aa4d91b823ea1f88de88e520146b7b36c3db8',
+  ],
+  [
+    'src/features/research/fixtures/future-data.yaml',
+    '0c1a96df5211a55105e2574dc681d6b7ef268b14',
+  ],
+  [
+    'src/features/research/fixtures/target-weights.yaml',
+    '00d2a0ede9304485d3f089c803763568d54a0468',
   ],
 ]);
 
@@ -115,6 +169,7 @@ async function* committedSnapshots(tip, trusted, previous = trusted) {
     yield {
       entries: parseEntries(await git(['ls-tree', '-rz', commit])),
       trusted,
+      commit,
     };
   }
 }
@@ -292,7 +347,7 @@ function isTextMedia(content) {
   );
 }
 
-function contentRule(path, bytes, digest) {
+function contentRule(path, bytes, digest, hasHistoricalProvenance) {
   if (digest && createHash('sha256').update(bytes).digest('hex') !== digest) {
     return 'allowlist-digest';
   }
@@ -326,7 +381,11 @@ function contentRule(path, bytes, digest) {
   }
   if (isMarketExport(content)) return 'market-export';
   const source = fixtureSources.get(path);
-  if (source && !content.split(/\r?\n/).includes(source))
+  if (
+    source &&
+    !hasHistoricalProvenance &&
+    !content.split(/\r?\n/).includes(source)
+  )
     return 'fixture-provenance';
   if (
     !digest &&
@@ -356,10 +415,13 @@ async function blobSizes(entries) {
   );
 }
 
-async function inspectBlob({ path, oid, digest }, size) {
+async function inspectBlob(
+  { path, oid, digest, hasHistoricalProvenance },
+  size,
+) {
   if (size > maxBlobSize) return { rule: 'blob-size' };
   const bytes = await git(['cat-file', 'blob', oid], { binary: true });
-  const rule = contentRule(path, bytes, digest);
+  const rule = contentRule(path, bytes, digest, hasHistoricalProvenance);
   if (rule || !isActionDefinition(path)) return { rule };
   try {
     return { definition: actionReferences(path, textDecoder.decode(bytes)) };
@@ -368,7 +430,7 @@ async function inspectBlob({ path, oid, digest }, size) {
   }
 }
 
-async function checkSnapshot(entries, approval, inspected, report) {
+async function checkSnapshot({ entries, commit }, approval, inspected, report) {
   const byPath = new Map(entries.map((entry) => [entry.path, entry]));
   if (byPath.size !== entries.length)
     throw new Error('Ambiguous Git snapshot paths');
@@ -384,8 +446,17 @@ async function checkSnapshot(entries, approval, inspected, report) {
   const records = [];
   for (const entry of entries) {
     const digest = approval.allowlist.get(entry.path);
-    const key = JSON.stringify([entry.path, entry.mode, entry.oid, digest]);
-    const record = { ...entry, digest, key };
+    const hasHistoricalProvenance =
+      commit === preGuardResearchCommit &&
+      preGuardResearchBlobs.get(entry.path) === entry.oid;
+    const key = JSON.stringify([
+      entry.path,
+      entry.mode,
+      entry.oid,
+      digest,
+      hasHistoricalProvenance,
+    ]);
+    const record = { ...entry, digest, key, hasHistoricalProvenance };
     records.push(record);
     if (inspected.has(key)) continue;
     const rule = pathRule(entry, digest);
@@ -425,7 +496,8 @@ async function check(args) {
     writeSync(2, `data-guard: ${message}\n`);
   }
 
-  for await (const { entries, trusted } of snapshots(args)) {
+  for await (const snapshot of snapshots(args)) {
+    const { trusted } = snapshot;
     if (!approvals.has(trusted)) {
       const [entry] = trusted
         ? parseEntries(
@@ -437,7 +509,7 @@ async function check(args) {
         allowlist: await readAllowlist(entry, report),
       });
     }
-    await checkSnapshot(entries, approvals.get(trusted), inspected, report);
+    await checkSnapshot(snapshot, approvals.get(trusted), inspected, report);
   }
   if (violations) {
     writeSync(2, `data-guard: ${violations} violation(s)\n`);

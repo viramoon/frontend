@@ -1,0 +1,169 @@
+.research-page,
+.research-stack {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
+.research-page > :last-child {
+  margin-bottom: 0;
+}
+
+.research-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.research-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.research-notice strong {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  color: var(--accent);
+}
+
+.research-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.research-nav a {
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  padding: 0.45rem 0.7rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.research-nav a[aria-current='page'] {
+  background: var(--surface-raised);
+  border-color: var(--accent);
+}
+
+.research-page .research-stack h2,
+.research-panel-heading {
+  margin: 0;
+}
+
+.research-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.research-page .research-form select {
+  max-width: 35rem;
+}
+
+.research-page :is(code, dd, p) {
+  overflow-wrap: anywhere;
+}
+
+.research-page code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+
+.research-page .result-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.research-page .result-table th {
+  white-space: nowrap;
+}
+
+.research-catalog,
+.research-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.research-catalog li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.45rem 1rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.research-catalog li code,
+.research-diagnostics li code {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--muted);
+}
+
+.research-example-link {
+  display: inline-block;
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.research-rows {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.research-window,
+.research-diagnostics,
+.research-recovery {
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--surface-raised);
+}
+
+.research-diagnostics {
+  border-left: 3px solid var(--warning);
+}
+
+.research-diagnostics ul {
+  margin: 0.65rem 0 0;
+  padding-left: 1.3rem;
+}
+
+.research-diagnostics strong {
+  color: var(--warning);
+}
+
+.research-recovery {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.research-page p[role='status']:empty {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .research-source-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getTest, list, list2, live, marketStatus, type Options, putCredential, ready, sample, startTest, status, submit, update } from '../sdk.gen';
-import type { ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListData, ListError, ListResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, ReadyData, ReadyError, ReadyResponse, SampleData, SampleError, SampleResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
+import { ackAlert, activate, backupStatus, byKey, capabilities, catalog, create, createSession, datasets, deleteCredential, deleteSession, detail, getAlert, getChannelTest, getIntegration, getRule, getScopedTest, getTest, list, list2, listAlerts, listRules, live, marketStatus, type Options, putCredential, putRule, qualityGaps, ready, rollback, sample, startChannelTest, startTest, status, submit, update } from '../sdk.gen';
+import type { AckAlertData, AckAlertError, AckAlertResponse, ActivateData, ActivateError, ActivateResponse, BackupStatusData, BackupStatusError, BackupStatusResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetAlertData, GetAlertError, GetAlertResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetIntegrationData, GetIntegrationError, GetIntegrationResponse, GetRuleData, GetRuleError, GetRuleResponse, GetScopedTestData, GetScopedTestError, GetScopedTestResponse, GetTestData, GetTestError, GetTestResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, QualityGapsData, QualityGapsError, QualityGapsResponse, ReadyData, ReadyError, ReadyResponse, RollbackData, RollbackError, RollbackResponse, SampleData, SampleError, SampleResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
 
 export const deleteSessionMutation = (options?: Partial<Options<DeleteSessionData>>): UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> => {
     const mutationOptions: UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> = {
@@ -67,11 +67,11 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
     return [params];
 };
 
-export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
+export const listAlertsQueryKey = (options?: Options<ListAlertsData>) => createQueryKey('listAlerts', options);
 
-export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
+export const listAlertsOptions = (options?: Options<ListAlertsData>) => queryOptions<ListAlertsResponse, ListAlertsError, ListAlertsResponse, ReturnType<typeof listAlertsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
-        const { data } = await list({
+        const { data } = await listAlerts({
             ...options,
             ...queryKey[0],
             signal,
@@ -79,7 +79,7 @@ export const listOptions = (options?: Options<ListData>) => queryOptions<ListRes
         });
         return data;
     },
-    queryKey: listQueryKey(options)
+    queryKey: listAlertsQueryKey(options)
 });
 
 const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>>(queryKey: QueryKey<Options>, page: K) => {
@@ -110,6 +110,77 @@ const createInfiniteParams = <K extends Pick<QueryKey<Options>[0], 'body' | 'hea
     }
     return params as unknown as typeof page;
 };
+
+export const listAlertsInfiniteQueryKey = (options?: Options<ListAlertsData>): QueryKey<Options<ListAlertsData>> => createQueryKey('listAlerts', options, true);
+
+export const listAlertsInfiniteOptions = (options?: Options<ListAlertsData>) => {
+    const opts = infiniteQueryOptions<ListAlertsResponse, ListAlertsError, InfiniteData<ListAlertsResponse>, QueryKey<Options<ListAlertsData>>, string | Pick<QueryKey<Options<ListAlertsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListAlertsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listAlerts({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listAlertsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getAlertQueryKey = (options: Options<GetAlertData>) => createQueryKey('getAlert', options);
+
+export const getAlertOptions = (options: Options<GetAlertData>) => queryOptions<GetAlertResponse, GetAlertError, GetAlertResponse, ReturnType<typeof getAlertQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAlert({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAlertQueryKey(options)
+});
+
+export const ackAlertMutation = (options?: Partial<Options<AckAlertData>>): UseMutationOptions<AckAlertResponse, AckAlertError, Options<AckAlertData>> => {
+    const mutationOptions: UseMutationOptions<AckAlertResponse, AckAlertError, Options<AckAlertData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await ackAlert({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
+
+export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await list({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listQueryKey(options)
+});
 
 export const listInfiniteQueryKey = (options?: Options<ListData>): QueryKey<Options<ListData>> => createQueryKey('list', options, true);
 
@@ -212,6 +283,21 @@ export const detailOptions = (options: Options<DetailData>) => queryOptions<Deta
     queryKey: detailQueryKey(options)
 });
 
+export const backupStatusQueryKey = (options?: Options<BackupStatusData>) => createQueryKey('backupStatus', options);
+
+export const backupStatusOptions = (options?: Options<BackupStatusData>) => queryOptions<BackupStatusResponse, BackupStatusError, BackupStatusResponse, ReturnType<typeof backupStatusQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await backupStatus({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: backupStatusQueryKey(options)
+});
+
 export const getTestQueryKey = (options: Options<GetTestData>) => createQueryKey('getTest', options);
 
 export const getTestOptions = (options: Options<GetTestData>) => queryOptions<GetTestResponse, GetTestError, GetTestResponse, ReturnType<typeof getTestQueryKey>>({
@@ -271,10 +357,39 @@ export const catalogOptions = (options?: Options<CatalogData>) => queryOptions<C
     queryKey: catalogQueryKey(options)
 });
 
+export const getIntegrationQueryKey = (options: Options<GetIntegrationData>) => createQueryKey('getIntegration', options);
+
+export const getIntegrationOptions = (options: Options<GetIntegrationData>) => queryOptions<GetIntegrationResponse, GetIntegrationError, GetIntegrationResponse, ReturnType<typeof getIntegrationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getIntegration({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getIntegrationQueryKey(options)
+});
+
 export const updateMutation = (options?: Partial<Options<UpdateData>>): UseMutationOptions<UpdateResponse, UpdateError, Options<UpdateData>> => {
     const mutationOptions: UseMutationOptions<UpdateResponse, UpdateError, Options<UpdateData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await update({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const activateMutation = (options?: Partial<Options<ActivateData>>): UseMutationOptions<ActivateResponse, ActivateError, Options<ActivateData>> => {
+    const mutationOptions: UseMutationOptions<ActivateResponse, ActivateError, Options<ActivateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await activate({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -313,6 +428,20 @@ export const putCredentialMutation = (options?: Partial<Options<PutCredentialDat
     return mutationOptions;
 };
 
+export const rollbackMutation = (options?: Partial<Options<RollbackData>>): UseMutationOptions<RollbackResponse, RollbackError, Options<RollbackData>> => {
+    const mutationOptions: UseMutationOptions<RollbackResponse, RollbackError, Options<RollbackData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await rollback({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const startTestMutation = (options?: Partial<Options<StartTestData>>): UseMutationOptions<StartTestResponse, StartTestError, Options<StartTestData>> => {
     const mutationOptions: UseMutationOptions<StartTestResponse, StartTestError, Options<StartTestData>> = {
         mutationFn: async (fnOptions) => {
@@ -326,6 +455,21 @@ export const startTestMutation = (options?: Partial<Options<StartTestData>>): Us
     };
     return mutationOptions;
 };
+
+export const getScopedTestQueryKey = (options: Options<GetScopedTestData>) => createQueryKey('getScopedTest', options);
+
+export const getScopedTestOptions = (options: Options<GetScopedTestData>) => queryOptions<GetScopedTestResponse, GetScopedTestError, GetScopedTestResponse, ReturnType<typeof getScopedTestQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getScopedTest({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getScopedTestQueryKey(options)
+});
 
 export const marketStatusQueryKey = (options?: Options<MarketStatusData>) => createQueryKey('marketStatus', options);
 
@@ -356,6 +500,148 @@ export const capabilitiesOptions = (options?: Options<CapabilitiesData>) => quer
     },
     queryKey: capabilitiesQueryKey(options)
 });
+
+export const startChannelTestMutation = (options?: Partial<Options<StartChannelTestData>>): UseMutationOptions<StartChannelTestResponse, StartChannelTestError, Options<StartChannelTestData>> => {
+    const mutationOptions: UseMutationOptions<StartChannelTestResponse, StartChannelTestError, Options<StartChannelTestData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await startChannelTest({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getChannelTestQueryKey = (options: Options<GetChannelTestData>) => createQueryKey('getChannelTest', options);
+
+export const getChannelTestOptions = (options: Options<GetChannelTestData>) => queryOptions<GetChannelTestResponse, GetChannelTestError, GetChannelTestResponse, ReturnType<typeof getChannelTestQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getChannelTest({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getChannelTestQueryKey(options)
+});
+
+export const listRulesQueryKey = (options?: Options<ListRulesData>) => createQueryKey('listRules', options);
+
+export const listRulesOptions = (options?: Options<ListRulesData>) => queryOptions<ListRulesResponse, ListRulesError, ListRulesResponse, ReturnType<typeof listRulesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listRules({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listRulesQueryKey(options)
+});
+
+export const listRulesInfiniteQueryKey = (options?: Options<ListRulesData>): QueryKey<Options<ListRulesData>> => createQueryKey('listRules', options, true);
+
+export const listRulesInfiniteOptions = (options?: Options<ListRulesData>) => {
+    const opts = infiniteQueryOptions<ListRulesResponse, ListRulesError, InfiniteData<ListRulesResponse>, QueryKey<Options<ListRulesData>>, string | Pick<QueryKey<Options<ListRulesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ListRulesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    cursor: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await listRules({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: listRulesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const getRuleQueryKey = (options: Options<GetRuleData>) => createQueryKey('getRule', options);
+
+export const getRuleOptions = (options: Options<GetRuleData>) => queryOptions<GetRuleResponse, GetRuleError, GetRuleResponse, ReturnType<typeof getRuleQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRule({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRuleQueryKey(options)
+});
+
+export const putRuleMutation = (options?: Partial<Options<PutRuleData>>): UseMutationOptions<PutRuleResponse, PutRuleError, Options<PutRuleData>> => {
+    const mutationOptions: UseMutationOptions<PutRuleResponse, PutRuleError, Options<PutRuleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putRule({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const qualityGapsQueryKey = (options?: Options<QualityGapsData>) => createQueryKey('qualityGaps', options);
+
+export const qualityGapsOptions = (options?: Options<QualityGapsData>) => queryOptions<QualityGapsResponse, QualityGapsError, QualityGapsResponse, ReturnType<typeof qualityGapsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await qualityGaps({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: qualityGapsQueryKey(options)
+});
+
+export const qualityGapsInfiniteQueryKey = (options?: Options<QualityGapsData>): QueryKey<Options<QualityGapsData>> => createQueryKey('qualityGaps', options, true);
+
+export const qualityGapsInfiniteOptions = (options?: Options<QualityGapsData>) => {
+    const opts = infiniteQueryOptions<QualityGapsResponse, QualityGapsError, InfiniteData<QualityGapsResponse>, QueryKey<Options<QualityGapsData>>, number | Pick<QueryKey<Options<QualityGapsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<QualityGapsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    offset: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await qualityGaps({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: qualityGapsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const statusQueryKey = (options?: Options<StatusData>) => createQueryKey('status', options);
 
