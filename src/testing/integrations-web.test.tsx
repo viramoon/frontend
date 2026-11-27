@@ -1,4 +1,3 @@
-import type { RecoveryGapsPage } from '../api/recoveryWeb';
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -16,6 +15,7 @@ import type {
   CatalogEntry,
   Integration,
   MarketResult,
+  QualityGapsPage,
   TestView,
 } from '../api/generated/types.gen';
 import { AppRoutes } from '../app/routes/AppRoutes';
@@ -433,7 +433,8 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
     last_hourly_at: '2000-01-03T11:55:00Z',
     last_full_at: '2000-01-03T03:00:00Z',
   };
-  const snapshot: RecoveryGapsPage = {
+  // Fixed synthetic observations above JS's safe integer range exercise exact display.
+  const snapshot: QualityGapsPage = {
     state: 'available',
     as_of: time,
     next_offset: 20,
@@ -446,7 +447,32 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
           local_durable: '9007199254740999',
           projected: '9007199254740998',
           remote_verified: '9007199254740997',
+          source_latest: {
+            channel: 'bars',
+            instrument_id: 'SPY.SYNTHETIC',
+            epoch: '9007199254740995',
+            seq: '9007199254740993',
+            exchange_ts: null,
+            receive_ts: '947203200000000001',
+          },
         },
+      },
+      {
+        source: 'ibkr',
+        product: 'synthetic-partial',
+        license: 'display_only',
+        watermarks: {
+          local_durable: '0',
+          projected: '0',
+          remote_verified: null,
+          source_latest: null,
+        },
+      },
+      {
+        source: 'ibkr',
+        product: 'synthetic-unavailable',
+        license: 'display_only',
+        watermarks: null,
       },
     ],
     items: [
@@ -504,9 +530,28 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
   expect(field(watermarks, '本机持久位置')).toHaveTextContent(
     '9007199254740999',
   );
+  expect(field(watermarks, '投影位置')).toHaveTextContent('9007199254740998');
   expect(field(watermarks, '远端已验证位置')).toHaveTextContent(
     '9007199254740997',
   );
+  expect(field(watermarks, '源最新位置')).toHaveTextContent(
+    'epoch 9007199254740995 / seq 9007199254740993',
+  );
+  expect(field(watermarks, '源接收时间（ns）')).toHaveTextContent(
+    '947203200000000001',
+  );
+  const partial = within(
+    quality.getByRole('region', { name: 'ibkr synthetic-partial 水位' }),
+  );
+  expect(field(partial, '本机持久位置')).toHaveTextContent(/^0$/);
+  expect(field(partial, '投影位置')).toHaveTextContent(/^0$/);
+  expect(field(partial, '源最新位置')).toHaveTextContent('未知');
+  expect(field(partial, '源接收时间（ns）')).toHaveTextContent('未知');
+  expect(field(partial, '远端已验证位置')).toHaveTextContent('未知');
+  const unavailable = within(
+    quality.getByRole('region', { name: 'ibkr synthetic-unavailable 水位' }),
+  );
+  expect(unavailable.getAllByText('未知')).toHaveLength(5);
   expect(
     quality.getByText(/断连 · 仅 K 线补齐 · 计数 9007199254740999/),
   ).toBeVisible();

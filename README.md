@@ -10,6 +10,8 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 行情面板标注「价量历史」或「订单簿细节」。已提供采集起点的盘口和逐笔显示授权 WAL 中 `first_available_ts` 确认的 UTC 采集日期及返回的样本覆盖，可按 UTC 日期查看。所选区间含采集前日期时显示「采集开始前无细节数据」，跨起点的区间同时显示返回样本。[数据类别与覆盖](src/features/market/README.md#数据类别与覆盖)
 
+客户端锁定 web `6e5fd80`（W6）。系统页使用独立的采集质量水位 schema，以十进制文本显示源最新位置、本机持久位置、投影位置和远端已验证位置。[W6 契约差异](src/api/README.md#w6-契约差异)
+
 ## 本地启动
 
 在仓库根目录加载 fertile 的工具链，执行下列命令。启动 web 后，浏览器打开 Vite 输出的本地地址即可查看仪表盘。
