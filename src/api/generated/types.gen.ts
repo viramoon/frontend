@@ -8,6 +8,12 @@ export type Accepted = {
     id: number;
 };
 
+export type AcceptedSource = {
+    id: string;
+    kind: 'registered';
+    version: string;
+};
+
 export type Activate = {
     test_id: string;
 };
@@ -35,6 +41,20 @@ export type AlertPage = {
     next_cursor?: string | null;
 };
 
+export type AlertUpdate = {
+    acknowledged_at?: string | null;
+    condition: Condition;
+    disposition: Disposition;
+    duplicate_count: number;
+    id: string;
+    last_duplicate_at?: string | null;
+    observed_at: string;
+    phase: Phase;
+    severity: Severity;
+};
+
+export type AssetKind = 'stock' | 'etf' | 'index' | 'spot' | 'perpetual' | 'option' | 'future';
+
 export type AttemptOutcome = 'sending' | 'accepted' | 'timeout' | 'transient' | 'rejected' | 'configuration_error' | 'interrupted';
 
 export type AuthKind = 'none' | 'api_token';
@@ -50,8 +70,20 @@ export type BacktestSummary = {
     pnl: string;
     research?: null | ResearchReport;
     run_id: string;
+    /**
+     * Immutable inputs, versions, cutoff, and economics for a StrategyBundle run.
+     */
+    run_manifest?: {
+        [key: string]: unknown;
+    };
     start: string;
     strategy: string;
+    /**
+     * Exact positions, cash, fills, and per-recipe attribution for a StrategyBundle run.
+     */
+    strategy_report?: {
+        [key: string]: unknown;
+    };
     total_orders: number;
     total_positions: number;
 };
@@ -80,6 +112,22 @@ export type BackupStatus = {
     state: BackupState;
 };
 
+/**
+ * Stable fields from backup status for operational change notifications.
+ */
+export type BackupUpdate = {
+    alert: boolean;
+    degraded: boolean;
+    last_full_at?: string | null;
+    last_hourly_at?: string | null;
+    last_isolated_restore_at?: string | null;
+    last_recoverable_at?: string | null;
+    observed_at?: string | null;
+    state: BackupState;
+};
+
+export type BarIndicator = 'close' | 'volume';
+
 export type BlockedOrder = {
     bar_volume: string;
     execution_session: string;
@@ -87,6 +135,40 @@ export type BlockedOrder = {
     requested_shares: number;
     signal_session: string;
 };
+
+export type BookDelta = {
+    updates: Array<BookUpdate>;
+};
+
+export type BookLevel = {
+    price: DecimalText;
+    quantity: DecimalText;
+};
+
+export type BookSide = 'bid' | 'ask';
+
+export type BookSnapshot = {
+    asks: Array<BookLevel>;
+    bids: Array<BookLevel>;
+};
+
+export type BookState = 'observed' | 'snapshot_required' | 'unknown';
+
+export type BookUpdate = {
+    price: DecimalText;
+    quantity: DecimalText;
+    side: BookSide;
+};
+
+export type BundleRequestView = {
+    content_sha256: string;
+    end: string;
+    source: AcceptedSource;
+    start: string;
+    strategy: BundleStrategy;
+};
+
+export type BundleStrategy = 'StrategyBundle';
 
 export type Calendar = 'XNYS';
 
@@ -133,9 +215,26 @@ export type Check = {
     required: boolean;
 };
 
+export type ClosedBar = {
+    close: DecimalText;
+    high: DecimalText;
+    low: DecimalText;
+    open: DecimalText;
+    open_ts: U64Text;
+    volume: DecimalText;
+};
+
 export type Condition = 'source_unavailable' | 'disk_critical' | 'backup_stale' | 'recovery_verification_failed' | 'market_data_delayed' | 'book_out_of_sync' | 'backfill_failed' | 'backtest_failed' | 'backtest_completed' | 'backup_succeeded' | 'market_anomaly' | 'smtp_unavailable';
 
+export type ConnectionState = 'connected' | 'degraded' | 'disconnected';
+
 export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options' | 'ibkr_paper' | 'strategy_file' | 'research_file' | 'smtp' | 'google_drive';
+
+export type Correction = {
+    replacement: MarketMessage;
+    target_epoch: U64Text;
+    target_seq: U64Text;
+};
 
 export type Coverage = 'full' | 'insufficient';
 
@@ -183,6 +282,8 @@ export type DbStatus = {
     latency_ms?: number | null;
     ok: boolean;
 };
+
+export type DecimalText = string;
 
 export type DeferReason = 'quiet_hours' | 'cooldown' | 'rate_limit';
 
@@ -235,6 +336,13 @@ export type DeliveryKind = 'alert' | 'reminder' | 'recovery' | 'test' | 'outage_
 
 export type DeliveryStatus = 'pending' | 'sending' | 'accepted' | 'failed' | 'summarized' | 'suppressed';
 
+export type DepthFocus = {
+    action: 'set';
+    instrument_id: InstrumentId;
+} | {
+    action: 'clear';
+};
+
 export type Disposition = 'observed' | 'pending' | 'in_app' | 'ignored';
 
 export type DriveMode = 'local_test';
@@ -247,6 +355,62 @@ export type ErrorDetail = {
     code: string;
     message: string;
 };
+
+/**
+ * One event and its position in an instrument stream.
+ */
+export type Event = Message & {
+    asset_kind: AssetKind;
+    channel: Token;
+    cursor: NonEmptyText;
+    epoch: U64Text;
+    exchange_ts: null | string;
+    first_available_ts: U64Text;
+    instrument_id: InstrumentId;
+    license: Token;
+    native_id?: NonEmptyText;
+    product: Token;
+    receive_ts: U64Text;
+    revision: U64Text;
+    schema_version: SchemaVersion;
+    seq: U64Text;
+    source: Token;
+    venue: Venue;
+} & ({
+    kind?: unknown;
+    schema_version?: '1.0';
+} | {
+    asset_kind?: 'perpetual';
+    kind?: 'perpetual_context';
+    revision?: '0';
+    schema_version?: '2.0';
+});
+
+export type EventData = EventPayload & {
+    schema_version: EventSchemaVersion;
+};
+
+export type EventPayload = {
+    job: JobUpdate;
+    kind: 'job';
+} | {
+    alert: AlertUpdate;
+    kind: 'alert';
+} | {
+    backup: BackupUpdate;
+    kind: 'backup';
+} | {
+    kind: 'permissions';
+    products: Array<Product>;
+    state: PermissionsState;
+} | {
+    kind: 'reset';
+    reason: EventResetReason;
+};
+
+export type EventResetReason = 'snapshot_required' | 'cursor_unavailable' | 'alert_window_overrun';
+
+export type EventSchemaVersion = '1.0';
 
 /**
  * An F3 unsigned 64-bit count, position or timestamp transported as decimal text.
@@ -278,10 +442,24 @@ export type Fill = {
     signal_session: string;
 };
 
+export type FinanceLineState = 'finance_contract_pending';
+
 export type FinanceStatus = {
     circuit: string;
     latency_ms: number;
     ok: boolean;
+};
+
+export type FlowMode = 'observed' | 'verified';
+
+export type FocusSelection = {
+    instrument_id: null | InstrumentId;
+};
+
+export type Gap = {
+    from_ts: U64Text;
+    reason: NonEmptyText;
+    to_ts: U64Text;
 };
 
 export type GapCause = 'license_skip' | 'rotation' | 'source_rate_limit' | 'disconnected' | 'source_gap' | 'storage_unavailable';
@@ -292,6 +470,12 @@ export type Health = {
     checks: Array<Check>;
     status: string;
 };
+
+export type Heartbeat = {
+    [key: string]: never;
+};
+
+export type InstrumentId = string;
 
 export type InstrumentStatus = {
     age_seconds?: number | null;
@@ -321,7 +505,7 @@ export type Job = {
     created_at: string;
     error?: string | null;
     id: number;
-    request: JobRequest;
+    request: JobRequestView;
     status: JobStatus;
     summary?: null | BacktestSummary;
 };
@@ -334,7 +518,18 @@ export type JobRequest = {
     strategy: string;
 };
 
+export type JobRequestView = JobRequest | BundleRequestView;
+
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out';
+
+export type JobUpdate = {
+    attempt: number;
+    id: string;
+    /**
+     * Values are queued, running, succeeded, failed or timed_out.
+     */
+    status: string;
+};
 
 export type LocalDrivePreview = {
     available_bytes?: string | null;
@@ -352,15 +547,96 @@ export type LocalEvidence = {
 
 export type LocalProbeResult = 'verified' | 'not_configured' | 'invalid_file' | 'hash_mismatch' | 'invalid_producer_response' | 'tool_unavailable' | 'validation_failed' | 'remote_failed' | 'round_trip_mismatch' | 'cleanup_failed' | 'deadline_exceeded';
 
+export type MarketBook = MarketViewMetadata & {
+    asks?: Array<BookLevel> | null;
+    bids?: Array<BookLevel> | null;
+    observation?: null | Observation;
+    state: BookState;
+};
+
 export type MarketEvidence = {
     observation?: null | MarketObservation;
     result: MarketResult;
+};
+
+export type MarketHistory = MarketViewMetadata & {
+    records: Array<WalRecord>;
+};
+
+export type MarketIndicator = {
+    id: BarIndicator;
+    source_kind: string;
+};
+
+export type MarketIndicatorValue = {
+    record: WalRecord;
+    value: DecimalText;
+};
+
+export type MarketIndicatorValues = MarketViewMetadata & {
+    indicator: BarIndicator;
+    items: Array<MarketIndicatorValue>;
+};
+
+export type MarketIndicators = {
+    items: Array<MarketIndicator>;
+};
+
+export type MarketInstruments = {
+    as_of?: string | null;
+    items: Array<InstrumentStatus>;
+    next_offset?: number | null;
+    source?: string | null;
+    state: string;
+};
+
+/**
+ * The complete replacement value carried by a correction.
+ */
+export type MarketMessage = {
+    kind: 'bar_closed';
+    payload: ClosedBar;
+} | {
+    kind: 'trade';
+    payload: Trade;
+} | {
+    kind: 'snapshot';
+    payload: BookSnapshot;
+} | {
+    kind: 'delta';
+    payload: BookDelta;
 };
 
 export type MarketObservation = {
     details: ObservationDetails;
     observed_at: string;
     origin: ObservationOrigin;
+};
+
+export type MarketProducts = {
+    /**
+     * UTC time at which finance observed this query result.
+     */
+    as_of: string;
+    items: Array<ProductPolicy>;
+    next_offset: number | null;
+};
+
+export type MarketQualityPage = {
+    access: ProductPolicy;
+    /**
+     * UTC time at which finance observed this query result.
+     */
+    as_of: string;
+    items: Array<QualityReport>;
+    next_offset: number | null;
+};
+
+export type MarketQuote = MarketViewMetadata & {
+    ask?: BookLevel | null;
+    bid?: BookLevel | null;
+    observation?: null | Observation;
+    state: BookState;
 };
 
 export type MarketResult = 'verified' | 'market_closed' | 'delayed' | 'frozen' | 'no_permission' | 'lines_full' | 'source_unavailable' | 'disabled' | 'adapter_unavailable' | 'observation_pending' | 'timed_out' | 'invalid_configuration' | 'invalid_response' | 'unsafe_broker_session' | 'evidence_incomplete' | 'stale_observation' | 'replay_only';
@@ -376,6 +652,42 @@ export type MarketStatus = {
     updated_at?: string | null;
 };
 
+export type MarketStreamCommand = {
+    /**
+     * Exclusive decimal-string WAL offset. Omit to start at zero.
+     */
+    after?: string | null;
+    channel: string;
+    instrument_id?: string | null;
+    product: string;
+    source: string;
+    type: 'subscribe';
+    /**
+     * Select the saved depth focus in place of an explicit instrument.
+     */
+    use_depth_focus?: boolean;
+} | {
+    type: 'unsubscribe';
+};
+
+/**
+ * Web controls are distinct from the producer's F1 event envelopes.
+ */
+export type MarketStreamControl = {
+    after: string;
+    type: 'checkpoint';
+} | {
+    reason: ResetReason;
+    type: 'reset';
+} | {
+    code: MarketStreamError;
+    type: 'error';
+} | {
+    type: 'unsubscribed';
+};
+
+export type MarketStreamError = 'authorization_revoked' | 'invalid_subscription' | 'subscription_quota_exceeded' | 'product_unavailable' | 'finance_unavailable';
+
 export type MarketSummary = {
     fresh: boolean;
     instrument_count: number;
@@ -385,11 +697,73 @@ export type MarketSummary = {
     updated_at?: string | null;
 };
 
+export type MarketViewMetadata = {
+    access: ProductPolicy;
+    /**
+     * When finance observed the WAL page.
+     */
+    as_of: string;
+    coverage: WalCoverage;
+    instrument_id: InstrumentId;
+};
+
+export type MarketWalPage = {
+    access: ProductPolicy;
+    /**
+     * UTC time at which finance observed this query result.
+     */
+    as_of: string;
+    durable_through: U64Text;
+    /**
+     * Exclusive cursor for the next page within `through`. Null at the cutoff.
+     */
+    next_after: null | string;
+    records: Array<WalRecord>;
+    through: U64Text;
+};
+
 export type MarketWatermarks = {
-    local_durable: ExactCount;
-    projected: ExactCount;
-    remote_verified?: null | ExactCount;
-    source_latest?: null | SourceObservation;
+    access: ProductPolicy;
+    /**
+     * UTC time at which finance observed this query result.
+     */
+    as_of: string;
+    watermarks: Watermarks;
+};
+
+/**
+ * The event kind tag and its corresponding payload.
+ */
+export type Message = {
+    kind: 'bar_closed';
+    payload: ClosedBar;
+} | {
+    kind: 'trade';
+    payload: Trade;
+} | {
+    kind: 'snapshot';
+    payload: BookSnapshot;
+} | {
+    kind: 'delta';
+    payload: BookDelta;
+} | {
+    kind: 'correction';
+    payload: Correction;
+} | {
+    kind: 'gap';
+    payload: Gap;
+} | {
+    kind: 'reset';
+    payload: Reset;
+} | {
+    kind: 'heartbeat';
+    payload: Heartbeat;
+} | {
+    kind: 'status';
+    payload: Status;
+} | {
+    kind: 'perpetual_context';
+    payload: PerpetualContext;
 };
 
 export type Metrics = {
@@ -403,6 +777,8 @@ export type Metrics = {
     return_pct: string;
 };
 
+export type NonEmptyText = string;
+
 export type NotificationHealth = {
     failure_since?: string | null;
     last_accepted_at?: string | null;
@@ -412,6 +788,16 @@ export type NotificationHealth = {
 };
 
 export type NotificationState = 'idle' | 'healthy' | 'degraded' | 'unavailable';
+
+export type Observation = {
+    channel: string;
+    epoch: string;
+    exchange_ts?: string | null;
+    position: string;
+    receive_ts: string;
+    seq: string;
+    venue: string;
+};
 
 export type ObservationDetails = {
     data: PaperMarketEvidence;
@@ -443,13 +829,46 @@ export type PaperMarketEvidence = {
     unique_market_data_client: boolean;
 };
 
+export type PermissionsState = 'authorized' | 'revoked';
+
+export type PerpetualContext = {
+    funding_rate: DecimalText;
+    mark_price: DecimalText;
+    open_interest: DecimalText;
+};
+
 export type Phase = 'triggered' | 'recovered';
 
 export type PlanVersion = 'fertile.finance/strategy-plan/v1';
 
 export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data' | 'notifications';
 
+export type ProductPolicy = {
+    backup_personal_drive: boolean;
+    derive_non_display: boolean;
+    display_live: boolean;
+    license: Token;
+    product: Token;
+    record_local: boolean;
+    source: Token;
+};
+
+export type ProductToken = string;
+
 export type Profile = 'primary' | 'secondary';
+
+export type ProjectedMarketEvent = {
+    access: ProductPolicy;
+    /**
+     * UTC time at which finance observed this query result.
+     */
+    as_of: string;
+    projected_through: U64Text;
+    /**
+     * The committed original event or latest correction envelope for the supplied F1 key.
+     */
+    record: WalRecord;
+};
 
 export type QualityCoverage = {
     license: string;
@@ -484,7 +903,22 @@ export type QualityGapsPage = {
     state: QualityState;
 };
 
+export type QualityReport = {
+    cause: GapCause;
+    channel: Token;
+    /**
+     * Number of recovered items, or number known missing for an unrecoverable interval.
+     */
+    count: null | string;
+    from_ts: U64Text;
+    instrument_id: InstrumentId;
+    outcome: null | RecoveryOutcome;
+    to_ts: U64Text;
+};
+
 export type QualityState = 'unavailable' | 'available';
+
+export type RecoveryOutcome = 'tick_backfilled' | 'bar_backfilled' | 'book_restored_from_snapshot' | 'history_unrecoverable';
 
 export type ResearchLicense = 'synthetic' | 'private_research';
 
@@ -517,6 +951,12 @@ export type ResearchReport = {
     warmup_sessions: number;
     windows: Array<Window>;
 };
+
+export type Reset = {
+    reason: NonEmptyText;
+};
+
+export type ResetReason = 'consumer_lagged' | 'cursor_unavailable' | 'discontinuity' | 'snapshot_required' | 'unsupported_version';
 
 export type Rollback = {
     version: number;
@@ -552,6 +992,8 @@ export type RulePage = {
     next_cursor?: string | null;
 };
 
+export type SchemaVersion = '1.0' | '2.0';
+
 export type SessionCreated = {
     csrf_token: string;
     /**
@@ -567,16 +1009,49 @@ export type Settings = {
 
 export type Severity = 'informational' | 'important' | 'urgent';
 
-export type SourceObservation = {
-    channel: string;
-    epoch: ExactCount;
-    exchange_ts?: null | ExactCount;
-    instrument_id: string;
+export type Silence = {
+    end_action?: null | SilenceEndAction;
+    ended_at?: string | null;
+    ended_by?: string | null;
+    reason: string;
+    started_at: string;
+    started_by: string;
+    until: string;
+};
+
+export type SilenceEndAction = 'released' | 'replaced';
+
+export type SilenceRequest = {
     /**
-     * UTC nanoseconds since the Unix epoch, as observed by the collector.
+     * Single-line operational reason. The server trims surrounding whitespace,
+     * then requires 1–256 Unicode characters.
      */
-    receive_ts: ExactCount;
-    seq: ExactCount;
+    reason: string;
+    /**
+     * Future deadline in RFC 3339 format.
+     */
+    until: string;
+};
+
+export type SilenceStatus = {
+    /**
+     * Whether the latest silence applies at the time of the response.
+     */
+    active: boolean;
+    silence?: null | Silence;
+};
+
+export type SourceObservation = {
+    channel: Token;
+    epoch: U64Text;
+    exchange_ts: null | string;
+    instrument_id: InstrumentId;
+    receive_ts: U64Text;
+    seq: U64Text;
+};
+
+export type Status = {
+    state: ConnectionState;
 };
 
 export type StrategyParams = {
@@ -596,6 +1071,23 @@ export type StrategyPreview = {
 };
 
 export type Subject = 'anonymous' | 'admin';
+
+export type SubscriptionQuota = {
+    active: number;
+    available: number;
+    limit: number;
+};
+
+export type Subscriptions = {
+    /**
+     * Readiness of the broker line contract. Web slots do not consume broker lines.
+     */
+    finance_lines: FinanceLineState;
+    /**
+     * Allocated market subscriptions in this web process.
+     */
+    web: SubscriptionQuota;
+};
 
 export type SuppressionReason = 'rule_disabled' | 'rule_changed' | 'incident_recovered';
 
@@ -637,12 +1129,34 @@ export type TestView = {
     status: TestStatus;
 };
 
+export type Token = string;
+
+export type Trade = {
+    price: DecimalText;
+    quantity: DecimalText;
+    side: TradeSide;
+};
+
+export type TradeSide = 'buy' | 'sell' | 'unknown';
+
+export type U64Text = string;
+
 export type Update = {
     action: 'configure';
     settings: Settings;
 } | {
     action: 'disable';
 };
+
+export type UpdateWatchlist = {
+    /**
+     * Unique F1 identifiers, in the order to store and display.
+     */
+    instrument_ids: Array<InstrumentId>;
+    revision: number;
+};
+
+export type Venue = string;
 
 export type VersionState = 'draft' | 'candidate' | 'active' | 'disabled';
 
@@ -651,6 +1165,45 @@ export type VersionView = {
     settings: Settings;
     state: VersionState;
     version: number;
+};
+
+export type WalCoverage = {
+    /**
+     * Exclusive beginning of the observed WAL page.
+     */
+    after: string;
+    durable_through: string;
+    /**
+     * Null when the requested cutoff was reached.
+     */
+    next_after?: string | null;
+    scanned_records: number;
+    /**
+     * Inclusive cutoff for continuing the same WAL read.
+     */
+    through: string;
+};
+
+/**
+ * A committed event and its WAL-local position and writer generation.
+ */
+export type WalRecord = {
+    event: Event;
+    generation: U64Text;
+    position: U64Text;
+};
+
+export type Watchlist = {
+    id: string;
+    instrument_ids: Array<InstrumentId>;
+    revision: number;
+};
+
+export type Watermarks = {
+    local_durable: U64Text;
+    projected: U64Text;
+    remote_verified: null | string;
+    source_latest: null | SourceObservation;
 };
 
 export type WebStatus = {
@@ -855,6 +1408,108 @@ export type AckAlertResponses = {
 
 export type AckAlertResponse = AckAlertResponses[keyof AckAlertResponses];
 
+export type DeleteAlertSilenceData = {
+    body?: never;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/alerts/{id}/silence';
+};
+
+export type DeleteAlertSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type DeleteAlertSilenceError = DeleteAlertSilenceErrors[keyof DeleteAlertSilenceErrors];
+
+export type DeleteAlertSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type DeleteAlertSilenceResponse = DeleteAlertSilenceResponses[keyof DeleteAlertSilenceResponses];
+
+export type GetAlertSilenceData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/alerts/{id}/silence';
+};
+
+export type GetAlertSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type GetAlertSilenceError = GetAlertSilenceErrors[keyof GetAlertSilenceErrors];
+
+export type GetAlertSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type GetAlertSilenceResponse = GetAlertSilenceResponses[keyof GetAlertSilenceResponses];
+
+export type PutAlertSilenceData = {
+    body: SilenceRequest;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/alerts/{id}/silence';
+};
+
+export type PutAlertSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type PutAlertSilenceError = PutAlertSilenceErrors[keyof PutAlertSilenceErrors];
+
+export type PutAlertSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type PutAlertSilenceResponse = PutAlertSilenceResponses[keyof PutAlertSilenceResponses];
+
 export type ListData = {
     body?: never;
     path?: never;
@@ -1049,6 +1704,132 @@ export type BackupStatusResponses = {
 };
 
 export type BackupStatusResponse = BackupStatusResponses[keyof BackupStatusResponses];
+
+export type ReadEventsData = {
+    body?: never;
+    headers?: {
+        /**
+         * Opaque text ID from the last successfully handled event
+         */
+        'Last-Event-ID'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/events';
+};
+
+export type ReadEventsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type ReadEventsError = ReadEventsErrors[keyof ReadEventsErrors];
+
+export type ReadEventsResponses = {
+    /**
+     * Operational SSE. Each data line is JSON EventData. On reset, reload authorized REST snapshots.
+     */
+    200: string;
+};
+
+export type ReadEventsResponse = ReadEventsResponses[keyof ReadEventsResponses];
+
+export type HeadEventsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/events';
+};
+
+export type HeadEventsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+};
+
+export type HeadEventsError = HeadEventsErrors[keyof HeadEventsErrors];
+
+export type HeadEventsResponses = {
+    /**
+     * Authenticated event stream metadata
+     */
+    200: unknown;
+};
+
+export type MarketIndicatorsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/indicators';
+};
+
+export type MarketIndicatorsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+};
+
+export type MarketIndicatorsError = MarketIndicatorsErrors[keyof MarketIndicatorsErrors];
+
+export type MarketIndicatorsResponses = {
+    200: MarketIndicators;
+};
+
+export type MarketIndicatorsResponse = MarketIndicatorsResponses[keyof MarketIndicatorsResponses];
+
+export type MarketIndicatorValuesData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel?: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        from?: string;
+        until?: string;
+        as_of?: string;
+        /**
+         * Required for the indicator values query.
+         */
+        indicator: string;
+    };
+    url: '/api/v1/indicators/values';
+};
+
+export type MarketIndicatorValuesErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketIndicatorValuesError = MarketIndicatorValuesErrors[keyof MarketIndicatorValuesErrors];
+
+export type MarketIndicatorValuesResponses = {
+    200: MarketIndicatorValues;
+};
+
+export type MarketIndicatorValuesResponse = MarketIndicatorValuesResponses[keyof MarketIndicatorValuesResponses];
 
 export type GetTestData = {
     body?: never;
@@ -1485,6 +2266,376 @@ export type GetScopedTestResponses = {
 
 export type GetScopedTestResponse = GetScopedTestResponses[keyof GetScopedTestResponses];
 
+export type MarketBarsData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel?: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        from?: string;
+        until?: string;
+        as_of?: string;
+    };
+    url: '/api/v1/market/bars';
+};
+
+export type MarketBarsErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketBarsError = MarketBarsErrors[keyof MarketBarsErrors];
+
+export type MarketBarsResponses = {
+    200: MarketHistory;
+};
+
+export type MarketBarsResponse = MarketBarsResponses[keyof MarketBarsResponses];
+
+export type MarketBookData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id?: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        as_of?: string;
+    };
+    url: '/api/v1/market/book';
+};
+
+export type MarketBookErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketBookError = MarketBookErrors[keyof MarketBookErrors];
+
+export type MarketBookResponses = {
+    200: MarketBook;
+};
+
+export type MarketBookResponse = MarketBookResponses[keyof MarketBookResponses];
+
+export type GetMarketDepthFocusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/market/depth-focus';
+};
+
+export type GetMarketDepthFocusErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+};
+
+export type GetMarketDepthFocusError = GetMarketDepthFocusErrors[keyof GetMarketDepthFocusErrors];
+
+export type GetMarketDepthFocusResponses = {
+    200: FocusSelection;
+};
+
+export type GetMarketDepthFocusResponse = GetMarketDepthFocusResponses[keyof GetMarketDepthFocusResponses];
+
+export type SetMarketDepthFocusData = {
+    body: DepthFocus;
+    headers?: {
+        /**
+         * Required for browser sessions
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/market/depth-focus';
+};
+
+export type SetMarketDepthFocusErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    413: ErrorBody;
+    429: ErrorBody;
+    504: ErrorBody;
+};
+
+export type SetMarketDepthFocusError = SetMarketDepthFocusErrors[keyof SetMarketDepthFocusErrors];
+
+export type SetMarketDepthFocusResponses = {
+    200: FocusSelection;
+};
+
+export type SetMarketDepthFocusResponse = SetMarketDepthFocusResponses[keyof SetMarketDepthFocusResponses];
+
+export type MarketDerivativesData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel?: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        from?: string;
+        until?: string;
+        as_of?: string;
+    };
+    url: '/api/v1/market/derivatives';
+};
+
+export type MarketDerivativesErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketDerivativesError = MarketDerivativesErrors[keyof MarketDerivativesErrors];
+
+export type MarketDerivativesResponses = {
+    200: MarketHistory;
+};
+
+export type MarketDerivativesResponse = MarketDerivativesResponses[keyof MarketDerivativesResponses];
+
+export type MarketInstrumentsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: ProductToken;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/market/instruments';
+};
+
+export type MarketInstrumentsErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketInstrumentsError = MarketInstrumentsErrors[keyof MarketInstrumentsErrors];
+
+export type MarketInstrumentsResponses = {
+    200: MarketInstruments;
+};
+
+export type MarketInstrumentsResponse = MarketInstrumentsResponses[keyof MarketInstrumentsResponses];
+
+export type MarketProductsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/market/products';
+};
+
+export type MarketProductsErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketProductsError = MarketProductsErrors[keyof MarketProductsErrors];
+
+export type MarketProductsResponses = {
+    200: MarketProducts;
+};
+
+export type MarketProductsResponse = MarketProductsResponses[keyof MarketProductsResponses];
+
+export type MarketProjectedEventData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: string;
+        product: string;
+        channel: string;
+        instrument_id: string;
+        epoch: string;
+        seq: string;
+    };
+    url: '/api/v1/market/projection/latest';
+};
+
+export type MarketProjectedEventErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketProjectedEventError = MarketProjectedEventErrors[keyof MarketProjectedEventErrors];
+
+export type MarketProjectedEventResponses = {
+    200: ProjectedMarketEvent;
+};
+
+export type MarketProjectedEventResponse = MarketProjectedEventResponses[keyof MarketProjectedEventResponses];
+
+export type MarketQuotesData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        as_of?: string;
+    };
+    url: '/api/v1/market/quotes';
+};
+
+export type MarketQuotesErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketQuotesError = MarketQuotesErrors[keyof MarketQuotesErrors];
+
+export type MarketQuotesResponses = {
+    200: MarketQuote;
+};
+
+export type MarketQuotesResponse = MarketQuotesResponses[keyof MarketQuotesResponses];
+
 export type MarketStatusData = {
     body?: never;
     path?: never;
@@ -1505,6 +2656,179 @@ export type MarketStatusResponses = {
 };
 
 export type MarketStatusResponse = MarketStatusResponses[keyof MarketStatusResponses];
+
+export type MarketSubscriptionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/market/subscriptions';
+};
+
+export type MarketSubscriptionsErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+};
+
+export type MarketSubscriptionsError = MarketSubscriptionsErrors[keyof MarketSubscriptionsErrors];
+
+export type MarketSubscriptionsResponses = {
+    200: Subscriptions;
+};
+
+export type MarketSubscriptionsResponse = MarketSubscriptionsResponses[keyof MarketSubscriptionsResponses];
+
+export type MarketTradesData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: ProductToken;
+        product: ProductToken;
+        /**
+         * Required except for depth book reads with an active focus.
+         */
+        instrument_id: InstrumentId;
+        /**
+         * Required for quotes and book, to avoid mixing channels.
+         */
+        channel?: ProductToken;
+        /**
+         * The exclusive WAL position preceding this page. Defaults to the recent committed window.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff. Preserve it when following next_after.
+         */
+        through?: string;
+        limit?: number;
+        from?: string;
+        until?: string;
+        as_of?: string;
+    };
+    url: '/api/v1/market/trades';
+};
+
+export type MarketTradesErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    429: ErrorBody;
+    502: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type MarketTradesError = MarketTradesErrors[keyof MarketTradesErrors];
+
+export type MarketTradesResponses = {
+    200: MarketHistory;
+};
+
+export type MarketTradesResponse = MarketTradesResponses[keyof MarketTradesResponses];
+
+export type MarketWalData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: string;
+        product: string;
+        /**
+         * Exclusive WAL cursor. Omit to start from position zero.
+         */
+        after?: string;
+        /**
+         * Inclusive WAL cutoff from a previous page. Omit to use the latest committed prefix.
+         */
+        through?: string;
+        limit?: number;
+    };
+    url: '/api/v1/market/wal';
+};
+
+export type MarketWalErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketWalError = MarketWalErrors[keyof MarketWalErrors];
+
+export type MarketWalResponses = {
+    200: MarketWalPage;
+};
+
+export type MarketWalResponse = MarketWalResponses[keyof MarketWalResponses];
+
+export type MarketWatermarksData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: string;
+        product: string;
+    };
+    url: '/api/v1/market/watermarks';
+};
+
+export type MarketWatermarksErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketWatermarksError = MarketWatermarksErrors[keyof MarketWatermarksErrors];
+
+export type MarketWatermarksResponses = {
+    200: MarketWatermarks;
+};
+
+export type MarketWatermarksResponse = MarketWatermarksResponses[keyof MarketWatermarksResponses];
 
 export type CapabilitiesData = {
     body?: never;
@@ -1690,6 +3014,243 @@ export type PutRuleResponses = {
 
 export type PutRuleResponse = PutRuleResponses[keyof PutRuleResponses];
 
+export type DeleteRuleSilenceData = {
+    body?: never;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-rules/{id}/silence';
+};
+
+export type DeleteRuleSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type DeleteRuleSilenceError = DeleteRuleSilenceErrors[keyof DeleteRuleSilenceErrors];
+
+export type DeleteRuleSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type DeleteRuleSilenceResponse = DeleteRuleSilenceResponses[keyof DeleteRuleSilenceResponses];
+
+export type GetRuleSilenceData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-rules/{id}/silence';
+};
+
+export type GetRuleSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type GetRuleSilenceError = GetRuleSilenceErrors[keyof GetRuleSilenceErrors];
+
+export type GetRuleSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type GetRuleSilenceResponse = GetRuleSilenceResponses[keyof GetRuleSilenceResponses];
+
+export type PutRuleSilenceData = {
+    body: SilenceRequest;
+    headers?: {
+        /**
+         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         */
+        Origin?: string | null;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/notification-rules/{id}/silence';
+};
+
+export type PutRuleSilenceErrors = {
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    413: ErrorBody;
+    422: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type PutRuleSilenceError = PutRuleSilenceErrors[keyof PutRuleSilenceErrors];
+
+export type PutRuleSilenceResponses = {
+    200: SilenceStatus;
+};
+
+export type PutRuleSilenceResponse = PutRuleSilenceResponses[keyof PutRuleSilenceResponses];
+
+export type OptionsChainData = {
+    body?: never;
+    path?: never;
+    query: {
+        instrument_id: InstrumentId;
+        as_of?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/options/chain';
+};
+
+export type OptionsChainErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    /**
+     * Finance contract pending
+     */
+    503: ErrorBody;
+};
+
+export type OptionsChainError = OptionsChainErrors[keyof OptionsChainErrors];
+
+export type OptionsExposureData = {
+    body?: never;
+    path?: never;
+    query: {
+        instrument_id: InstrumentId;
+        scenario?: ProductToken;
+        as_of?: string;
+    };
+    url: '/api/v1/options/exposure';
+};
+
+export type OptionsExposureErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    /**
+     * Finance contract pending
+     */
+    503: ErrorBody;
+};
+
+export type OptionsExposureError = OptionsExposureErrors[keyof OptionsExposureErrors];
+
+export type OptionsFlowData = {
+    body?: never;
+    path?: never;
+    query: {
+        instrument_id: InstrumentId;
+        mode?: FlowMode;
+        from?: string;
+        until?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/options/flow';
+};
+
+export type OptionsFlowErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    /**
+     * Finance contract pending
+     */
+    503: ErrorBody;
+};
+
+export type OptionsFlowError = OptionsFlowErrors[keyof OptionsFlowErrors];
+
+export type MarketFinanceGapsData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: string;
+        product: string;
+        channel?: string;
+        instrument_id?: string;
+        /**
+         * Inclusive UTC Unix nanosecond bound of the search window.
+         */
+        from_ts?: string;
+        /**
+         * Exclusive UTC Unix nanosecond bound of the search window.
+         */
+        to_ts?: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/quality/finance-gaps';
+};
+
+export type MarketFinanceGapsErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketFinanceGapsError = MarketFinanceGapsErrors[keyof MarketFinanceGapsErrors];
+
+export type MarketFinanceGapsResponses = {
+    200: MarketQualityPage;
+};
+
+export type MarketFinanceGapsResponse = MarketFinanceGapsResponses[keyof MarketFinanceGapsResponses];
+
 export type QualityGapsData = {
     body?: never;
     path?: never;
@@ -1722,6 +3283,26 @@ export type QualityGapsResponses = {
 
 export type QualityGapsResponse = QualityGapsResponses[keyof QualityGapsResponses];
 
+export type MarketStreamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/stream/market';
+};
+
+export type MarketStreamErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    /**
+     * Finance is unreachable
+     */
+    503: ErrorBody;
+};
+
+export type MarketStreamError2 = MarketStreamErrors[keyof MarketStreamErrors];
+
 export type StatusData = {
     body?: never;
     path?: never;
@@ -1734,6 +3315,65 @@ export type StatusResponses = {
 };
 
 export type StatusResponse = StatusResponses[keyof StatusResponses];
+
+export type GetWatchlistData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/watchlists/{id}';
+};
+
+export type GetWatchlistErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+};
+
+export type GetWatchlistError = GetWatchlistErrors[keyof GetWatchlistErrors];
+
+export type GetWatchlistResponses = {
+    200: Watchlist;
+};
+
+export type GetWatchlistResponse = GetWatchlistResponses[keyof GetWatchlistResponses];
+
+export type PutWatchlistData = {
+    body: UpdateWatchlist;
+    headers?: {
+        /**
+         * Required for browser sessions
+         */
+        'X-CSRF-Token'?: string | null;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/watchlists/{id}';
+};
+
+export type PutWatchlistErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    409: ErrorBody;
+    413: ErrorBody;
+    429: ErrorBody;
+    503: ErrorBody;
+    504: ErrorBody;
+};
+
+export type PutWatchlistError = PutWatchlistErrors[keyof PutWatchlistErrors];
+
+export type PutWatchlistResponses = {
+    200: Watchlist;
+};
+
+export type PutWatchlistResponse = PutWatchlistResponses[keyof PutWatchlistResponses];
 
 export type LiveData = {
     body?: never;
