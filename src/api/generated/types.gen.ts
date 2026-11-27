@@ -59,6 +59,11 @@ export type AttemptOutcome = 'sending' | 'accepted' | 'timeout' | 'transient' | 
 
 export type AuthKind = 'none' | 'api_token';
 
+/**
+ * The earliest usable point within or after the identified session.
+ */
+export type Availability = 'session_open' | 'session_close' | 'after_session_close' | 'next_session_close';
+
 export type BacktestSummary = {
     currency: string;
     end: string;
@@ -128,6 +133,33 @@ export type BackupUpdate = {
 
 export type BarIndicator = 'close' | 'volume';
 
+export type Bars = {
+    asset: string;
+    available_at: Availability;
+    calendar: string;
+    currency: string;
+    id: string;
+    price_basis: string;
+    timeframe: string;
+};
+
+export type BaselineCohort = {
+    expiry: string;
+    /**
+     * Zero-based 30-minute segment since the start of this liquid session.
+     */
+    session_segment: number;
+    underlying_con_id: number;
+};
+
+/**
+ * Exact contracts-per-millisecond ratio for the typical rate.
+ */
+export type BaselineVolumeRate = {
+    contracts: string;
+    elapsed_millis: number;
+};
+
 export type BlockedOrder = {
     bar_volume: string;
     execution_session: string;
@@ -160,6 +192,19 @@ export type BookUpdate = {
     side: BookSide;
 };
 
+export type BudgetStatus = {
+    account_lines: number;
+    as_of: string;
+    confirmed_options: number;
+    discovery_complete: boolean;
+    hot_lines: number;
+    observed_options: number;
+    phase: SchedulerPhase;
+    reserve_lines: number;
+    rotation_lines: number;
+    stock_lines: number;
+};
+
 export type BundleRequestView = {
     content_sha256: string;
     end: string;
@@ -169,6 +214,13 @@ export type BundleRequestView = {
 };
 
 export type BundleStrategy = 'StrategyBundle';
+
+export type BundleSubmission = {
+    end: string;
+    source: StrategySource;
+    start: string;
+    strategy: BundleStrategy;
+};
 
 export type Calendar = 'XNYS';
 
@@ -224,11 +276,89 @@ export type ClosedBar = {
     volume: DecimalText;
 };
 
+export type CompiledComponent = {
+    available_at: Availability;
+    component: string;
+    depends_on: Array<string>;
+    kind: string;
+    local_id: string;
+    /**
+     * Explicit output selection for an indicator used as a scalar factor.
+     */
+    output?: string | null;
+    warmup_sessions: number;
+};
+
+export type CompiledPlan = {
+    /**
+     * Canonical document conforming to the separate StrategyBundle v1 schema.
+     */
+    bundle: {
+        [key: string]: unknown;
+    };
+    conflict_rules: ConflictRules;
+    /**
+     * SHA-256 of the canonical bundle.
+     */
+    content_sha256: string;
+    execution: string;
+    factors: Array<CompiledComponent>;
+    inputs: ResolvedInputs;
+    modules: Array<CompiledComponent>;
+    plan_version: string;
+    sleeves: Array<CompiledSleeve>;
+    /**
+     * SHA-256 of the submitted source bytes.
+     */
+    source_sha256: string;
+};
+
+export type CompiledSleeve = {
+    budget_weight: string;
+    priority: number;
+    recipe: string;
+};
+
 export type Condition = 'source_unavailable' | 'disk_critical' | 'backup_stale' | 'recovery_verification_failed' | 'market_data_delayed' | 'book_out_of_sync' | 'backfill_failed' | 'backtest_failed' | 'backtest_completed' | 'backup_succeeded' | 'market_anomaly' | 'smtp_unavailable';
+
+export type ConditionInterpretation = {
+    mapping_version: Token;
+    meaning: ConditionMeaning;
+};
+
+export type ConditionMeaning = {
+    status: 'empty';
+} | {
+    status: 'unrecognized';
+} | {
+    condition: MappedCondition;
+    status: 'mapped';
+};
+
+export type ConflictRules = {
+    decision_snapshot: string;
+    duplicate_intents: string;
+    equal_priority: string;
+    missing_input: string;
+    on_entry_exit_collision: string;
+    on_missing_execution_price: string;
+    phase_order: Array<string>;
+    position_change_order: Array<string>;
+    priority: string;
+    same_session_reentry: boolean;
+    sleeve_accounting: string;
+    target_constraints_order: Array<string>;
+    whole_lot_remainder_order: Array<string>;
+};
 
 export type ConnectionState = 'connected' | 'degraded' | 'disconnected';
 
 export type Connector = 'binance_spot' | 'binance_usd_m' | 'hyperliquid_perp' | 'licensed_options' | 'ibkr_paper' | 'strategy_file' | 'research_file' | 'smtp' | 'google_drive';
+
+export type ContractVolatility = {
+    implied_volatility: DecimalText;
+    instrument_id: InstrumentId;
+};
 
 export type Correction = {
     replacement: MarketMessage;
@@ -281,6 +411,13 @@ export type DatasetList = {
 export type DbStatus = {
     latency_ms?: number | null;
     ok: boolean;
+};
+
+export type DealerScenario = 'absolute' | 'dealer_short' | 'dealer_long' | 'call_long_put_short';
+
+export type DecimalObservation = {
+    observed_at: string;
+    value: DecimalText;
 };
 
 export type DecimalText = string;
@@ -336,12 +473,51 @@ export type DeliveryKind = 'alert' | 'reminder' | 'recovery' | 'test' | 'outage_
 
 export type DeliveryStatus = 'pending' | 'sending' | 'accepted' | 'failed' | 'summarized' | 'suppressed';
 
+export type DepthBook = {
+    access: ProductPolicy;
+    asks: Array<DepthLevel>;
+    bids: Array<DepthLevel>;
+    failure?: null | DepthError;
+    /**
+     * Null when no request-specific data type is supplied by the upstream.
+     */
+    market_data_type?: number | null;
+    permissions: DepthPermissions;
+    received_at?: string | null;
+    requested_rows: number;
+    returned_rows: number;
+    state: DepthBookState;
+    symbol: DepthSymbol;
+    venue: string;
+};
+
+export type DepthBookState = 'permission_unconfirmed' | 'awaiting' | 'receiving' | 'reset' | 'inactive' | 'failed';
+
+export type DepthError = 'unsupported_symbol' | 'invalid_focus' | 'invalid_request' | 'unconfirmed_contract' | 'not_entitled' | 'capacity' | 'competing_session' | 'pacing' | 'timeout' | 'disconnected' | 'transport' | 'stream_ended' | 'invalid_callback' | 'cancel_failed';
+
 export type DepthFocus = {
     action: 'set';
     instrument_id: InstrumentId;
 } | {
     action: 'clear';
 };
+
+export type DepthLevel = {
+    price: DecimalText;
+    size: DecimalText;
+};
+
+/**
+ * Operator confirmations from the paper user's market data entitlement review.
+ * Depth callbacks do not identify the individual account products.
+ */
+export type DepthPermissions = {
+    eds_confirmed: boolean;
+    equity_l1_confirmed: boolean;
+    totalview_confirmed: boolean;
+};
+
+export type DepthSymbol = 'QQQ' | 'AAPL' | 'MSFT' | 'NVDA' | 'AMZN' | 'GOOGL' | 'META' | 'TSLA';
 
 export type Disposition = 'observed' | 'pending' | 'in_app' | 'ignored';
 
@@ -353,8 +529,28 @@ export type ErrorBody = {
 
 export type ErrorDetail = {
     code: string;
+    location?: null | ErrorLocation;
     message: string;
+    /**
+     * JSON Pointer from the strategy compiler.
+     */
+    path?: string | null;
 };
+
+export type ErrorLocation = {
+    /**
+     * One-based column in the uploaded document.
+     */
+    column: number;
+    /**
+     * One-based line in the uploaded document.
+     */
+    line: number;
+};
+
+export type EstimatedSide = 'estimated_buy' | 'estimated_sell' | 'unknown';
+
+export type EvaluationPhase = 'train' | 'validation' | 'out_of_sample';
 
 /**
  * One event and its position in an instrument stream.
@@ -417,6 +613,17 @@ export type EventSchemaVersion = '1.0';
  */
 export type ExactCount = string;
 
+/**
+ * Independent counts. A contract may contribute to several exclusion reasons.
+ */
+export type Exclusions = {
+    missing_gamma: number;
+    missing_open_interest: number;
+    spot_gamma_skew: number;
+    stale_gamma: number;
+    stale_spot: number;
+};
+
 export type ExecutionAudit = {
     blocked_insufficient_cash: number;
     blocked_insufficient_volume: number;
@@ -428,6 +635,205 @@ export type ExecutionAudit = {
 };
 
 export type ExecutionModel = 'execution.next_close_cash_equity@1.0.0';
+
+export type ExpiryExposure = {
+    expiry: string;
+    totals: ExposureTotals;
+};
+
+export type ExposureCoverage = {
+    candidate_contracts: number;
+    eligible_open_interest: DecimalText;
+    exclusions: Exclusions;
+    gamma_observed?: null | ObservationRange;
+    max_oi_gamma_skew?: null | ObservationSkew;
+    observed: ObservationRange;
+    open_interest_dates: Array<string>;
+    open_interest_observed?: null | ObservationRange;
+    partial: boolean;
+    total_open_interest?: null | DecimalText;
+    unconfirmed_open_interest_dates: number;
+    universe_complete: boolean;
+    valid_contracts: number;
+};
+
+export type ExposureReport = {
+    all: ExposureView;
+    as_of: string;
+    gamma_grid?: null | GammaGridProvenance;
+    later: ExposureView;
+    model_version: string;
+    scenario: DealerScenario;
+    session_date: string;
+    spot: DecimalObservation;
+    timing: TimingPolicy;
+    underlying_id: InstrumentId;
+    zero_dte: ExposureView;
+};
+
+export type ExposureTotals = {
+    absolute?: null | DecimalText;
+    gex?: null | DecimalText;
+};
+
+export type ExposureView = {
+    by_expiry: Array<ExpiryExposure>;
+    by_strike: Array<StrikeExposure>;
+    coverage: ExposureCoverage;
+    flip: GammaFlip;
+    totals: ExposureTotals;
+    walls: GammaWalls;
+};
+
+/**
+ * Exact fixed-point Decimal text at F8 precision.
+ */
+export type FactorDecimal = string;
+
+export type FactorDetails = {
+    asset_scope: Array<string>;
+    availability_rule: string;
+    data_version: string;
+    definition: string;
+    history: Array<Transition>;
+    kind: 'factor';
+    missing_policy: string;
+    parameters: {
+        [key: string]: Parameter;
+    };
+    unit: string;
+    warmup_sessions: string;
+} | {
+    decision: HistoricalDecision;
+    kind: 'historical_research';
+    source_commit: string;
+    /**
+     * Repository-relative pointer to the original, hash-verified report.
+     */
+    summary_ref: string;
+};
+
+export type FactorDistribution = {
+    count: number;
+    mean?: null | FactorDecimal;
+    ratio?: null | FactorDecimal;
+    sample_std?: null | FactorDecimal;
+};
+
+export type FactorEvaluationDetail = {
+    as_of: string;
+    item: FactorEvaluationItem;
+    schema_version: number;
+};
+
+export type FactorEvaluationItem = {
+    access: FactorReadAccess;
+    cost_bps: FactorDecimal;
+    data_version: string;
+    evaluation_id: string;
+    factor_id: string;
+    peer_factors: Array<FactorPeer>;
+    quantile_count: number;
+    version: string;
+    windows: Array<FactorWindowSummary>;
+};
+
+export type FactorEvaluationPage = {
+    /**
+     * Snapshot publication time, or null when no offline snapshot has been published.
+     */
+    as_of?: string | null;
+    items: Array<FactorEvaluationItem>;
+    next_cursor?: string | null;
+    schema_version: number;
+};
+
+/**
+ * Signed integer in canonical decimal text.
+ */
+export type FactorInteger = string;
+
+export type FactorPeer = {
+    access: FactorReadAccess;
+    data_version: string;
+    factor_id: string;
+    version: string;
+};
+
+export type FactorPortfolioSummary = {
+    cumulative_gross_return?: null | FactorDecimal;
+    cumulative_net_return?: null | FactorDecimal;
+    gross_observations: number;
+    net_observations: number;
+    periods: number;
+    total_fee_fraction?: null | FactorDecimal;
+    total_turnover?: null | FactorDecimal;
+    turnover_observations: number;
+};
+
+export type FactorReadAccess = {
+    derive_non_display: boolean;
+    license: string;
+    record_local: boolean;
+    redistribute: boolean;
+};
+
+export type FactorReadItem = {
+    access: FactorReadAccess;
+    details: FactorDetails;
+    factor_id: string;
+    selectable_for_backtest: boolean;
+    state: FactorState;
+    tradable: boolean;
+    version: string;
+};
+
+export type FactorReadPage = {
+    /**
+     * Snapshot publication time, or null when no offline snapshot has been published.
+     */
+    as_of?: string | null;
+    items: Array<FactorReadItem>;
+    next_cursor?: string | null;
+    schema_version: number;
+};
+
+export type FactorState = 'research' | 'out_of_sample_validation' | 'observe_only' | 'backtest_selectable' | 'research_only';
+
+export type FactorWindowBounds = {
+    /**
+     * Inclusive last research session.
+     */
+    end: string;
+    name: string;
+    phase: EvaluationPhase;
+    /**
+     * Inclusive first research session.
+     */
+    start: string;
+};
+
+export type FactorWindowSummary = {
+    benchmark: FactorPortfolioSummary;
+    factor_coverage?: null | FactorDecimal;
+    gross_information: FactorDistribution;
+    /**
+     * Information coefficient distributions keyed by horizon in sessions (`1`, `5`, `20`).
+     */
+    ic: {
+        [key: string]: FactorDistribution;
+    };
+    net_information: FactorDistribution;
+    quantiles: Array<FactorPortfolioSummary>;
+    /**
+     * Cross-sectional rank correlation distributions keyed by peer `factor_id@version`.
+     */
+    redundancy: {
+        [key: string]: FactorDistribution;
+    };
+    scored_coverage?: null | FactorDecimal;
+    window: FactorWindowBounds;
+};
 
 export type FeeClass = 'free' | 'unavailable';
 
@@ -450,7 +856,31 @@ export type FinanceStatus = {
     ok: boolean;
 };
 
+export type FlipCrossing = {
+    /**
+     * Adjacent opposite-sign samples, or the extent of a sampled zero run between opposite signs.
+     */
+    lower_spot: DecimalText;
+    upper_spot: DecimalText;
+};
+
+export type FlipUnavailableReason = 'not_directional_scenario' | 'no_gamma_grid' | 'no_eligible_contracts' | 'missing_contract_gamma';
+
 export type FlowMode = 'observed' | 'verified';
+
+/**
+ * No trade ID, direction, or participant is implied by these local samples.
+ */
+export type FlowObservation = {
+    cohort: BaselineCohort;
+    con_id: number;
+    generation: U64Text;
+    multiplier: DecimalText;
+    observation: ObservationEvidence;
+    observed_at: string;
+    rule_version: string;
+    status: ObservationStatus;
+};
 
 export type FocusSelection = {
     instrument_id: null | InstrumentId;
@@ -459,6 +889,31 @@ export type FocusSelection = {
 export type FundingRate = {
     next_funding_ts: null | string;
     rate: DecimalText;
+};
+
+export type GammaFlip = {
+    reason: FlipUnavailableReason;
+    status: 'unavailable';
+} | {
+    status: 'no_flip';
+} | {
+    crossings: Array<FlipCrossing>;
+    status: 'crossings';
+};
+
+export type GammaGridProvenance = {
+    annual_dividend_yield: DecimalText;
+    annual_risk_free_rate: DecimalText;
+    as_of: string;
+    implied_volatilities: Array<ContractVolatility>;
+    model: NonEmptyText;
+    spots: Array<DecimalText>;
+};
+
+export type GammaWalls = {
+    largest_absolute?: null | Wall;
+    largest_positive?: null | Wall;
+    most_negative?: null | Wall;
 };
 
 export type Gap = {
@@ -479,6 +934,112 @@ export type Health = {
 export type Heartbeat = {
     [key: string]: never;
 };
+
+/**
+ * Request and receipt evidence. The broker request ID is scoped to its connection.
+ */
+export type HistoricalBatch = {
+    kind: HistoricalKind;
+    obtained_at: string;
+    page: number;
+    provider_request_id?: number | null;
+    requested_start: string;
+};
+
+export type HistoricalCounts = {
+    non_trade_markers: number;
+    pending_intervals: number;
+    /**
+     * Raw TRADES rows in a conflicting pagination interval.
+     */
+    pending_trade_rows: number;
+    /**
+     * Reported unavailable intervals, counted separately for each tick kind.
+     */
+    unavailable_intervals: number;
+    /**
+     * Verified active prints with unknown direction.
+     */
+    unknown: number;
+    unresolved_amendments: number;
+    verified: number;
+};
+
+export type HistoricalDecision = {
+    comparisons: {
+        [key: string]: SharpeComparison;
+    };
+    cost_bps: FactorDecimal;
+    passed: boolean;
+    rule: string;
+    verdict: string;
+};
+
+export type HistoricalIssue = {
+    end: string;
+    kind: HistoricalKind;
+    observed_at: string;
+    reason: HistoricalIssueReason;
+    start: string;
+};
+
+export type HistoricalIssueReason = 'expired_contract' | 'no_history' | 'permission_denied' | 'pacing' | 'timeout' | 'disconnected' | 'unsupported' | 'provider_error' | 'incomplete_page' | 'page_limit' | 'inconsistent_overlap' | 'unconfirmed_contract' | 'future_window' | 'pacing_state';
+
+export type HistoricalKind = 'trades' | 'bid_ask';
+
+export type HistoricalOptionBars = {
+    bars: Array<OptionMinuteBar>;
+    status: 'available';
+} | {
+    status: 'no_bars';
+} | {
+    status: 'expired';
+} | {
+    status: 'request_failed';
+};
+
+export type HistoricalOptionResult = {
+    instrument_id: InstrumentId;
+    result: HistoricalOptionBars;
+};
+
+export type HistoricalTickHistoryQuote = {
+    batch: HistoricalBatch;
+    /**
+     * One-based distinct row position within this complete second and kind.
+     * IB does not supply an execution ID or establish order across streams.
+     */
+    occurrence: number;
+    row: {
+        ask?: null | DecimalText;
+        ask_past_high: boolean;
+        ask_quantity?: null | DecimalText;
+        bid?: null | DecimalText;
+        bid_past_low: boolean;
+        bid_quantity?: null | DecimalText;
+        occurred_at: string;
+    };
+};
+
+export type HistoricalTickHistoryTrade = {
+    batch: HistoricalBatch;
+    /**
+     * One-based distinct row position within this complete second and kind.
+     * IB does not supply an execution ID or establish order across streams.
+     */
+    occurrence: number;
+    row: {
+        exchange: string;
+        occurred_at: string;
+        past_limit: boolean;
+        price: DecimalText;
+        quantity: DecimalText;
+        special_conditions: string;
+        unreported: boolean;
+    };
+};
+
+export type InferenceConfidence = 'estimate' | 'unknown';
 
 export type InstrumentId = string;
 
@@ -536,6 +1097,13 @@ export type JobUpdate = {
     status: string;
 };
 
+export type L1Sample = {
+    received_at: string;
+    value: DecimalText;
+};
+
+export type LineSchedulerPhase = 'starting' | 'online' | 'reconnecting' | 'stopped';
+
 export type LocalDrivePreview = {
     available_bytes?: string | null;
     cleaned_up: boolean;
@@ -551,6 +1119,11 @@ export type LocalEvidence = {
 };
 
 export type LocalProbeResult = 'verified' | 'not_configured' | 'invalid_file' | 'hash_mismatch' | 'invalid_producer_response' | 'tool_unavailable' | 'validation_failed' | 'remote_failed' | 'round_trip_mismatch' | 'cleanup_failed' | 'deadline_exceeded';
+
+/**
+ * Exact raw condition tokens are interpreted only under an identified mapping.
+ */
+export type MappedCondition = 'regular' | 'complex_leg' | 'provider_sweep' | 'provider_block' | 'correction' | 'cancellation';
 
 export type MarketBook = MarketViewMetadata & {
     asks?: Array<BookLevel> | null;
@@ -818,10 +1391,113 @@ export type ObservationDetails = {
     kind: 'crypto_market';
 };
 
+export type ObservationEvidence = {
+    evidence: VolumeIncrease;
+    kind: 'volume_increase';
+} | {
+    evidence: QuoteWidening;
+    kind: 'quote_widening';
+};
+
 export type ObservationOrigin = 'live' | 'replay';
+
+export type ObservationRange = {
+    earliest: string;
+    latest: string;
+};
+
+/**
+ * Serde's wire representation of a standard Duration.
+ */
+export type ObservationSkew = {
+    nanos: number;
+    secs: number;
+};
+
+export type ObservationStatus = 'pending_verification';
 
 export type OpenInterest = {
     quantity: DecimalText;
+};
+
+export type OptionChainContract = {
+    con_id: number;
+    expiry: string;
+    multiplier: DecimalText;
+    primary_exchange?: string | null;
+    right: OptionChainRight;
+    strike: DecimalText;
+    symbol: string;
+};
+
+export type OptionChainPage = {
+    access: ProductPolicy;
+    as_of: string;
+    /**
+     * Discovery status for the scheduler's watchlist.
+     */
+    discovery_complete: boolean;
+    items: Array<OptionChainContract>;
+    next_after_con_id?: number | null;
+    underlying_con_id: number;
+};
+
+export type OptionChainRight = 'call' | 'put';
+
+export type OptionExposureResponse = {
+    access: ProductPolicy;
+    report: ExposureReport;
+};
+
+export type OptionFlowObservation = {
+    budget: BudgetStatus;
+    clue: FlowObservation;
+    coverage: null | SubscriptionCoverage;
+};
+
+export type OptionFlowObservationPage = {
+    access: ProductPolicy;
+    as_of: string;
+    con_id: number;
+    end: string;
+    items: Array<OptionFlowObservation>;
+    next_offset: number | null;
+    start: string;
+};
+
+export type OptionFlowVerificationPage = {
+    access: ProductPolicy;
+    con_id: number;
+    counts: HistoricalCounts;
+    /**
+     * F3 local WAL watermark for ibkr/opra-history, when local recording is licensed.
+     */
+    durable_through: null | string;
+    end: string;
+    issues: Array<HistoricalIssue>;
+    max_quote_age_ms: number;
+    multiplier: DecimalText;
+    next_offset: number | null;
+    observation_coverage: null | SubscriptionCoverage;
+    quote_start: string;
+    start: string;
+    trades: Array<VerifiedTrade>;
+    verified_at: string;
+};
+
+export type OptionHistoryPage = {
+    access: ProductPolicy;
+    as_of: string;
+    end: U64Text;
+    items: Array<HistoricalOptionResult>;
+    next_offset?: number | null;
+    start: U64Text;
+    underlying_con_id: number;
+};
+
+export type OptionMinuteBar = {
+    close_ts: U64Text;
+    data: ClosedBar;
 };
 
 export type Page = {
@@ -844,6 +1520,22 @@ export type PaperMarketEvidence = {
     unique_market_data_client: boolean;
 };
 
+export type Parameter = {
+    kind: 'text';
+    value: string;
+} | {
+    kind: 'boolean';
+    value: boolean;
+} | {
+    kind: 'integer';
+    value: FactorInteger;
+} | {
+    kind: 'decimal';
+    value: FactorDecimal;
+};
+
+export type ParticipantIdentity = 'unknown';
+
 export type PermissionsState = 'authorized' | 'revoked';
 
 export type PerpetualContext = {
@@ -856,7 +1548,7 @@ export type Phase = 'triggered' | 'recovered';
 
 export type PlanVersion = 'fertile.finance/strategy-plan/v1';
 
-export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data' | 'notifications';
+export type Product = 'system' | 'backtests' | 'market_status' | 'backtest_submission' | 'integrations' | 'restricted_market_data' | 'notifications' | 'strategy_research';
 
 export type ProductPolicy = {
     backup_personal_drive: boolean;
@@ -952,7 +1644,33 @@ export type QualityWatermarks = {
     source_latest?: null | QualitySourceObservation;
 };
 
+export type QuoteEvidence = {
+    age_ms: number;
+    quote: HistoricalTickHistoryQuote;
+};
+
+export type QuoteReason = 'at_or_above_ask' | 'at_or_below_bid' | 'closer_to_ask' | 'closer_to_bid' | 'midpoint' | 'missing_quote' | 'quote_coverage_unknown' | 'trade_overlap_conflict' | 'same_second_unordered' | 'prior_quote_order_unknown' | 'stale_quote' | 'invalid_quote' | 'locked_quote' | 'crossed_quote' | 'provider_quote_flag' | 'provider_trade_flag' | 'complex_leg' | 'condition_unrecognized' | 'inactive_trade' | 'precision_unavailable';
+
+export type QuoteWidening = {
+    ask: L1Sample;
+    ask_size: L1Sample;
+    baseline_samples: number;
+    bid: L1Sample;
+    bid_size: L1Sample;
+    spread: DecimalText;
+    typical_spread: DecimalText;
+};
+
 export type RecoveryOutcome = 'tick_backfilled' | 'bar_backfilled' | 'book_restored_from_snapshot' | 'history_unrecoverable';
+
+export type RegisteredStrategy = {
+    /**
+     * SHA-256 of the compiled, canonical bundle.
+     */
+    content_sha256: string;
+    id: string;
+    version: string;
+};
 
 export type ResearchLicense = 'synthetic' | 'private_research';
 
@@ -992,6 +1710,11 @@ export type Reset = {
 
 export type ResetReason = 'consumer_lagged' | 'cursor_unavailable' | 'discontinuity' | 'snapshot_required' | 'unsupported_version';
 
+export type ResolvedInputs = {
+    bars: Bars;
+    universe: Universe;
+};
+
 export type Rollback = {
     version: number;
 };
@@ -1026,6 +1749,8 @@ export type RulePage = {
     next_cursor?: string | null;
 };
 
+export type SchedulerPhase = 'starting' | 'online' | 'reconnecting' | 'stopped';
+
 export type SchemaVersion = '1.0' | '2.0';
 
 export type SessionCreated = {
@@ -1042,6 +1767,22 @@ export type Settings = {
 };
 
 export type Severity = 'informational' | 'important' | 'urgent';
+
+export type SharpeComparison = {
+    difference?: null | FactorDecimal;
+    flip?: boolean | null;
+    main_sharpe?: null | FactorDecimal;
+    outperformance?: boolean | null;
+    static_sharpe?: null | FactorDecimal;
+};
+
+export type SideInference = {
+    confidence: InferenceConfidence;
+    direction: EstimatedSide;
+    quote?: null | QuoteEvidence;
+    reason: QuoteReason;
+    rule_version: string;
+};
 
 export type Silence = {
     end_action?: null | SilenceEndAction;
@@ -1088,6 +1829,21 @@ export type Status = {
     state: ConnectionState;
 };
 
+export type StrategyBundlePreview = {
+    plan: CompiledPlan;
+    strategy: RegisteredStrategy;
+};
+
+export type StrategyDocument = {
+    /**
+     * UTF-8 StrategyBundle source, at most 256 KiB before JSON escaping.
+     */
+    content: string;
+    format: StrategyFormat;
+};
+
+export type StrategyFormat = 'yaml' | 'json';
+
 export type StrategyParams = {
     fast_period?: number | null;
     shares?: number | null;
@@ -1104,7 +1860,60 @@ export type StrategyPreview = {
     source_sha256: string;
 };
 
+export type StrategySource = {
+    /**
+     * UTF-8 StrategyBundle source, at most 256 KiB before JSON escaping.
+     */
+    content: string;
+    format: StrategyFormat;
+    kind: 'inline';
+} | {
+    id: string;
+    kind: 'registered';
+    version: string;
+};
+
+export type StrategyVersionPage = {
+    items: Array<RegisteredStrategy>;
+    next_cursor?: string | null;
+};
+
+export type StrikeExposure = {
+    strike: DecimalText;
+    totals: ExposureTotals;
+};
+
 export type Subject = 'anonymous' | 'admin';
+
+export type SubmitRequest = JobRequest | BundleSubmission;
+
+export type SubscriptionBudget = {
+    access: ProductPolicy;
+    account_lines: number;
+    as_of: string;
+    confirmed_options: number;
+    discovery_complete: boolean;
+    hot_lines: number;
+    observed_options: number;
+    phase: LineSchedulerPhase;
+    reserve_lines: number;
+    rotation_lines: number;
+    stock_lines: number;
+};
+
+export type SubscriptionCoverage = {
+    access: ProductPolicy;
+    con_id: number;
+    covered: Array<SubscriptionCoverageInterval>;
+    last_observed_at?: string | null;
+    uncovered: Array<SubscriptionCoverageInterval>;
+    unknown: Array<SubscriptionCoverageInterval>;
+};
+
+export type SubscriptionCoverageInterval = {
+    end: string;
+    start: string;
+};
 
 export type SubscriptionQuota = {
     active: number;
@@ -1114,7 +1923,7 @@ export type SubscriptionQuota = {
 
 export type Subscriptions = {
     /**
-     * Readiness of the broker line contract. Web slots do not consume broker lines.
+     * Legacy W2a marker. Read the broker budget at /api/v1/market/subscriptions/budget.
      */
     finance_lines: FinanceLineState;
     /**
@@ -1124,6 +1933,11 @@ export type Subscriptions = {
 };
 
 export type SuppressionReason = 'rule_disabled' | 'rule_changed' | 'incident_recovered';
+
+export type SuspectedScale = {
+    block_contracts_threshold?: null | DecimalText;
+    institution_scale_premium_threshold?: null | DecimalText;
+};
 
 export type Symbol = 'BTCUSDT' | 'ETHUSDT' | 'BTC' | 'ETH' | 'SPX' | 'SPY' | 'QQQ';
 
@@ -1163,6 +1977,12 @@ export type TestView = {
     status: TestStatus;
 };
 
+export type TimingPolicy = {
+    max_gamma_age_seconds: number;
+    max_spot_age_seconds: number;
+    max_spot_gamma_skew_seconds: number;
+};
+
 export type Token = string;
 
 export type Trade = {
@@ -1171,9 +1991,57 @@ export type Trade = {
     side: TradeSide;
 };
 
+/**
+ * Provider or trusted replay metadata for a single occurrence.
+ */
+export type TradeAction = {
+    kind: 'original';
+    native_id: NonEmptyText;
+} | {
+    kind: 'correction';
+    revision: U64Text;
+    target_native_id: NonEmptyText;
+} | {
+    kind: 'cancellation';
+    revision: U64Text;
+    target_native_id: NonEmptyText;
+};
+
+export type TradeLink = {
+    action: TradeAction;
+    occurrence: TradeOccurrence;
+};
+
+/**
+ * The local within-request evidence key. This is never a provider trade ID.
+ */
+export type TradeOccurrence = {
+    occurred_at: string;
+    occurrence: number;
+    page: number;
+};
+
 export type TradeSide = 'buy' | 'sell' | 'unknown';
 
+export type TradeStatus = 'active' | 'pending_verification' | 'superseded' | 'cancelled' | 'applied_cancellation' | 'unresolved_amendment' | 'non_trade_marker';
+
+export type Transition = {
+    current: FactorState;
+    evidence_ref?: string | null;
+    previous: FactorState;
+    reason: string;
+};
+
 export type U64Text = string;
+
+export type Universe = {
+    asset: string;
+    available_at: Availability;
+    calendar: string;
+    currency: string;
+    id: string;
+    point_in_time: boolean;
+};
 
 export type Update = {
     action: 'configure';
@@ -1192,6 +2060,17 @@ export type UpdateWatchlist = {
 
 export type Venue = string;
 
+export type VerifiedTrade = {
+    condition: ConditionInterpretation;
+    identity: ParticipantIdentity;
+    inference: SideInference;
+    link?: null | TradeLink;
+    premium?: null | DecimalText;
+    status: TradeStatus;
+    suspected_scale: SuspectedScale;
+    trade: HistoricalTickHistoryTrade;
+};
+
 export type VersionState = 'draft' | 'candidate' | 'active' | 'disabled';
 
 export type VersionView = {
@@ -1199,6 +2078,23 @@ export type VersionView = {
     settings: Settings;
     state: VersionState;
     version: number;
+};
+
+export type VolumeComparison = {
+    baseline_samples: number;
+    elapsed_millis: number;
+    elevated?: boolean | null;
+    typical_rate?: null | BaselineVolumeRate;
+};
+
+export type VolumeIncrease = {
+    comparison: VolumeComparison;
+    delta_contracts: DecimalText;
+    earlier_cumulative_volume: L1Sample;
+    estimated_premium?: null | DecimalText;
+    later_cumulative_volume: L1Sample;
+    sampled_last_price?: null | L1Sample;
+    sampled_last_size?: null | L1Sample;
 };
 
 export type WalCoverage = {
@@ -1225,6 +2121,11 @@ export type WalRecord = {
     event: Event;
     generation: U64Text;
     position: U64Text;
+};
+
+export type Wall = {
+    exposure: DecimalText;
+    strike: DecimalText;
 };
 
 export type Watchlist = {
@@ -1295,7 +2196,7 @@ export type DeleteSessionData = {
     body?: never;
     headers: {
         /**
-         * Configured HTTPS origin
+         * Configured HTTPS origin, or http://127.0.0.1:<port> or http://localhost:<port> matching Host when unset
          */
         Origin: string;
         /**
@@ -1326,7 +2227,7 @@ export type CreateSessionData = {
     body?: never;
     headers: {
         /**
-         * Configured HTTPS origin
+         * Configured HTTPS origin, or http://127.0.0.1:<port> or http://localhost:<port> matching Host when unset
          */
         Origin: string;
     };
@@ -1408,7 +2309,7 @@ export type AckAlertData = {
     body?: never;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -1446,7 +2347,7 @@ export type DeleteAlertSilenceData = {
     body?: never;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -1510,7 +2411,7 @@ export type PutAlertSilenceData = {
     body: SilenceRequest;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -1576,14 +2477,14 @@ export type ListResponses = {
 export type ListResponse = ListResponses[keyof ListResponses];
 
 export type SubmitData = {
-    body?: JobRequest;
+    body?: SubmitRequest;
     headers: {
         /**
          * Stable key, 1..128 visible ASCII characters
          */
         'Idempotency-Key': string;
         /**
-         * Configured HTTPS origin with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin
          */
         Origin?: string | null;
         /**
@@ -1599,6 +2500,7 @@ export type SubmitData = {
 export type SubmitErrors = {
     401: ErrorBody;
     403: ErrorBody;
+    404: ErrorBody;
     409: ErrorBody;
     413: ErrorBody;
     422: ErrorBody;
@@ -1791,6 +2693,150 @@ export type HeadEventsResponses = {
     200: unknown;
 };
 
+export type FactorListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        factor_id?: string;
+        version?: string;
+        /**
+         * Exclusive cursor from `next_cursor`, ordered by `factor_id@version`.
+         */
+        after?: string;
+        limit?: number;
+    };
+    url: '/api/v1/factors';
+};
+
+export type FactorListErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type FactorListError = FactorListErrors[keyof FactorListErrors];
+
+export type FactorListResponses = {
+    200: FactorReadPage;
+};
+
+export type FactorListResponse = FactorListResponses[keyof FactorListResponses];
+
+export type FactorEvaluationsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: {
+        version?: string;
+        /**
+         * Exclusive cursor from `next_cursor`, ordered by `version@evaluation_id`.
+         */
+        after?: string;
+        limit?: number;
+    };
+    url: '/api/v1/factors/{id}/evaluations';
+};
+
+export type FactorEvaluationsErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type FactorEvaluationsError = FactorEvaluationsErrors[keyof FactorEvaluationsErrors];
+
+export type FactorEvaluationsResponses = {
+    200: FactorEvaluationPage;
+};
+
+export type FactorEvaluationsResponse = FactorEvaluationsResponses[keyof FactorEvaluationsResponses];
+
+export type FactorEvaluationData = {
+    body?: never;
+    path: {
+        id: string;
+        evaluation_id: string;
+    };
+    query: {
+        /**
+         * Registered factor version.
+         */
+        version: string;
+    };
+    url: '/api/v1/factors/{id}/evaluations/{evaluation_id}';
+};
+
+export type FactorEvaluationErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type FactorEvaluationError = FactorEvaluationErrors[keyof FactorEvaluationErrors];
+
+export type FactorEvaluationResponses = {
+    200: FactorEvaluationDetail;
+};
+
+export type FactorEvaluationResponse = FactorEvaluationResponses[keyof FactorEvaluationResponses];
+
 export type MarketIndicatorsData = {
     body?: never;
     path?: never;
@@ -1923,7 +2969,7 @@ export type CreateData = {
     body: Create;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -2014,7 +3060,7 @@ export type UpdateData = {
          */
         'If-Match': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -2099,7 +3145,7 @@ export type DeleteCredentialData = {
          */
         'If-Match': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -2146,7 +3192,7 @@ export type PutCredentialData = {
          */
         'If-Match': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -2231,7 +3277,7 @@ export type StartTestData = {
          */
         'If-Match': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -2395,6 +3441,52 @@ export type MarketBookResponses = {
 };
 
 export type MarketBookResponse = MarketBookResponses[keyof MarketBookResponses];
+
+export type MarketVenueDepthData = {
+    body?: never;
+    path?: never;
+    query: {
+        symbol: 'QQQ' | 'AAPL' | 'MSFT' | 'NVDA' | 'AMZN' | 'GOOGL' | 'META' | 'TSLA';
+    };
+    url: '/api/v1/market/depth';
+};
+
+export type MarketVenueDepthErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketVenueDepthError = MarketVenueDepthErrors[keyof MarketVenueDepthErrors];
+
+export type MarketVenueDepthResponses = {
+    200: DepthBook;
+};
+
+export type MarketVenueDepthResponse = MarketVenueDepthResponses[keyof MarketVenueDepthResponses];
 
 export type GetMarketDepthFocusData = {
     body?: never;
@@ -2712,6 +3804,95 @@ export type MarketSubscriptionsResponses = {
 
 export type MarketSubscriptionsResponse = MarketSubscriptionsResponses[keyof MarketSubscriptionsResponses];
 
+export type MarketSubscriptionBudgetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/market/subscriptions/budget';
+};
+
+export type MarketSubscriptionBudgetErrors = {
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketSubscriptionBudgetError = MarketSubscriptionBudgetErrors[keyof MarketSubscriptionBudgetErrors];
+
+export type MarketSubscriptionBudgetResponses = {
+    200: SubscriptionBudget;
+};
+
+export type MarketSubscriptionBudgetResponse = MarketSubscriptionBudgetResponses[keyof MarketSubscriptionBudgetResponses];
+
+export type MarketSubscriptionCoverageData = {
+    body?: never;
+    path?: never;
+    query: {
+        con_id: number;
+        start: string;
+        end: string;
+    };
+    url: '/api/v1/market/subscriptions/coverage';
+};
+
+export type MarketSubscriptionCoverageErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type MarketSubscriptionCoverageError = MarketSubscriptionCoverageErrors[keyof MarketSubscriptionCoverageErrors];
+
+export type MarketSubscriptionCoverageResponses = {
+    200: SubscriptionCoverage;
+};
+
+export type MarketSubscriptionCoverageResponse = MarketSubscriptionCoverageResponses[keyof MarketSubscriptionCoverageResponses];
+
 export type MarketTradesData = {
     body?: never;
     path?: never;
@@ -2885,7 +4066,7 @@ export type StartChannelTestData = {
          */
         'Idempotency-Key': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -3012,7 +4193,7 @@ export type PutRuleData = {
          */
         'If-Match': string;
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -3052,7 +4233,7 @@ export type DeleteRuleSilenceData = {
     body?: never;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -3116,7 +4297,7 @@ export type PutRuleSilenceData = {
     body: SilenceRequest;
     headers?: {
         /**
-         * Matches the configured HTTPS origin when sent and is required with the session cookie
+         * Required with the session cookie: configured HTTPS origin or matching HTTP loopback origin. With a bearer, if sent, must match the configured HTTPS origin
          */
         Origin?: string | null;
         /**
@@ -3153,62 +4334,147 @@ export type PutRuleSilenceResponse = PutRuleSilenceResponses[keyof PutRuleSilenc
 export type OptionsChainData = {
     body?: never;
     path?: never;
-    query: {
-        instrument_id: InstrumentId;
-        as_of?: string;
-        offset?: number;
+    query?: {
+        /**
+         * Confirmed broker identifier. Required for a successful read.
+         */
+        underlying_con_id?: number;
+        expiry?: string;
+        after_con_id?: number;
+        /**
+         * F10c page size: 1–500, defaults to 100. Legacy queries retain their original range.
+         */
         limit?: number;
+        /**
+         * Legacy placeholder parameter. Use the F10c chain query.
+         *
+         * @deprecated
+         */
+        instrument_id?: InstrumentId;
+        /**
+         * Legacy placeholder parameter. Use the F10c chain query.
+         *
+         * @deprecated
+         */
+        as_of?: string;
+        /**
+         * Legacy placeholder parameter. Use the F10c chain query.
+         *
+         * @deprecated
+         */
+        offset?: number;
     };
     url: '/api/v1/options/chain';
 };
 
 export type OptionsChainErrors = {
     400: ErrorBody;
+    /**
+     * Authentication required
+     */
     401: ErrorBody;
+    /**
+     * Product access denied
+     */
     403: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
     429: ErrorBody;
     /**
-     * Finance contract pending
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable, or finance contract pending for a legacy query
      */
     503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
 };
 
 export type OptionsChainError = OptionsChainErrors[keyof OptionsChainErrors];
 
+export type OptionsChainResponses = {
+    200: OptionChainPage;
+};
+
+export type OptionsChainResponse = OptionsChainResponses[keyof OptionsChainResponses];
+
 export type OptionsExposureData = {
     body?: never;
     path?: never;
-    query: {
-        instrument_id: InstrumentId;
-        scenario?: ProductToken;
+    query?: {
+        underlying_id?: string;
         as_of?: string;
+        /**
+         * Use absolute (default), dealer_short, dealer_long, or call_long_put_short. Unsupported ProductToken values return 503 finance_contract_pending.
+         */
+        scenario?: ProductToken;
+        /**
+         * Alias for underlying_id. Supply at least one.
+         */
+        instrument_id?: InstrumentId;
     };
     url: '/api/v1/options/exposure';
 };
 
 export type OptionsExposureErrors = {
     400: ErrorBody;
+    /**
+     * Authentication required
+     */
     401: ErrorBody;
+    /**
+     * Product access denied
+     */
     403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
     429: ErrorBody;
     /**
-     * Finance contract pending
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable, or finance contract pending for an unsupported scenario
      */
     503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
 };
 
 export type OptionsExposureError = OptionsExposureErrors[keyof OptionsExposureErrors];
 
+export type OptionsExposureResponses = {
+    200: OptionExposureResponse;
+};
+
+export type OptionsExposureResponse = OptionsExposureResponses[keyof OptionsExposureResponses];
+
 export type OptionsFlowData = {
     body?: never;
     path?: never;
-    query: {
-        instrument_id: InstrumentId;
+    query?: {
+        /**
+         * Legacy identifier. Use con_id to select the confirmed broker contract.
+         */
+        instrument_id?: InstrumentId;
         mode?: FlowMode;
         from?: string;
         until?: string;
         offset?: number;
         limit?: number;
+        /**
+         * Required with from and until for a successful read.
+         */
+        con_id?: number;
     };
     url: '/api/v1/options/flow';
 };
@@ -3217,14 +4483,182 @@ export type OptionsFlowErrors = {
     400: ErrorBody;
     401: ErrorBody;
     403: ErrorBody;
+    404: ErrorBody;
     429: ErrorBody;
     /**
-     * Finance contract pending
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable, or legacy instrument_id query needs con_id and a window
      */
     503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
 };
 
 export type OptionsFlowError = OptionsFlowErrors[keyof OptionsFlowErrors];
+
+export type OptionsFlowResponses = {
+    /**
+     * Observations (default) or historical verification, selected by mode
+     */
+    200: OptionFlowObservationPage | OptionFlowVerificationPage;
+};
+
+export type OptionsFlowResponse = OptionsFlowResponses[keyof OptionsFlowResponses];
+
+export type OptionsFlowObservationsData = {
+    body?: never;
+    path?: never;
+    query: {
+        con_id: number;
+        start: string;
+        end: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/options/flow/observations';
+};
+
+export type OptionsFlowObservationsErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type OptionsFlowObservationsError = OptionsFlowObservationsErrors[keyof OptionsFlowObservationsErrors];
+
+export type OptionsFlowObservationsResponses = {
+    200: OptionFlowObservationPage;
+};
+
+export type OptionsFlowObservationsResponse = OptionsFlowObservationsResponses[keyof OptionsFlowObservationsResponses];
+
+export type OptionsFlowVerificationData = {
+    body?: never;
+    path?: never;
+    query: {
+        con_id: number;
+        start: string;
+        end: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/options/flow/verification';
+};
+
+export type OptionsFlowVerificationErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type OptionsFlowVerificationError = OptionsFlowVerificationErrors[keyof OptionsFlowVerificationErrors];
+
+export type OptionsFlowVerificationResponses = {
+    200: OptionFlowVerificationPage;
+};
+
+export type OptionsFlowVerificationResponse = OptionsFlowVerificationResponses[keyof OptionsFlowVerificationResponses];
+
+export type OptionsHistoryData = {
+    body?: never;
+    path?: never;
+    query: {
+        underlying_con_id: number;
+        start: string;
+        end: string;
+        offset?: number;
+        limit?: number;
+    };
+    url: '/api/v1/options/history';
+};
+
+export type OptionsHistoryErrors = {
+    400: ErrorBody;
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Product access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    /**
+     * Read rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance read timed out
+     */
+    504: ErrorBody;
+};
+
+export type OptionsHistoryError = OptionsHistoryErrors[keyof OptionsHistoryErrors];
+
+export type OptionsHistoryResponses = {
+    200: OptionHistoryPage;
+};
+
+export type OptionsHistoryResponse = OptionsHistoryResponses[keyof OptionsHistoryResponses];
 
 export type MarketFinanceGapsData = {
     body?: never;
@@ -3316,6 +4750,213 @@ export type QualityGapsResponses = {
 };
 
 export type QualityGapsResponse = QualityGapsResponses[keyof QualityGapsResponses];
+
+export type StrategyVersionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Show versions for this strategy ID only.
+         */
+        id?: string;
+        /**
+         * Exclusive cursor ordered lexicographically by ID and then by version text.
+         */
+        after?: string;
+        limit?: number;
+    };
+    url: '/api/v1/strategies';
+};
+
+export type StrategyVersionsErrors = {
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    422: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type StrategyVersionsError = StrategyVersionsErrors[keyof StrategyVersionsErrors];
+
+export type StrategyVersionsResponses = {
+    200: StrategyVersionPage;
+};
+
+export type StrategyVersionsResponse = StrategyVersionsResponses[keyof StrategyVersionsResponses];
+
+export type RegisterData = {
+    body: StrategyDocument;
+    headers?: {
+        /**
+         * Configured HTTPS origin with the session cookie
+         */
+        Origin?: string;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/strategies';
+};
+
+export type RegisterErrors = {
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    409: ErrorBody;
+    /**
+     * Request or strategy document too large
+     */
+    413: ErrorBody;
+    422: ErrorBody;
+    /**
+     * Write rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type RegisterError = RegisterErrors[keyof RegisterErrors];
+
+export type RegisterResponses = {
+    200: RegisteredStrategy;
+};
+
+export type RegisterResponse = RegisterResponses[keyof RegisterResponses];
+
+export type ValidateStrategyData = {
+    body: StrategyDocument;
+    headers?: {
+        /**
+         * Configured HTTPS origin with the session cookie
+         */
+        Origin?: string;
+        /**
+         * Required with the session cookie
+         */
+        'X-CSRF-Token'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/strategies/validate';
+};
+
+export type ValidateStrategyErrors = {
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    /**
+     * Request or strategy document too large
+     */
+    413: ErrorBody;
+    422: ErrorBody;
+    /**
+     * Write rate limit exceeded
+     */
+    429: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type ValidateStrategyError = ValidateStrategyErrors[keyof ValidateStrategyErrors];
+
+export type ValidateStrategyResponses = {
+    200: StrategyBundlePreview;
+};
+
+export type ValidateStrategyResponse = ValidateStrategyResponses[keyof ValidateStrategyResponses];
+
+export type StrategyVersionData = {
+    body?: never;
+    path: {
+        id: string;
+        version: string;
+    };
+    query?: never;
+    url: '/api/v1/strategies/{id}/versions/{version}';
+};
+
+export type StrategyVersionErrors = {
+    /**
+     * Authentication required
+     */
+    401: ErrorBody;
+    /**
+     * Access denied
+     */
+    403: ErrorBody;
+    404: ErrorBody;
+    422: ErrorBody;
+    /**
+     * Finance response error
+     */
+    502: ErrorBody;
+    /**
+     * Finance unavailable
+     */
+    503: ErrorBody;
+    /**
+     * Finance request timed out
+     */
+    504: ErrorBody;
+};
+
+export type StrategyVersionError = StrategyVersionErrors[keyof StrategyVersionErrors];
+
+export type StrategyVersionResponses = {
+    200: StrategyBundlePreview;
+};
+
+export type StrategyVersionResponse = StrategyVersionResponses[keyof StrategyVersionResponses];
 
 export type MarketStreamData = {
     body?: never;

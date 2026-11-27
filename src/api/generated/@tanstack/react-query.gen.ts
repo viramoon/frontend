@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { ackAlert, activate, backupStatus, byKey, capabilities, catalog, create, createSession, datasets, deleteAlertSilence, deleteCredential, deleteRuleSilence, deleteSession, detail, getAlert, getAlertSilence, getChannelTest, getIntegration, getMarketDepthFocus, getRule, getRuleSilence, getScopedTest, getTest, getWatchlist, list, list2, listAlerts, listRules, live, marketBars, marketBook, marketDerivatives, marketFinanceGaps, marketIndicators, marketIndicatorValues, marketInstruments, marketProducts, marketProjectedEvent, marketQuotes, marketStatus, marketStream, marketSubscriptions, marketTrades, marketWal, marketWatermarks, type Options, optionsChain, optionsExposure, optionsFlow, putAlertSilence, putCredential, putRule, putRuleSilence, putWatchlist, qualityGaps, ready, rollback, sample, setMarketDepthFocus, startChannelTest, startTest, status, submit, update } from '../sdk.gen';
-import type { AckAlertData, AckAlertError, AckAlertResponse, ActivateData, ActivateError, ActivateResponse, BackupStatusData, BackupStatusError, BackupStatusResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteAlertSilenceData, DeleteAlertSilenceError, DeleteAlertSilenceResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteRuleSilenceData, DeleteRuleSilenceError, DeleteRuleSilenceResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, GetAlertData, GetAlertError, GetAlertResponse, GetAlertSilenceData, GetAlertSilenceError, GetAlertSilenceResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetIntegrationData, GetIntegrationError, GetIntegrationResponse, GetMarketDepthFocusData, GetMarketDepthFocusError, GetMarketDepthFocusResponse, GetRuleData, GetRuleError, GetRuleResponse, GetRuleSilenceData, GetRuleSilenceError, GetRuleSilenceResponse, GetScopedTestData, GetScopedTestError, GetScopedTestResponse, GetTestData, GetTestError, GetTestResponse, GetWatchlistData, GetWatchlistError, GetWatchlistResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketBarsData, MarketBarsError, MarketBarsResponse, MarketBookData, MarketBookError, MarketBookResponse, MarketDerivativesData, MarketDerivativesError, MarketDerivativesResponse, MarketFinanceGapsData, MarketFinanceGapsError, MarketFinanceGapsResponse, MarketIndicatorsData, MarketIndicatorsError, MarketIndicatorsResponse, MarketIndicatorValuesData, MarketIndicatorValuesError, MarketIndicatorValuesResponse, MarketInstrumentsData, MarketInstrumentsError, MarketInstrumentsResponse, MarketProductsData, MarketProductsError, MarketProductsResponse, MarketProjectedEventData, MarketProjectedEventError, MarketProjectedEventResponse, MarketQuotesData, MarketQuotesError, MarketQuotesResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, MarketStreamData, MarketStreamError2, MarketSubscriptionsData, MarketSubscriptionsError, MarketSubscriptionsResponse, MarketTradesData, MarketTradesError, MarketTradesResponse, MarketWalData, MarketWalError, MarketWalResponse, MarketWatermarksData, MarketWatermarksError, MarketWatermarksResponse, OptionsChainData, OptionsChainError, OptionsExposureData, OptionsExposureError, OptionsFlowData, OptionsFlowError, PutAlertSilenceData, PutAlertSilenceError, PutAlertSilenceResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, PutRuleSilenceData, PutRuleSilenceError, PutRuleSilenceResponse, PutWatchlistData, PutWatchlistError, PutWatchlistResponse, QualityGapsData, QualityGapsError, QualityGapsResponse, ReadyData, ReadyError, ReadyResponse, RollbackData, RollbackError, RollbackResponse, SampleData, SampleError, SampleResponse, SetMarketDepthFocusData, SetMarketDepthFocusError, SetMarketDepthFocusResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse } from '../types.gen';
+import { ackAlert, activate, backupStatus, byKey, capabilities, catalog, create, createSession, datasets, deleteAlertSilence, deleteCredential, deleteRuleSilence, deleteSession, detail, factorEvaluation, factorEvaluations, factorList, getAlert, getAlertSilence, getChannelTest, getIntegration, getMarketDepthFocus, getRule, getRuleSilence, getScopedTest, getTest, getWatchlist, list, list2, listAlerts, listRules, live, marketBars, marketBook, marketDerivatives, marketFinanceGaps, marketIndicators, marketIndicatorValues, marketInstruments, marketProducts, marketProjectedEvent, marketQuotes, marketStatus, marketStream, marketSubscriptionBudget, marketSubscriptionCoverage, marketSubscriptions, marketTrades, marketVenueDepth, marketWal, marketWatermarks, type Options, optionsChain, optionsExposure, optionsFlow, optionsFlowObservations, optionsFlowVerification, optionsHistory, putAlertSilence, putCredential, putRule, putRuleSilence, putWatchlist, qualityGaps, ready, register, rollback, sample, setMarketDepthFocus, startChannelTest, startTest, status, strategyVersion, strategyVersions, submit, update, validateStrategy } from '../sdk.gen';
+import type { AckAlertData, AckAlertError, AckAlertResponse, ActivateData, ActivateError, ActivateResponse, BackupStatusData, BackupStatusError, BackupStatusResponse, ByKeyData, ByKeyError, ByKeyResponse, CapabilitiesData, CapabilitiesResponse, CatalogData, CatalogError, CatalogResponse, CreateData, CreateError, CreateResponse, CreateSessionData, CreateSessionError, CreateSessionResponse, DatasetsData, DatasetsError, DatasetsResponse, DeleteAlertSilenceData, DeleteAlertSilenceError, DeleteAlertSilenceResponse, DeleteCredentialData, DeleteCredentialError, DeleteCredentialResponse, DeleteRuleSilenceData, DeleteRuleSilenceError, DeleteRuleSilenceResponse, DeleteSessionData, DeleteSessionError, DeleteSessionResponse, DetailData, DetailError, DetailResponse, FactorEvaluationData, FactorEvaluationError, FactorEvaluationResponse, FactorEvaluationsData, FactorEvaluationsError, FactorEvaluationsResponse, FactorListData, FactorListError, FactorListResponse, GetAlertData, GetAlertError, GetAlertResponse, GetAlertSilenceData, GetAlertSilenceError, GetAlertSilenceResponse, GetChannelTestData, GetChannelTestError, GetChannelTestResponse, GetIntegrationData, GetIntegrationError, GetIntegrationResponse, GetMarketDepthFocusData, GetMarketDepthFocusError, GetMarketDepthFocusResponse, GetRuleData, GetRuleError, GetRuleResponse, GetRuleSilenceData, GetRuleSilenceError, GetRuleSilenceResponse, GetScopedTestData, GetScopedTestError, GetScopedTestResponse, GetTestData, GetTestError, GetTestResponse, GetWatchlistData, GetWatchlistError, GetWatchlistResponse, List2Data, List2Error, List2Response, ListAlertsData, ListAlertsError, ListAlertsResponse, ListData, ListError, ListResponse, ListRulesData, ListRulesError, ListRulesResponse, LiveData, LiveResponse, MarketBarsData, MarketBarsError, MarketBarsResponse, MarketBookData, MarketBookError, MarketBookResponse, MarketDerivativesData, MarketDerivativesError, MarketDerivativesResponse, MarketFinanceGapsData, MarketFinanceGapsError, MarketFinanceGapsResponse, MarketIndicatorsData, MarketIndicatorsError, MarketIndicatorsResponse, MarketIndicatorValuesData, MarketIndicatorValuesError, MarketIndicatorValuesResponse, MarketInstrumentsData, MarketInstrumentsError, MarketInstrumentsResponse, MarketProductsData, MarketProductsError, MarketProductsResponse, MarketProjectedEventData, MarketProjectedEventError, MarketProjectedEventResponse, MarketQuotesData, MarketQuotesError, MarketQuotesResponse, MarketStatusData, MarketStatusError, MarketStatusResponse, MarketStreamData, MarketStreamError2, MarketSubscriptionBudgetData, MarketSubscriptionBudgetError, MarketSubscriptionBudgetResponse, MarketSubscriptionCoverageData, MarketSubscriptionCoverageError, MarketSubscriptionCoverageResponse, MarketSubscriptionsData, MarketSubscriptionsError, MarketSubscriptionsResponse, MarketTradesData, MarketTradesError, MarketTradesResponse, MarketVenueDepthData, MarketVenueDepthError, MarketVenueDepthResponse, MarketWalData, MarketWalError, MarketWalResponse, MarketWatermarksData, MarketWatermarksError, MarketWatermarksResponse, OptionsChainData, OptionsChainError, OptionsChainResponse, OptionsExposureData, OptionsExposureError, OptionsExposureResponse, OptionsFlowData, OptionsFlowError, OptionsFlowObservationsData, OptionsFlowObservationsError, OptionsFlowObservationsResponse, OptionsFlowResponse, OptionsFlowVerificationData, OptionsFlowVerificationError, OptionsFlowVerificationResponse, OptionsHistoryData, OptionsHistoryError, OptionsHistoryResponse, PutAlertSilenceData, PutAlertSilenceError, PutAlertSilenceResponse, PutCredentialData, PutCredentialError, PutCredentialResponse, PutRuleData, PutRuleError, PutRuleResponse, PutRuleSilenceData, PutRuleSilenceError, PutRuleSilenceResponse, PutWatchlistData, PutWatchlistError, PutWatchlistResponse, QualityGapsData, QualityGapsError, QualityGapsResponse, ReadyData, ReadyError, ReadyResponse, RegisterData, RegisterError, RegisterResponse, RollbackData, RollbackError, RollbackResponse, SampleData, SampleError, SampleResponse, SetMarketDepthFocusData, SetMarketDepthFocusError, SetMarketDepthFocusResponse, StartChannelTestData, StartChannelTestError, StartChannelTestResponse, StartTestData, StartTestError, StartTestResponse, StatusData, StatusResponse, StrategyVersionData, StrategyVersionError, StrategyVersionResponse, StrategyVersionsData, StrategyVersionsError, StrategyVersionsResponse, SubmitData, SubmitError, SubmitResponse, UpdateData, UpdateError, UpdateResponse, ValidateStrategyData, ValidateStrategyError, ValidateStrategyResponse } from '../types.gen';
 
 export const deleteSessionMutation = (options?: Partial<Options<DeleteSessionData>>): UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> => {
     const mutationOptions: UseMutationOptions<DeleteSessionResponse, DeleteSessionError, Options<DeleteSessionData>> = {
@@ -221,6 +221,9 @@ export const putAlertSilenceMutation = (options?: Partial<Options<PutAlertSilenc
 
 export const listQueryKey = (options?: Options<ListData>) => createQueryKey('list', options);
 
+/**
+ * Anonymous readers see DemoStrategy and SmaCrossover jobs. Administrators can read the full queue. A non-null next_cursor is the last returned job id and indicates another visible job.
+ */
 export const listOptions = (options?: Options<ListData>) => queryOptions<ListResponse, ListError, ListResponse, ReturnType<typeof listQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await list({
@@ -236,6 +239,9 @@ export const listOptions = (options?: Options<ListData>) => queryOptions<ListRes
 
 export const listInfiniteQueryKey = (options?: Options<ListData>): QueryKey<Options<ListData>> => createQueryKey('list', options, true);
 
+/**
+ * Anonymous readers see DemoStrategy and SmaCrossover jobs. Administrators can read the full queue. A non-null next_cursor is the last returned job id and indicates another visible job.
+ */
 export const listInfiniteOptions = (options?: Options<ListData>) => {
     const opts = infiniteQueryOptions<ListResponse, ListError, InfiniteData<ListResponse>, QueryKey<Options<ListData>>, number | Pick<QueryKey<Options<ListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
     // @ts-ignore
@@ -322,6 +328,9 @@ export const sampleOptions = (options?: Options<SampleData>) => queryOptions<Sam
 
 export const detailQueryKey = (options: Options<DetailData>) => createQueryKey('detail', options);
 
+/**
+ * Legacy jobs are public. StrategyBundle jobs are visible to administrators.
+ */
 export const detailOptions = (options: Options<DetailData>) => queryOptions<DetailResponse, DetailError, DetailResponse, ReturnType<typeof detailQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await detail({
@@ -348,6 +357,105 @@ export const backupStatusOptions = (options?: Options<BackupStatusData>) => quer
         return data;
     },
     queryKey: backupStatusQueryKey(options)
+});
+
+export const factorListQueryKey = (options?: Options<FactorListData>) => createQueryKey('factorList', options);
+
+export const factorListOptions = (options?: Options<FactorListData>) => queryOptions<FactorListResponse, FactorListError, FactorListResponse, ReturnType<typeof factorListQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await factorList({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: factorListQueryKey(options)
+});
+
+export const factorListInfiniteQueryKey = (options?: Options<FactorListData>): QueryKey<Options<FactorListData>> => createQueryKey('factorList', options, true);
+
+export const factorListInfiniteOptions = (options?: Options<FactorListData>) => {
+    const opts = infiniteQueryOptions<FactorListResponse, FactorListError, InfiniteData<FactorListResponse>, QueryKey<Options<FactorListData>>, string | Pick<QueryKey<Options<FactorListData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<FactorListData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await factorList({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: factorListInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const factorEvaluationsQueryKey = (options: Options<FactorEvaluationsData>) => createQueryKey('factorEvaluations', options);
+
+export const factorEvaluationsOptions = (options: Options<FactorEvaluationsData>) => queryOptions<FactorEvaluationsResponse, FactorEvaluationsError, FactorEvaluationsResponse, ReturnType<typeof factorEvaluationsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await factorEvaluations({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: factorEvaluationsQueryKey(options)
+});
+
+export const factorEvaluationsInfiniteQueryKey = (options: Options<FactorEvaluationsData>): QueryKey<Options<FactorEvaluationsData>> => createQueryKey('factorEvaluations', options, true);
+
+export const factorEvaluationsInfiniteOptions = (options: Options<FactorEvaluationsData>) => {
+    const opts = infiniteQueryOptions<FactorEvaluationsResponse, FactorEvaluationsError, InfiniteData<FactorEvaluationsResponse>, QueryKey<Options<FactorEvaluationsData>>, string | Pick<QueryKey<Options<FactorEvaluationsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<FactorEvaluationsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await factorEvaluations({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: factorEvaluationsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const factorEvaluationQueryKey = (options: Options<FactorEvaluationData>) => createQueryKey('factorEvaluation', options);
+
+export const factorEvaluationOptions = (options: Options<FactorEvaluationData>) => queryOptions<FactorEvaluationResponse, FactorEvaluationError, FactorEvaluationResponse, ReturnType<typeof factorEvaluationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await factorEvaluation({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: factorEvaluationQueryKey(options)
 });
 
 export const marketIndicatorsQueryKey = (options?: Options<MarketIndicatorsData>) => createQueryKey('marketIndicators', options);
@@ -664,6 +772,21 @@ export const marketBookInfiniteOptions = (options: Options<MarketBookData>) => {
     return opts as Omit<typeof opts, 'initialData'>;
 };
 
+export const marketVenueDepthQueryKey = (options: Options<MarketVenueDepthData>) => createQueryKey('marketVenueDepth', options);
+
+export const marketVenueDepthOptions = (options: Options<MarketVenueDepthData>) => queryOptions<MarketVenueDepthResponse, MarketVenueDepthError, MarketVenueDepthResponse, ReturnType<typeof marketVenueDepthQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketVenueDepth({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketVenueDepthQueryKey(options)
+});
+
 export const getMarketDepthFocusQueryKey = (options?: Options<GetMarketDepthFocusData>) => createQueryKey('getMarketDepthFocus', options);
 
 export const getMarketDepthFocusOptions = (options?: Options<GetMarketDepthFocusData>) => queryOptions<GetMarketDepthFocusResponse, GetMarketDepthFocusError, GetMarketDepthFocusResponse, ReturnType<typeof getMarketDepthFocusQueryKey>>({
@@ -905,6 +1028,63 @@ export const marketSubscriptionsOptions = (options?: Options<MarketSubscriptions
     },
     queryKey: marketSubscriptionsQueryKey(options)
 });
+
+export const marketSubscriptionBudgetQueryKey = (options?: Options<MarketSubscriptionBudgetData>) => createQueryKey('marketSubscriptionBudget', options);
+
+export const marketSubscriptionBudgetOptions = (options?: Options<MarketSubscriptionBudgetData>) => queryOptions<MarketSubscriptionBudgetResponse, MarketSubscriptionBudgetError, MarketSubscriptionBudgetResponse, ReturnType<typeof marketSubscriptionBudgetQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketSubscriptionBudget({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketSubscriptionBudgetQueryKey(options)
+});
+
+export const marketSubscriptionCoverageQueryKey = (options: Options<MarketSubscriptionCoverageData>) => createQueryKey('marketSubscriptionCoverage', options);
+
+export const marketSubscriptionCoverageOptions = (options: Options<MarketSubscriptionCoverageData>) => queryOptions<MarketSubscriptionCoverageResponse, MarketSubscriptionCoverageError, MarketSubscriptionCoverageResponse, ReturnType<typeof marketSubscriptionCoverageQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await marketSubscriptionCoverage({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: marketSubscriptionCoverageQueryKey(options)
+});
+
+export const marketSubscriptionCoverageInfiniteQueryKey = (options: Options<MarketSubscriptionCoverageData>): QueryKey<Options<MarketSubscriptionCoverageData>> => createQueryKey('marketSubscriptionCoverage', options, true);
+
+export const marketSubscriptionCoverageInfiniteOptions = (options: Options<MarketSubscriptionCoverageData>) => {
+    const opts = infiniteQueryOptions<MarketSubscriptionCoverageResponse, MarketSubscriptionCoverageError, InfiniteData<MarketSubscriptionCoverageResponse>, QueryKey<Options<MarketSubscriptionCoverageData>>, string | Pick<QueryKey<Options<MarketSubscriptionCoverageData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<MarketSubscriptionCoverageData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    start: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await marketSubscriptionCoverage({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: marketSubscriptionCoverageInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const marketTradesQueryKey = (options: Options<MarketTradesData>) => createQueryKey('marketTrades', options);
 
@@ -1172,9 +1352,9 @@ export const putRuleSilenceMutation = (options?: Partial<Options<PutRuleSilenceD
     return mutationOptions;
 };
 
-export const optionsChainQueryKey = (options: Options<OptionsChainData>) => createQueryKey('optionsChain', options);
+export const optionsChainQueryKey = (options?: Options<OptionsChainData>) => createQueryKey('optionsChain', options);
 
-export const optionsChainOptions = (options: Options<OptionsChainData>) => queryOptions<unknown, OptionsChainError, unknown, ReturnType<typeof optionsChainQueryKey>>({
+export const optionsChainOptions = (options?: Options<OptionsChainData>) => queryOptions<OptionsChainResponse, OptionsChainError, OptionsChainResponse, ReturnType<typeof optionsChainQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await optionsChain({
             ...options,
@@ -1187,10 +1367,10 @@ export const optionsChainOptions = (options: Options<OptionsChainData>) => query
     queryKey: optionsChainQueryKey(options)
 });
 
-export const optionsChainInfiniteQueryKey = (options: Options<OptionsChainData>): QueryKey<Options<OptionsChainData>> => createQueryKey('optionsChain', options, true);
+export const optionsChainInfiniteQueryKey = (options?: Options<OptionsChainData>): QueryKey<Options<OptionsChainData>> => createQueryKey('optionsChain', options, true);
 
-export const optionsChainInfiniteOptions = (options: Options<OptionsChainData>) => {
-    const opts = infiniteQueryOptions<unknown, OptionsChainError, InfiniteData<unknown>, QueryKey<Options<OptionsChainData>>, number | Pick<QueryKey<Options<OptionsChainData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+export const optionsChainInfiniteOptions = (options?: Options<OptionsChainData>) => {
+    const opts = infiniteQueryOptions<OptionsChainResponse, OptionsChainError, InfiniteData<OptionsChainResponse>, QueryKey<Options<OptionsChainData>>, number | Pick<QueryKey<Options<OptionsChainData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
     // @ts-ignore
     {
         queryFn: async ({ pageParam, queryKey, signal }) => {
@@ -1214,9 +1394,9 @@ export const optionsChainInfiniteOptions = (options: Options<OptionsChainData>) 
     return opts as Omit<typeof opts, 'initialData'>;
 };
 
-export const optionsExposureQueryKey = (options: Options<OptionsExposureData>) => createQueryKey('optionsExposure', options);
+export const optionsExposureQueryKey = (options?: Options<OptionsExposureData>) => createQueryKey('optionsExposure', options);
 
-export const optionsExposureOptions = (options: Options<OptionsExposureData>) => queryOptions<unknown, OptionsExposureError, unknown, ReturnType<typeof optionsExposureQueryKey>>({
+export const optionsExposureOptions = (options?: Options<OptionsExposureData>) => queryOptions<OptionsExposureResponse, OptionsExposureError, OptionsExposureResponse, ReturnType<typeof optionsExposureQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await optionsExposure({
             ...options,
@@ -1229,9 +1409,12 @@ export const optionsExposureOptions = (options: Options<OptionsExposureData>) =>
     queryKey: optionsExposureQueryKey(options)
 });
 
-export const optionsFlowQueryKey = (options: Options<OptionsFlowData>) => createQueryKey('optionsFlow', options);
+export const optionsFlowQueryKey = (options?: Options<OptionsFlowData>) => createQueryKey('optionsFlow', options);
 
-export const optionsFlowOptions = (options: Options<OptionsFlowData>) => queryOptions<unknown, OptionsFlowError, unknown, ReturnType<typeof optionsFlowQueryKey>>({
+/**
+ * Read options flow with the legacy mode and window parameter names.
+ */
+export const optionsFlowOptions = (options?: Options<OptionsFlowData>) => queryOptions<OptionsFlowResponse, OptionsFlowError, OptionsFlowResponse, ReturnType<typeof optionsFlowQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await optionsFlow({
             ...options,
@@ -1244,10 +1427,13 @@ export const optionsFlowOptions = (options: Options<OptionsFlowData>) => queryOp
     queryKey: optionsFlowQueryKey(options)
 });
 
-export const optionsFlowInfiniteQueryKey = (options: Options<OptionsFlowData>): QueryKey<Options<OptionsFlowData>> => createQueryKey('optionsFlow', options, true);
+export const optionsFlowInfiniteQueryKey = (options?: Options<OptionsFlowData>): QueryKey<Options<OptionsFlowData>> => createQueryKey('optionsFlow', options, true);
 
-export const optionsFlowInfiniteOptions = (options: Options<OptionsFlowData>) => {
-    const opts = infiniteQueryOptions<unknown, OptionsFlowError, InfiniteData<unknown>, QueryKey<Options<OptionsFlowData>>, number | Pick<QueryKey<Options<OptionsFlowData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+/**
+ * Read options flow with the legacy mode and window parameter names.
+ */
+export const optionsFlowInfiniteOptions = (options?: Options<OptionsFlowData>) => {
+    const opts = infiniteQueryOptions<OptionsFlowResponse, OptionsFlowError, InfiniteData<OptionsFlowResponse>, QueryKey<Options<OptionsFlowData>>, number | Pick<QueryKey<Options<OptionsFlowData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
     // @ts-ignore
     {
         queryFn: async ({ pageParam, queryKey, signal }) => {
@@ -1267,6 +1453,144 @@ export const optionsFlowInfiniteOptions = (options: Options<OptionsFlowData>) =>
             return data;
         },
         queryKey: optionsFlowInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const optionsFlowObservationsQueryKey = (options: Options<OptionsFlowObservationsData>) => createQueryKey('optionsFlowObservations', options);
+
+/**
+ * Retained OPRA L1 clues by receipt time in [start, end).
+ */
+export const optionsFlowObservationsOptions = (options: Options<OptionsFlowObservationsData>) => queryOptions<OptionsFlowObservationsResponse, OptionsFlowObservationsError, OptionsFlowObservationsResponse, ReturnType<typeof optionsFlowObservationsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsFlowObservations({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsFlowObservationsQueryKey(options)
+});
+
+export const optionsFlowObservationsInfiniteQueryKey = (options: Options<OptionsFlowObservationsData>): QueryKey<Options<OptionsFlowObservationsData>> => createQueryKey('optionsFlowObservations', options, true);
+
+/**
+ * Retained OPRA L1 clues by receipt time in [start, end).
+ */
+export const optionsFlowObservationsInfiniteOptions = (options: Options<OptionsFlowObservationsData>) => {
+    const opts = infiniteQueryOptions<OptionsFlowObservationsResponse, OptionsFlowObservationsError, InfiniteData<OptionsFlowObservationsResponse>, QueryKey<Options<OptionsFlowObservationsData>>, string | Pick<QueryKey<Options<OptionsFlowObservationsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<OptionsFlowObservationsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    start: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await optionsFlowObservations({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: optionsFlowObservationsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const optionsFlowVerificationQueryKey = (options: Options<OptionsFlowVerificationData>) => createQueryKey('optionsFlowVerification', options);
+
+/**
+ * Existing historical verification for one exact, whole-second trade window.
+ */
+export const optionsFlowVerificationOptions = (options: Options<OptionsFlowVerificationData>) => queryOptions<OptionsFlowVerificationResponse, OptionsFlowVerificationError, OptionsFlowVerificationResponse, ReturnType<typeof optionsFlowVerificationQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsFlowVerification({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsFlowVerificationQueryKey(options)
+});
+
+export const optionsFlowVerificationInfiniteQueryKey = (options: Options<OptionsFlowVerificationData>): QueryKey<Options<OptionsFlowVerificationData>> => createQueryKey('optionsFlowVerification', options, true);
+
+/**
+ * Existing historical verification for one exact, whole-second trade window.
+ */
+export const optionsFlowVerificationInfiniteOptions = (options: Options<OptionsFlowVerificationData>) => {
+    const opts = infiniteQueryOptions<OptionsFlowVerificationResponse, OptionsFlowVerificationError, InfiniteData<OptionsFlowVerificationResponse>, QueryKey<Options<OptionsFlowVerificationData>>, string | Pick<QueryKey<Options<OptionsFlowVerificationData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<OptionsFlowVerificationData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    start: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await optionsFlowVerification({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: optionsFlowVerificationInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const optionsHistoryQueryKey = (options: Options<OptionsHistoryData>) => createQueryKey('optionsHistory', options);
+
+export const optionsHistoryOptions = (options: Options<OptionsHistoryData>) => queryOptions<OptionsHistoryResponse, OptionsHistoryError, OptionsHistoryResponse, ReturnType<typeof optionsHistoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await optionsHistory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: optionsHistoryQueryKey(options)
+});
+
+export const optionsHistoryInfiniteQueryKey = (options: Options<OptionsHistoryData>): QueryKey<Options<OptionsHistoryData>> => createQueryKey('optionsHistory', options, true);
+
+export const optionsHistoryInfiniteOptions = (options: Options<OptionsHistoryData>) => {
+    const opts = infiniteQueryOptions<OptionsHistoryResponse, OptionsHistoryError, InfiniteData<OptionsHistoryResponse>, QueryKey<Options<OptionsHistoryData>>, string | Pick<QueryKey<Options<OptionsHistoryData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<OptionsHistoryData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    start: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await optionsHistory({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: optionsHistoryInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
@@ -1355,10 +1679,101 @@ export const qualityGapsInfiniteOptions = (options?: Options<QualityGapsData>) =
     return opts as Omit<typeof opts, 'initialData'>;
 };
 
+export const strategyVersionsQueryKey = (options?: Options<StrategyVersionsData>) => createQueryKey('strategyVersions', options);
+
+export const strategyVersionsOptions = (options?: Options<StrategyVersionsData>) => queryOptions<StrategyVersionsResponse, StrategyVersionsError, StrategyVersionsResponse, ReturnType<typeof strategyVersionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await strategyVersions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: strategyVersionsQueryKey(options)
+});
+
+export const strategyVersionsInfiniteQueryKey = (options?: Options<StrategyVersionsData>): QueryKey<Options<StrategyVersionsData>> => createQueryKey('strategyVersions', options, true);
+
+export const strategyVersionsInfiniteOptions = (options?: Options<StrategyVersionsData>) => {
+    const opts = infiniteQueryOptions<StrategyVersionsResponse, StrategyVersionsError, InfiniteData<StrategyVersionsResponse>, QueryKey<Options<StrategyVersionsData>>, string | Pick<QueryKey<Options<StrategyVersionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<StrategyVersionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await strategyVersions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: strategyVersionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const registerMutation = (options?: Partial<Options<RegisterData>>): UseMutationOptions<RegisterResponse, RegisterError, Options<RegisterData>> => {
+    const mutationOptions: UseMutationOptions<RegisterResponse, RegisterError, Options<RegisterData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await register({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Compile an upload for preview without registering it or accessing replay data.
+ */
+export const validateStrategyMutation = (options?: Partial<Options<ValidateStrategyData>>): UseMutationOptions<ValidateStrategyResponse, ValidateStrategyError, Options<ValidateStrategyData>> => {
+    const mutationOptions: UseMutationOptions<ValidateStrategyResponse, ValidateStrategyError, Options<ValidateStrategyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await validateStrategy({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const strategyVersionQueryKey = (options: Options<StrategyVersionData>) => createQueryKey('strategyVersion', options);
+
+/**
+ * Resolve a registered version using its pinned input metadata.
+ */
+export const strategyVersionOptions = (options: Options<StrategyVersionData>) => queryOptions<StrategyVersionResponse, StrategyVersionError, StrategyVersionResponse, ReturnType<typeof strategyVersionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await strategyVersion({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: strategyVersionQueryKey(options)
+});
+
 export const marketStreamQueryKey = (options?: Options<MarketStreamData>) => createQueryKey('marketStream', options);
 
 /**
- * RFC 6455 upgrade for authorized F10a WAL replay. See MarketStreamCommand and MarketStreamControl.
+ * RFC 6455 upgrade for authorized F10a WAL replay. A session cookie requires the configured HTTPS origin or, when unset, an HTTP loopback Origin matching Host. See MarketStreamCommand and MarketStreamControl.
  */
 export const marketStreamOptions = (options?: Options<MarketStreamData>) => queryOptions<unknown, MarketStreamError2, unknown, ReturnType<typeof marketStreamQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
