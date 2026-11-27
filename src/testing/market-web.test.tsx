@@ -53,6 +53,7 @@ function row(
     | Pick<Extract<Event, { kind: 'snapshot' }>, 'kind' | 'payload'>
     | Pick<Extract<Event, { kind: 'trade' }>, 'kind' | 'payload'>
     | Pick<Extract<Event, { kind: 'bar_closed' }>, 'kind' | 'payload'>,
+  clocks?: { receive: string; available: string },
 ): WalRecord {
   const time = nanos(date);
   return {
@@ -73,8 +74,8 @@ function row(
       cursor: 'synthetic-' + position,
       revision: '0',
       exchange_ts: time,
-      receive_ts: time,
-      first_available_ts: time,
+      receive_ts: clocks ? nanos(clocks.receive) : time,
+      first_available_ts: clocks ? nanos(clocks.available) : time,
     },
   };
 }
@@ -156,7 +157,7 @@ class MockEvents extends EventTarget {
 
 type Call = { path: string; query: URLSearchParams; request: Request };
 
-function mockWeb(admin = true, perpetual = false) {
+function mockWeb(admin = true, perpetual = false, wal = rows) {
   let ids: string[] = [];
   let revision = 3;
   let focus: string | null = null;
@@ -182,11 +183,30 @@ function mockWeb(admin = true, perpetual = false) {
       },
     },
   };
-  const records = perpetual ? [...rows, derivative] : rows;
+  const records = perpetual ? [...wal, derivative] : wal;
   const durable = String(records.length);
   async function mock(request: Request) {
     const url = new URL(request.url);
     const path = url.pathname;
+    function page(max: number, fromBeginning = false) {
+      const through = Number(url.searchParams.get('through') ?? durable);
+      const limit = Number(url.searchParams.get('limit') ?? max);
+      const after = Number(
+        url.searchParams.get('after') ??
+          (fromBeginning ? 0 : Math.max(0, through - limit)),
+      );
+      const end = Math.min(through, after + limit);
+      return {
+        records: records.slice(after, end),
+        coverage: {
+          after: String(after),
+          through: String(through),
+          durable_through: durable,
+          next_after: end < through ? String(end) : null,
+          scanned_records: end - after,
+        },
+      };
+    }
     calls.push({ path, query: url.searchParams, request });
     if (url.origin !== window.location.origin)
       throw new Error('External mock request');
@@ -219,15 +239,17 @@ function mockWeb(admin = true, perpetual = false) {
           as_of: asOf,
           watermarks: { local_durable: durable },
         });
-      case '/api/v1/market/wal':
+      case '/api/v1/market/wal': {
+        const raw = page(512, true);
         return Response.json({
           access,
           as_of: asOf,
-          through: durable,
+          through: raw.coverage.through,
           durable_through: durable,
-          next_after: null,
-          records,
+          next_after: raw.coverage.next_after,
+          records: raw.records,
         });
+      }
       case '/api/v1/market/derivatives':
         return Response.json({
           ...metadata,
@@ -237,12 +259,27 @@ function mockWeb(admin = true, perpetual = false) {
       case '/api/v1/market/quotes':
       case '/api/v1/market/book': {
         const cutoff = url.searchParams.get('as_of');
-        const event =
-          cutoff && Date.parse(cutoff) < Date.parse('2026-11-20T12:00:00Z')
-            ? rows[0].event
-            : rows[3].event;
+        const scanned = page(128);
+        const found = scanned.records
+          .slice()
+          .reverse()
+          .find(
+            ({ event }) =>
+              event.kind === 'snapshot' &&
+              event.channel === url.searchParams.get('channel') &&
+              (!cutoff ||
+                BigInt(event.first_available_ts) <= BigInt(nanos(cutoff))),
+          );
+        if (!found)
+          return Response.json({
+            ...metadata,
+            coverage: scanned.coverage,
+            state: 'unknown',
+          });
+        const event = found.event;
         return Response.json({
           ...metadata,
+          coverage: scanned.coverage,
           state: 'observed',
           ...snapshot,
           bid: snapshot.bids[0],
@@ -254,20 +291,26 @@ function mockWeb(admin = true, perpetual = false) {
             seq: event.seq,
             exchange_ts: event.exchange_ts,
             receive_ts: event.receive_ts,
-            position: event.cursor,
+            position: found.position,
           },
         });
       }
       case '/api/v1/market/trades': {
         const from = url.searchParams.get('from');
         const until = url.searchParams.get('until');
+        const scanned = page(128);
         return Response.json({
           ...metadata,
-          records: rows.filter(
+          coverage: scanned.coverage,
+          records: scanned.records.filter(
             ({ event }) =>
               event.kind === 'trade' &&
-              (!from || BigInt(event.receive_ts) >= BigInt(nanos(from))) &&
-              (!until || BigInt(event.receive_ts) < BigInt(nanos(until))),
+              (!from ||
+                (event.exchange_ts !== null &&
+                  BigInt(event.exchange_ts) >= BigInt(nanos(from)))) &&
+              (!until ||
+                (event.exchange_ts !== null &&
+                  BigInt(event.exchange_ts) < BigInt(nanos(until)))),
           ),
         });
       }
@@ -441,6 +484,129 @@ it('uses separate first committed dates and queries only collectable dates at th
       .at(-1)
       ?.query.get('as_of'),
   ).toBe('2026-11-20T23:59:59.999999999Z');
+  expect(unexpected).toEqual([]);
+});
+
+it('uses first availability across UTC midnight rather than the exchange or receive day', async () => {
+  const exchanged = '2026-11-17T23:59:58Z';
+  const clocks = {
+    receive: '2026-11-17T23:59:59Z',
+    available: '2026-11-18T00:00:01Z',
+  };
+  const { calls } = mockWeb(true, false, [
+    row(1, exchanged, 'book', { kind: 'snapshot', payload: snapshot }, clocks),
+    row(
+      2,
+      exchanged,
+      'trades',
+      { kind: 'trade', payload: { price, quantity: size, side: 'unknown' } },
+      clocks,
+    ),
+    ...rows.slice(2),
+  ]);
+  mount('/trading');
+  await screen.findByRole('table', { name: '逐笔成交' });
+  const isDetail = ({ path }: Call) =>
+    path === '/api/v1/market/book' || path === '/api/v1/market/trades';
+  const count = calls.filter(isDetail).length;
+  fireEvent.change(screen.getByLabelText('结束日期（不含）'), {
+    target: { value: '2026-11-18' },
+  });
+  await waitFor(() =>
+    expect(depth().getByText(beforeCollection)).toBeVisible(),
+  );
+  for (const panel of [depth(), trades()]) {
+    expect(panel.getByText('2026-11-18')).toHaveAttribute(
+      'datetime',
+      '2026-11-18',
+    );
+    expect(panel.getByText(beforeCollection)).toBeVisible();
+    expect(panel.queryByRole('table')).toBeNull();
+  }
+  expect(calls.filter(isDetail)).toHaveLength(count);
+});
+
+it('discovers late partitions and returns all scoped records in a 6000-record WAL', async () => {
+  const middle = '2026-11-18T12:00:00Z';
+  const firstTrade = row(4800, middle, 'trades', {
+    kind: 'trade',
+    payload: { price: '4800.0001', quantity: size, side: 'unknown' },
+  });
+  const lastTrade = row(5200, middle, 'trades', {
+    kind: 'trade',
+    payload: { price: '5200.0001', quantity: size, side: 'unknown' },
+  });
+  const middleBook = row(4750, middle, 'book', {
+    kind: 'snapshot',
+    payload: snapshot,
+  });
+  const updates: WalRecord = {
+    ...middleBook,
+    position: '5100',
+    event: {
+      ...middleBook.event,
+      schema_version: '1.0',
+      kind: 'delta',
+      seq: (BigInt(middleBook.event.seq) + 1n).toString(),
+      payload: {
+        updates: [{ ...snapshot.bids[0], side: 'bid', quantity: '7.22345' }],
+      },
+    },
+  };
+  const tailBook = row(5900, asOf, 'book', {
+    kind: 'snapshot',
+    payload: snapshot,
+  });
+  const tailTrade = row(5950, asOf, 'trades', {
+    kind: 'trade',
+    payload: { price, quantity: size, side: 'unknown' },
+  });
+  const known = new Map(
+    [middleBook, firstTrade, updates, lastTrade, tailBook, tailTrade].map(
+      (record) => [record.position, record],
+    ),
+  );
+  const wal = Array.from({ length: 6000 }, (_, index) => {
+    const position = String(index + 1);
+    return (
+      known.get(position) ?? {
+        ...rows[2],
+        position,
+        event: { ...rows[2].event, channel: 'unselected' },
+      }
+    );
+  });
+  const { calls, unexpected } = mockWeb(true, false, wal);
+  mount('/trading');
+  await screen.findByRole('table', { name: '逐笔成交' });
+  expect(trades().getByText('2026-11-18')).toBeVisible();
+  fireEvent.change(screen.getByLabelText('起始日期'), {
+    target: { value: '2026-11-18' },
+  });
+  fireEvent.change(screen.getByLabelText('结束日期（不含）'), {
+    target: { value: '2026-11-19' },
+  });
+  await waitFor(() =>
+    expect(trades().getByRole('table')).toHaveTextContent('4800.0001'),
+  );
+  expect(trades().getByRole('table')).toHaveTextContent('5200.0001');
+  expect(trades().getByRole('table').querySelectorAll('tbody tr')).toHaveLength(
+    2,
+  );
+  expect(depth().getByText('7.22345')).toBeVisible();
+  expect(depth().getByText(/盘口位置 \[4750, 5100\]/)).toBeVisible();
+  expect(
+    trades().getByText(/WAL 已扫描 401 条 · 位置 \(4799, 5200\]/),
+  ).toBeVisible();
+  const history = calls.filter(
+    ({ path, query }) =>
+      path === '/api/v1/market/trades' &&
+      query.get('until') === '2026-11-19T00:00:00.000000000Z',
+  );
+  expect(history.length).toBeGreaterThan(1);
+  expect(new Set(history.map(({ query }) => query.get('through'))).size).toBe(
+    1,
+  );
   expect(unexpected).toEqual([]);
 });
 

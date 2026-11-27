@@ -1,3 +1,4 @@
+import { DataClassLabel } from '../../components/PanelDataClass';
 import { useEffect, useState } from 'react';
 import { DataState, SourceDetails } from '../../components/TerminalStates';
 import type { OptionsDataAdapter, OptionsReading } from './optionsData';
@@ -74,6 +75,7 @@ function OptionsReadingView({
   return (
     <div className="options-reading" data-fixture-seed={fixtureSeed}>
       <section className="option-summary" aria-label="期权数据摘要">
+        <DataClassLabel kind="price-volume" />
         <SourceDetails
           source={reading.source}
           asOf={reading.asOf}

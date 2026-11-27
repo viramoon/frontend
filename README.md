@@ -8,7 +8,7 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/strategies` 支持上传示例 YAML 或选择登记版本，查看行列诊断与编译计划。可选择合成数据集与时间窗，在 `/backtests?view=strategy` 查看配置作业、按键找回和复查运行清单。`/factors` 展示合成因子报告与覆盖率。配置回测的实接依赖 web W2b，历史均线作业深链继续使用 `/backtests?job=<id>`。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)
 
-行情面板标注「价量历史」或「订单簿细节」。已提供采集起点的盘口和逐笔显示从授权 WAL 确认的采集日期及返回的样本覆盖，可按 UTC 日期查看。所选区间含采集前日期时显示「采集开始前无细节数据」，跨起点的区间同时显示返回样本。[数据类别与覆盖](src/features/market/README.md#数据类别与覆盖)
+行情面板标注「价量历史」或「订单簿细节」。已提供采集起点的盘口和逐笔显示授权 WAL 中 `first_available_ts` 确认的 UTC 采集日期及返回的样本覆盖，可按 UTC 日期查看。所选区间含采集前日期时显示「采集开始前无细节数据」，跨起点的区间同时显示返回样本。[数据类别与覆盖](src/features/market/README.md#数据类别与覆盖)
 
 ## 本地启动
 

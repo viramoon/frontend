@@ -14,7 +14,9 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 
 [W2a web 适配器](marketWeb.ts) 实现 [MarketDataAdapter](../features/market/marketData.ts)。正式行情路由先检查 `restricted_market_data` 管理员会话，再经唯一生成客户端读取标的和产品、WAL 与水位、K 线、指标列、最优报价、盘口、逐笔和永续上下文。读取使用 `no-store`。自选 GET/PUT 使用 `default` 自选 ID 和服务端 revision，409 后读回服务器状态。深度焦点可设置或清除，写入带 Origin 和 CSRF。券商线路可返回 `finance_contract_pending`，Web 订阅槽位使用接口返回的计数。
 
-`BookSource.availableFrom` 和 `MarketReading.tradesAvailableFrom` 分别取已验证连续 WAL 前缀中该分区首条快照或逐笔事件的 UTC 日期。当前契约提供 WAL 页位置与扫描条数。适配器在授权产品上读取从零开始的最多 4096 条记录和最近最多 512 条记录，用于确认起点与识别频道。只有最近窗口发现的流保留部分覆盖，起点待确认时隐藏相应细节面板。盘口和逐笔 REST 读取每次至多扫描 128 条。界面显示实际样本和返回位置，覆盖限于读到的 WAL 页。逐笔传 UTC 半开时间窗，盘口以结束日午夜前一纳秒作为 `as_of`。有效区间完全早于对应起点时跳过该细节请求。调整日期时取消旧读取。[日期与覆盖语义](../features/market/README.md#数据类别与覆盖)
+`BookSource.availableFrom` 和 `MarketReading.tradesAvailableFrom` 取同一分区可用的首个快照或逐笔 `first_available_ts` 的 UTC 日期。交易所时间用于样本的时间轴，接收时间用于无交易所时间的显示。适配器以产品持久水位为固定截止位置，从零开始沿 `next_after` 校验授权 WAL 的连续页。已验证检查点和数据仅驻留在当前授权视图内存中，刷新从该位置续读，撤权或离开页面时清除。
+
+逐笔日期筛选按交易所时间使用 UTC 半开区间。先从已确认的完整 WAL 查出覆盖所选记录的位置范围，再携带同一个 `through` 翻完逐笔 REST 页，合并记录并显示实际扫描位置。盘口用结束日午夜前一纳秒作为 `as_of`。如果快照和后续盘口事件跨越单个 REST 页，则从已验证 WAL 的快照重放连续事件。完全早于对应采集起点的区间跳过该细节请求。调整日期时取消旧读取。[日期与覆盖语义](../features/market/README.md#数据类别与覆盖)
 
 [同源行情 WebSocket](marketWebStream.ts) 读取 `/api/v1/stream/market` 的 F1 帧和 web 控制帧；用 WAL checkpoint 续接，使用 bigint 校验分区序号，快照后才应用连续盘口增量。断连、缺口或重置时清除盘口，重新用 REST 与 WAL 建立快照。原生 EventSource 读取 `/api/v1/events` 的 `permissions` 与 `reset`；权限撤回清除可见数据、关闭两个流并取消 REST。合成适配器用于显式回放和测试。契约锁定于 web `9132c5dc2e40f94d96151fbcc2989abbbb53d778`。[生成流程](../../docs/build.md#更新生成客户端)
 

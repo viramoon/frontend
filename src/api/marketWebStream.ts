@@ -4,7 +4,7 @@ import {
   waitingForBook,
   type BookEvent,
 } from '../features/market/orderBook';
-import { level, matches, u64, wireTime, type Track } from './marketWebModel';
+import { bookEvent, matches, u64, type Track } from './marketWebModel';
 
 export function openMarketStream({
   track,
@@ -104,41 +104,8 @@ export function openMarketStream({
           (epoch < prior.epoch || (epoch === prior.epoch && seq <= prior.seq))
         )
           return;
-        if (
-          event.kind === 'reset' ||
-          event.kind === 'gap' ||
-          event.kind === 'correction' ||
-          (event.kind === 'status' && event.payload.state === 'disconnected')
-        ) {
-          reset();
-          return;
-        }
-        const asOf = wireTime(event.exchange_ts ?? event.receive_ts);
-        let next: BookEvent;
-        if (event.kind === 'snapshot') {
-          next = {
-            kind: 'snapshot',
-            epoch,
-            seq,
-            asOf,
-            bids: event.payload.bids.map(level),
-            asks: event.payload.asks.map(level),
-          };
-        } else if (event.kind === 'delta') {
-          next = {
-            kind: 'delta',
-            epoch,
-            seq,
-            asOf,
-            updates: event.payload.updates.map((update) => {
-              if (update.side !== 'bid' && update.side !== 'ask')
-                throw new Error('Unknown book side');
-              return { ...level(update), side: update.side };
-            }),
-          };
-        } else if (state.kind === 'current') {
-          next = { kind: 'delta', epoch, seq, asOf: state.asOf, updates: [] };
-        } else return;
+        const next = bookEvent(event, state);
+        if (!next) return;
         state = applyBookEvent(state, next);
         if (state.kind === 'waiting') reset();
         else onBook(next);

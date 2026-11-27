@@ -14,7 +14,12 @@ import type {
   MarketPeriod,
   Trade,
 } from '../features/market/marketData';
-import type { BookEvent } from '../features/market/orderBook';
+import {
+  applyBookEvent,
+  waitingForBook,
+  type BookEvent,
+  type BookState,
+} from '../features/market/orderBook';
 
 export type Partition = {
   source: string;
@@ -25,8 +30,7 @@ export type Partition = {
 
 export type ProductWindow = {
   policy: ProductPolicy;
-  prefix: readonly WalRecord[];
-  recent: readonly WalRecord[];
+  records: readonly WalRecord[];
   durable: string;
   observedAt: string;
 };
@@ -123,55 +127,49 @@ export function marketTracks(windows: readonly ProductWindow[]) {
   const instruments = new Map<string, MarketInstrument>();
   const tracks = new Map<string, Track>();
   for (const window of windows) {
-    for (const [isPrefix, records] of [
-      [true, window.prefix],
-      [false, window.recent],
-    ] as const) {
-      for (const record of records) {
-        const event = record.event;
-        const { instrument_id, venue, asset_kind, kind } = event;
-        if (
-          asset_kind === 'option' ||
-          !/^[A-Z0-9][A-Z0-9_.-]*\.[A-Z0-9][A-Z0-9_-]*$/.test(instrument_id)
-        )
-          continue;
-        const id = instrument_id;
-        const crypto = asset_kind === 'spot' || asset_kind === 'perpetual';
-        const base = id.split(/[-.]/)[0];
-        if (!instruments.has(id))
-          instruments.set(id, {
-            id,
-            name: venue,
-            product: event.product,
-            kind: crypto ? 'crypto' : id === 'SPY.ARCA' ? 'l1-only' : 'nasdaq',
-            currency: /-USDT(?:[.-])/.test(id) ? 'USDT' : 'USD',
-            quantityUnit: crypto ? base : '股',
-            timeZone: crypto ? 'UTC' : 'America/New_York',
-          });
-        if (
-          kind !== 'snapshot' &&
-          kind !== 'trade' &&
-          kind !== 'bar_closed' &&
-          kind !== 'perpetual_context'
-        )
-          continue;
-        const trackKind = kind === 'snapshot' ? bookKind(event) : kind;
-        const partition = {
-          source: event.source,
+    for (const record of window.records) {
+      const event = record.event;
+      const { instrument_id, venue, asset_kind, kind } = event;
+      if (
+        asset_kind === 'option' ||
+        !/^[A-Z0-9][A-Z0-9_.-]*\.[A-Z0-9][A-Z0-9_-]*$/.test(instrument_id)
+      )
+        continue;
+      const id = instrument_id;
+      const crypto = asset_kind === 'spot' || asset_kind === 'perpetual';
+      const base = id.split(/[-.]/)[0];
+      if (!instruments.has(id))
+        instruments.set(id, {
+          id,
+          name: venue,
           product: event.product,
-          instrument_id,
-          channel: event.channel,
-        };
-        const key = JSON.stringify(partition);
-        const track = tracks.get(key) ?? { kind: trackKind, partition, window };
-        if (!matches(event, track)) continue;
-        if (isPrefix && !track.availableFrom)
-          track.availableFrom = wireTime(
-            event.exchange_ts ?? event.receive_ts,
-          ).slice(0, 10);
-        if (kind === 'snapshot') track.snapshot = record;
-        tracks.set(key, track);
-      }
+          kind: crypto ? 'crypto' : id === 'SPY.ARCA' ? 'l1-only' : 'nasdaq',
+          currency: /-USDT(?:[.-])/.test(id) ? 'USDT' : 'USD',
+          quantityUnit: crypto ? base : '股',
+          timeZone: crypto ? 'UTC' : 'America/New_York',
+        });
+      if (
+        kind !== 'snapshot' &&
+        kind !== 'trade' &&
+        kind !== 'bar_closed' &&
+        kind !== 'perpetual_context'
+      )
+        continue;
+      const trackKind = kind === 'snapshot' ? bookKind(event) : kind;
+      const partition = {
+        source: event.source,
+        product: event.product,
+        instrument_id,
+        channel: event.channel,
+      };
+      const key = JSON.stringify(partition);
+      const track = tracks.get(key) ?? { kind: trackKind, partition, window };
+      if (!matches(event, track)) continue;
+      const day = wireTime(event.first_available_ts).slice(0, 10);
+      if (!track.availableFrom || day < track.availableFrom)
+        track.availableFrom = day;
+      if (kind === 'snapshot') track.snapshot = record;
+      tracks.set(key, track);
     }
   }
   return { instruments, tracks: [...tracks.values()] };
@@ -281,4 +279,62 @@ export function bookState(
     bids: view.bids.map(level),
     asks: view.asks.map(level),
   };
+}
+
+// Decode the same F1 frames for live delivery and historical reconstruction.
+export function bookEvent(
+  event: Event,
+  state: BookState,
+): BookEvent | undefined {
+  const epoch = u64(event.epoch);
+  const seq = u64(event.seq);
+  if (event.kind === 'reset') return { kind: 'reset', epoch, seq };
+  if (
+    event.kind === 'gap' ||
+    event.kind === 'correction' ||
+    (event.kind === 'status' && event.payload.state === 'disconnected')
+  )
+    return { kind: 'unavailable', reason: '盘口失同步' };
+  if (event.kind === 'snapshot')
+    return {
+      kind: 'snapshot',
+      epoch,
+      seq,
+      asOf: wireTime(event.exchange_ts ?? event.receive_ts),
+      bids: event.payload.bids.map(level),
+      asks: event.payload.asks.map(level),
+    };
+  if (event.kind === 'delta')
+    return {
+      kind: 'delta',
+      epoch,
+      seq,
+      asOf: wireTime(event.exchange_ts ?? event.receive_ts),
+      updates: event.payload.updates.map((update) => {
+        if (update.side !== 'bid' && update.side !== 'ask')
+          throw new Error('Unknown book side');
+        return { ...level(update), side: update.side };
+      }),
+    };
+  if (state.kind === 'current')
+    return { kind: 'delta', epoch, seq, asOf: state.asOf, updates: [] };
+}
+
+export function foldBook(records: readonly WalRecord[]): BookEvent | undefined {
+  let state: BookState = waitingForBook;
+  let previous: Event | undefined;
+  for (const { event } of records) {
+    if (
+      previous &&
+      event.epoch === previous.epoch &&
+      event.seq === previous.seq &&
+      event.kind === previous.kind &&
+      JSON.stringify(event.payload) === JSON.stringify(previous.payload)
+    )
+      continue;
+    previous = event;
+    const next = bookEvent(event, state);
+    if (next) state = applyBookEvent(state, next);
+  }
+  return state.kind === 'current' ? { ...state, kind: 'snapshot' } : undefined;
 }

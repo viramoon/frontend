@@ -27,6 +27,7 @@ import type {
   MarketTradesData,
   ProductPolicy,
   Watchlist,
+  WalRecord,
 } from './generated/types.gen';
 import type {
   BookSource,
@@ -53,6 +54,7 @@ import {
   coverageText,
   decimal,
   historyRows,
+  foldBook,
   level,
   marketTracks,
   matches,
@@ -61,12 +63,12 @@ import {
   u64,
   wireTime,
   type Track,
+  type ProductWindow,
 } from './marketWebModel';
 import { openMarketStream } from './marketWebStream';
 
 const path = { id: 'default' };
-const prefixLimit = 4096;
-const recentLimit = 512;
+const walPageSize = 4096;
 const timeout = 12_000;
 const historyLimit = 128;
 const product = 'restricted_market_data';
@@ -122,78 +124,74 @@ async function collectPages<T>(
   }
 }
 
-async function readWindow(policy: ProductPolicy, signal: AbortSignal) {
-  const options = http(signal);
+function pageEnd(after: string, through: string, limit: number) {
+  const end = u64(after) + BigInt(limit);
+  return end < u64(through) ? end : u64(through);
+}
+
+async function readWindow(
+  policy: ProductPolicy,
+  signal: AbortSignal,
+  previous: ProductWindow | undefined,
+  checkpoint: (window: ProductWindow) => void,
+): Promise<ProductWindow> {
   const { source, product } = policy;
   const key = { source, product };
-  const { data: head } = await marketWatermarks({ ...options, query: key });
+  const { data: head } = await marketWatermarks({
+    ...http(signal),
+    query: key,
+  });
   checkPolicy(head.access, policy);
   const durable = head.watermarks.local_durable;
   const headPosition = u64(durable);
-  if (headPosition === 0n)
-    return { policy, prefix: [], recent: [], durable, observedAt: head.as_of };
-  const { data: prefix } = await marketWal({
-    ...options,
-    query: { ...key, after: '0', through: durable, limit: prefixLimit },
-  });
-  checkPolicy(prefix.access, policy);
-  // An inclusive stable cutoff plus continuity from zero proves the start of any
-  // partition encountered here. A tail-only match cannot prove an earlier date.
-  const prefixLength =
-    headPosition < BigInt(prefixLimit) ? Number(headPosition) : prefixLimit;
-  const next =
-    BigInt(prefixLength) < headPosition ? String(prefixLength) : null;
-  if (
-    prefix.through !== durable ||
-    prefix.records.length !== prefixLength ||
-    prefix.next_after !== next ||
-    prefix.records.some((record, i) => u64(record.position) !== BigInt(i + 1))
-  ) {
-    throw new Error('Incomplete WAL prefix');
+  const reusable =
+    previous &&
+    previous.policy.license === policy.license &&
+    u64(previous.durable) <= headPosition
+      ? previous
+      : undefined;
+  if (reusable?.durable === durable)
+    return { ...reusable, policy, observedAt: head.as_of };
+  let after = reusable?.durable ?? '0';
+  const records = reusable ? [...reusable.records] : [];
+  while (u64(after) < headPosition) {
+    const { data } = await marketWal({
+      ...http(signal),
+      query: { ...key, after, through: durable, limit: walPageSize },
+    });
+    checkPolicy(data.access, policy);
+    const start = u64(after);
+    const end = pageEnd(after, durable, walPageSize);
+    const next = end < headPosition ? String(end) : null;
+    if (
+      data.through !== durable ||
+      u64(data.durable_through) < headPosition ||
+      data.next_after !== next ||
+      BigInt(data.records.length) !== end - start ||
+      data.records.some(
+        (record, index) => u64(record.position) !== start + BigInt(index + 1),
+      )
+    )
+      throw new Error('Incomplete WAL page');
+    signal.throwIfAborted();
+    records.push(...data.records);
+    after = String(end);
+    // Keep verified progress for a later retry. Publish only at the fixed cutoff.
+    checkpoint({ policy, records, durable: after, observedAt: head.as_of });
   }
-  if (prefix.next_after == null)
-    return {
-      policy,
-      prefix: prefix.records,
-      recent: [],
-      durable,
-      observedAt: head.as_of,
-    };
-  const { data: recent } = await marketWal({
-    ...options,
-    query: {
-      ...key,
-      after: offset(durable, recentLimit),
-      through: durable,
-      limit: recentLimit,
-    },
-  });
-  checkPolicy(recent.access, policy);
-  return {
-    policy,
-    prefix: prefix.records,
-    recent: recent.records,
-    durable,
-    observedAt: head.as_of,
-  };
+  return { policy, records, durable, observedAt: head.as_of };
 }
 
 function viewWindow(
   track: Track,
-  until?: string,
 ): MarketTradesData['query'] & { channel: string } {
-  const rows = [...track.window.prefix, ...track.window.recent].reverse();
-  const last = rows.find(
-    ({ event }) =>
-      matches(event, track) &&
-      (!until || wireTime(event.exchange_ts ?? event.receive_ts) < until),
-  );
+  const rows = [...track.window.records].reverse();
+  const last = rows.find(({ event }) => matches(event, track));
   // A sparse partition can have its latest confirmed record outside the default
   // recent product page. Report the page that contains that known record.
   if (
     last &&
-    (until ||
-      u64(track.window.durable) - u64(last.position) >= BigInt(historyLimit))
+    u64(track.window.durable) - u64(last.position) >= BigInt(historyLimit)
   )
     return {
       ...track.partition,
@@ -204,18 +202,9 @@ function viewWindow(
   return { ...track.partition, limit: historyLimit };
 }
 
-function bookWindow(track: Track, until?: string) {
-  const range = viewWindow(track, until);
-  const snapshot = [...track.window.recent]
-    .reverse()
-    .concat([...track.window.prefix].reverse())
-    .find(
-      ({ event }) =>
-        event.kind === 'snapshot' &&
-        matches(event, track) &&
-        (!until || wireTime(event.first_available_ts) < until),
-    );
-  const seed = snapshot && u64(snapshot.position);
+function bookWindow(track: Track) {
+  const range = viewWindow(track);
+  const seed = track.snapshot && u64(track.snapshot.position);
   const through = range.through ?? track.window.durable;
   if (
     !seed ||
@@ -224,6 +213,151 @@ function bookWindow(track: Track, until?: string) {
   )
     return range;
   return { ...range, after: (seed - 1n).toString(), through };
+}
+
+type HistoryDates = { from?: string; until?: string };
+
+async function readTrades(
+  track: Track,
+  dates: HistoryDates,
+  signal: AbortSignal,
+) {
+  if (!dates.from && !dates.until) {
+    const { data } = await marketTrades({
+      ...http(signal),
+      query: viewWindow(track),
+    });
+    checkView(data, track);
+    return {
+      rows: tradeRows(data.records, track),
+      coverage: coverageText(data.coverage),
+    };
+  }
+
+  // WAL positions, unlike event timestamps, form a complete ordered cursor.
+  // Bound the range using all matching positions from the pinned product WAL.
+  const matching = track.window.records.filter(({ event }) => {
+    if (
+      !matches(event, track) ||
+      event.exchange_ts === null ||
+      (event.kind !== 'trade' &&
+        !(
+          event.kind === 'correction' &&
+          event.payload.replacement.kind === 'trade'
+        ))
+    )
+      return false;
+    const time = wireTime(event.exchange_ts);
+    return (
+      (!dates.from || dates.from <= time) &&
+      (!dates.until || time < dates.until)
+    );
+  });
+  if (!matching.length)
+    return {
+      rows: [],
+      coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 区间无逐笔`,
+    };
+
+  const start = offset(matching[0].position, 1);
+  const through = matching[matching.length - 1].position;
+  let after = start;
+  let scanned = 0;
+  const records: WalRecord[] = [];
+  while (u64(after) < u64(through)) {
+    const { data } = await marketTrades({
+      ...http(signal),
+      query: {
+        ...track.partition,
+        ...dates,
+        limit: historyLimit,
+        after,
+        through,
+      },
+    });
+    checkView(data, track);
+    const coverage = data.coverage;
+    const end = pageEnd(after, through, historyLimit);
+    const next = end < u64(through) ? String(end) : null;
+    if (
+      coverage.after !== after ||
+      coverage.through !== through ||
+      u64(coverage.durable_through) < u64(through) ||
+      (coverage.next_after ?? null) !== next ||
+      BigInt(coverage.scanned_records) !== end - u64(after) ||
+      data.records.some(
+        ({ position }) => u64(position) <= u64(after) || u64(position) > end,
+      )
+    )
+      throw new Error('Incomplete trade page');
+    scanned += coverage.scanned_records;
+    records.push(...data.records);
+    after = String(end);
+  }
+  return {
+    rows: tradeRows(records, track),
+    coverage: coverageText({
+      after: start,
+      through,
+      durable_through: track.window.durable,
+      scanned_records: scanned,
+    }),
+  };
+}
+
+async function readBook(
+  track: Track,
+  dates: HistoryDates,
+  asOf: string | undefined,
+  signal: AbortSignal,
+) {
+  if (dates.from || dates.until) {
+    const recorded = track.window.records.filter(
+      ({ event }) =>
+        matches(event, track) &&
+        (!dates.until || wireTime(event.first_available_ts) < dates.until),
+    );
+    const seed = recorded
+      .map(({ event }) => event.kind)
+      .lastIndexOf('snapshot');
+    const last = recorded.at(-1);
+    if (seed === -1 || !last)
+      return {
+        event: undefined,
+        coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 区间无盘口快照`,
+      };
+    const first = recorded[seed].position;
+    if (u64(last.position) - u64(first) >= BigInt(historyLimit)) {
+      // The book REST view only folds one page. Carry the verified baseline
+      // through the committed sequence when the selected state spans pages.
+      return {
+        event: foldBook(recorded.slice(seed)),
+        coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 盘口位置 [${first}, ${last.position}]`,
+      };
+    }
+    const { data } = await marketBook({
+      ...http(signal),
+      query: {
+        ...track.partition,
+        after: offset(first, 1),
+        through: last.position,
+        limit: historyLimit,
+        as_of: asOf,
+      },
+    });
+    return {
+      event: bookState(data, track),
+      coverage: coverageText(data.coverage),
+    };
+  }
+  const { data } = await marketBook({
+    ...http(signal),
+    query: bookWindow(track),
+  });
+  return {
+    event: bookState(data, track),
+    coverage: coverageText(data.coverage),
+  };
 }
 
 async function readSelection(
@@ -277,27 +411,8 @@ async function readSelection(
           return { bid, ask, time, state: data.state, event };
         },
       ),
-    book && allowBook
-      ? marketBook({
-          ...options,
-          query: { ...bookWindow(book, until), as_of: asOf },
-        }).then(({ data }) => ({
-          event: bookState(data, book),
-          coverage: coverageText(data.coverage),
-        }))
-      : undefined,
-    trade && allowTrades
-      ? marketTrades({
-          ...options,
-          query: { ...viewWindow(trade, until), ...dates },
-        }).then(({ data }) => {
-          checkView(data, trade);
-          return {
-            rows: tradeRows(data.records, trade),
-            coverage: coverageText(data.coverage),
-          };
-        })
-      : undefined,
+    book && allowBook ? readBook(book, dates, asOf, signal) : undefined,
+    trade && allowTrades ? readTrades(trade, dates, signal) : undefined,
     bar && period
       ? marketBars({ ...options, query: viewWindow(bar) }).then(
           async ({ data }) => {
@@ -423,6 +538,7 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
   let catalog: WebMarketControls['catalog'] = 'loading';
   let instruments: MarketInstrument[] = [];
   let tracks: Track[] = [];
+  const windows = new Map<string, ProductWindow>();
   let statuses = new Map<string, InstrumentStatus>();
   let watchlist: Watchlist | undefined;
   let focus: string | null | undefined;
@@ -458,6 +574,7 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
     stopEvents?.();
     instruments = [];
     tracks = [];
+    windows.clear();
     watchlist = undefined;
     focus = undefined;
     quota = undefined;
@@ -508,10 +625,28 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
           getMarketDepthFocus(options),
           marketIndicators(options),
         ]);
+      const permitted = policies.filter(
+        (item) => item.display_live && item.record_local,
+      );
+      const allowedKeys = new Set(
+        permitted.map((item) => item.source + '/' + item.product),
+      );
+      for (const key of windows.keys()) {
+        if (!allowedKeys.has(key)) windows.delete(key);
+      }
       const discovered = await Promise.allSettled(
-        policies
-          .filter((item) => item.display_live && item.record_local)
-          .map((item) => readWindow(item, signal)),
+        permitted.map(async (item) => {
+          const key = item.source + '/' + item.product;
+          const window = await readWindow(
+            item,
+            signal,
+            windows.get(key),
+            (verified) => windows.set(key, verified),
+          );
+          signal.throwIfAborted();
+          windows.set(key, window);
+          return window;
+        }),
       );
       if (signal.aborted) return;
       if (
@@ -522,11 +657,10 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
         revoke();
         return;
       }
-      const view = marketTracks(
-        discovered.flatMap((item) =>
-          item.status === 'fulfilled' ? [item.value] : [],
-        ),
+      const available = discovered.flatMap((item) =>
+        item.status === 'fulfilled' ? [item.value] : [],
       );
+      const view = marketTracks(available);
       for (const item of observed) {
         if (
           !view.instruments.has(item.instrument) &&
@@ -921,6 +1055,7 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
         clearSelection();
         catalogWork?.abort();
         stopEvents?.();
+        windows.clear();
         clearInterval(poll);
       };
     },
