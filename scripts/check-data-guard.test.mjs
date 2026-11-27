@@ -114,6 +114,60 @@ test('pre-commit accepts the reviewed generator and checks index bytes, not the 
   );
 });
 
+test('classifies minified OpenAPI as JSON and still rejects nested market examples', async (t) => {
+  const { git, run, write } = await repository(t);
+  const path = 'openapi/web.openapi.json';
+  const spec = {
+    openapi: '3.1.0',
+    info: { title: 'Synthetic schema', version: '0.0.0' },
+    components: {
+      schemas: {
+        ClockField: { type: 'string', enum: ['start', 'time', 'end'] },
+        SideField: { type: 'string', enum: ['start', 'ask', 'bid', 'end'] },
+      },
+    },
+  };
+  write(path, JSON.stringify(spec));
+  await git('add', path);
+  await git('commit', '-qm', 'Commit generated schema text');
+
+  write(
+    path,
+    JSON.stringify({
+      ...spec,
+      paths: {
+        '/synthetic': {
+          get: {
+            example: { quotes: [{ time: marker, bid: '1.25', ask: '1.50' }] },
+          },
+        },
+      },
+    }),
+  );
+  await git('add', path);
+  checkRejected(
+    await run('git', ['commit', '-qm', 'Commit nested market data']),
+    'market-export',
+  );
+
+  write(
+    path,
+    JSON.stringify({
+      payload: {
+        table: [
+          ['time', 'bid', 'ask'],
+          [marker, '1.25', '1.50'],
+        ],
+      },
+    }),
+  );
+  await git('add', path);
+  checkRejected(
+    await run('git', ['commit', '-qm', 'Commit nested market table']),
+    'market-export',
+  );
+});
+
 test('staged policy blocks captures, exports, hidden blobs, LFS, and CI uploads without echoing bodies', async (t) => {
   const { cwd, git, write, run } = await repository(t);
   const rejected = [
