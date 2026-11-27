@@ -14,6 +14,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type {
   BookSnapshot,
   Event,
+  MarketWatermarks,
   WalRecord,
 } from '../api/generated/types.gen';
 import { AppRoutes } from '../app/routes/AppRoutes';
@@ -183,7 +184,34 @@ function mockWeb(admin = true, perpetual = false, wal = rows) {
       },
     },
   };
-  const records = perpetual ? [...wal, derivative] : wal;
+  // W6 WAL pages can carry split perpetual events alongside the combined
+  // context that W2a still returns from /market/derivatives.
+  const records: WalRecord[] = perpetual
+    ? [
+        ...wal,
+        derivative,
+        {
+          ...derivative,
+          position: '7',
+          event: {
+            ...derivative.event,
+            channel: 'funding_rate',
+            kind: 'funding_rate',
+            payload: { rate: '-0.000000002', next_funding_ts: null },
+          },
+        },
+        {
+          ...derivative,
+          position: '8',
+          event: {
+            ...derivative.event,
+            channel: 'open_interest',
+            kind: 'open_interest',
+            payload: { quantity: '12.000000000000000001' },
+          },
+        },
+      ]
+    : wal;
   const durable = String(records.length);
   async function mock(request: Request) {
     const url = new URL(request.url);
@@ -237,8 +265,13 @@ function mockWeb(admin = true, perpetual = false, wal = rows) {
         return Response.json({
           access,
           as_of: asOf,
-          watermarks: { local_durable: durable },
-        });
+          watermarks: {
+            local_durable: durable,
+            projected: durable,
+            remote_verified: null,
+            source_latest: null,
+          },
+        } satisfies MarketWatermarks);
       case '/api/v1/market/wal': {
         const raw = page(512, true);
         return Response.json({
@@ -842,6 +875,11 @@ it('reads F1 perpetual context without a quote and preserves exact fields', asyn
   for (const value of [price, '0.000000001', '12.0001'])
     expect(summary.getByText(value)).toBeVisible();
   expect(quotes().getByText('暂无最优报价')).toBeVisible();
+  expect(
+    calls
+      .find(({ path }) => path === '/api/v1/market/wal')
+      ?.query.get('through'),
+  ).toBe('8');
   expect(
     calls
       .find(({ path }) => path === '/api/v1/market/derivatives')

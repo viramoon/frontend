@@ -381,7 +381,7 @@ export type Event = Message & {
     schema_version?: '1.0';
 } | {
     asset_kind?: 'perpetual';
-    kind?: 'perpetual_context';
+    kind?: 'perpetual_context' | 'funding_rate' | 'open_interest' | 'gap' | 'reset' | 'heartbeat' | 'status';
     revision?: '0';
     schema_version?: '2.0';
 });
@@ -454,6 +454,11 @@ export type FlowMode = 'observed' | 'verified';
 
 export type FocusSelection = {
     instrument_id: null | InstrumentId;
+};
+
+export type FundingRate = {
+    next_funding_ts: null | string;
+    rate: DecimalText;
 };
 
 export type Gap = {
@@ -747,6 +752,12 @@ export type Message = {
     kind: 'delta';
     payload: BookDelta;
 } | {
+    kind: 'funding_rate';
+    payload: FundingRate;
+} | {
+    kind: 'open_interest';
+    payload: OpenInterest;
+} | {
     kind: 'correction';
     payload: Correction;
 } | {
@@ -808,6 +819,10 @@ export type ObservationDetails = {
 };
 
 export type ObservationOrigin = 'live' | 'replay';
+
+export type OpenInterest = {
+    quantity: DecimalText;
+};
 
 export type Page = {
     items: Array<Job>;
@@ -874,7 +889,7 @@ export type QualityCoverage = {
     license: string;
     product: string;
     source: string;
-    watermarks?: null | MarketWatermarks;
+    watermarks?: null | QualityWatermarks;
 };
 
 export type QualityGap = {
@@ -916,7 +931,26 @@ export type QualityReport = {
     to_ts: U64Text;
 };
 
+export type QualitySourceObservation = {
+    channel: string;
+    epoch: ExactCount;
+    exchange_ts?: null | ExactCount;
+    instrument_id: string;
+    /**
+     * UTC nanoseconds since the Unix epoch, as observed by the collector.
+     */
+    receive_ts: ExactCount;
+    seq: ExactCount;
+};
+
 export type QualityState = 'unavailable' | 'available';
+
+export type QualityWatermarks = {
+    local_durable: ExactCount;
+    projected: ExactCount;
+    remote_verified?: null | ExactCount;
+    source_latest?: null | QualitySourceObservation;
+};
 
 export type RecoveryOutcome = 'tick_backfilled' | 'bar_backfilled' | 'book_restored_from_snapshot' | 'history_unrecoverable';
 

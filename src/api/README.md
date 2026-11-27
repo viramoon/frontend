@@ -10,6 +10,23 @@
 
 TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由页面提示和提供重新读取。HTTP 错误保留状态码与 web 错误代码。示例接口的 404 显示空结果。提交或确认请求的客户端超时为 10 秒。只有按键查询返回 `404 job_not_found` 时，页面才提供同键同参数重试。[操作与状态说明](../../RUNBOOK.md#验证历史回测工作台)
 
+## W6 契约差异
+
+[web 来源提交](../../openapi/web.commit) 从 `9132c5dc2e40f94d96151fbcc2989abbbb53d778` 前移到 `6e5fd80a56c3ab2fd0634fd69ecec3b7315dcd06`。W6 的 finance 来源为 `fc5e153e9727181f5748659c0610b2fbc2b49769`。以下各项来自两版 [web OpenAPI](../../openapi/web.openapi.json) 的比较。
+
+| 变化 | 接口或 schema | 含义 |
+| --- | --- | --- |
+| 现有定义 | HTTP 路径与操作 | 沿用现有操作、参数、权限、状态码和响应引用。 |
+| 更新引用 | `QualityCoverage.watermarks` | `GET /api/v1/quality/gaps` 的覆盖项水位引用 `QualityWatermarks`，可空。 |
+| 新增组件 | `QualityWatermarks` | 直接包含 `local_durable`、`projected`、可空的 `remote_verified` 和 `source_latest`。 |
+| 新增组件 | `QualitySourceObservation` | `source_latest` 的观测包含 `channel`、`instrument_id`、`epoch`、`seq`、`receive_ts` 和可空的 `exchange_ts`。 |
+| 现有定义 | `MarketWatermarks`、`SourceObservation` | `GET /api/v1/market/watermarks` 继续返回含 `access`、`as_of` 和 `watermarks` 的行情包装结构。 |
+| 新增组件 | `FundingRate`、`OpenInterest` | 独立负载分别携带 `rate` 与可空的 `next_funding_ts`，以及 `quantity`。 |
+| 更新分支 | `Message` | 加入 `funding_rate` 和 `open_interest`。 |
+| 更新版本条件 | `Event` | 1.0 延续原消息集合。2.0 永续事件要求 `revision` 为 `"0"`，允许 `perpetual_context`、`funding_rate`、`open_interest`、`gap`、`reset`、`heartbeat` 和 `status`。 |
+
+W2a REST WAL 可返回新事件。永续摘要沿用 `/market/derivatives` 中的 `perpetual_context`，保留标记价格、资金费率和持仓量的精确文本。行情 WebSocket 仍发送 1.0 帧，遇到 2.0 时由 web 发送 `unsupported_version` 重置。运维 SSE 沿用原协议。frontend 构建后仍由 web 托管。[生成流程](../../docs/build.md#更新生成客户端)
+
 ## 行情视图适配层
 
 [W2a web 适配器](marketWeb.ts) 实现 [MarketDataAdapter](../features/market/marketData.ts)。正式行情路由先检查 `restricted_market_data` 管理员会话，再经唯一生成客户端读取标的和产品、WAL 与水位、K 线、指标列、最优报价、盘口、逐笔和永续上下文。读取使用 `no-store`。自选 GET/PUT 使用 `default` 自选 ID 和服务端 revision，409 后读回服务器状态。深度焦点可设置或清除，写入带 Origin 和 CSRF。券商线路可返回 `finance_contract_pending`，Web 订阅槽位使用接口返回的计数。
@@ -18,7 +35,7 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 
 逐笔在 UTC 半开区间内使用与显示一致的时间。适配器先从已验证 WAL 查出覆盖所选记录的位置范围，再携带同一个 `through` 翻完逐笔 REST 页。W2a REST 的日期参数只匹配交易所时间。缺少交易所时间的记录按接收时间筛选，再从已验证 WAL 按位置合并，界面显示实际扫描范围。盘口有结束日时用该日午夜前一纳秒作为 `as_of`。默认视图和日期筛选共用重建规则，快照和连续增量跨越单个 REST 页时，从已验证 WAL 重放至选定位置，再建立实时订阅。完全早于对应采集起点的区间跳过该细节请求。调整日期时取消旧读取。[日期与覆盖语义](../features/market/README.md#数据类别与覆盖)
 
-[同源行情 WebSocket](marketWebStream.ts) 读取 `/api/v1/stream/market` 的 F1 帧和 web 控制帧；用 WAL checkpoint 续接，使用 bigint 校验分区序号，快照后才应用连续盘口增量。断连、缺口或重置时清除盘口，重新用 REST 与 WAL 建立快照。原生 EventSource 读取 `/api/v1/events` 的 `permissions` 与 `reset`；权限撤回清除可见数据、关闭两个流并取消 REST。合成适配器用于显式回放和测试。契约锁定于 web `9132c5dc2e40f94d96151fbcc2989abbbb53d778`。[生成流程](../../docs/build.md#更新生成客户端)
+[同源行情 WebSocket](marketWebStream.ts) 读取 `/api/v1/stream/market` 的 F1 帧和 web 控制帧；用 WAL checkpoint 续接，使用 bigint 校验分区序号，快照后才应用连续盘口增量。断连、缺口或重置时清除盘口，重新用 REST 与 WAL 建立快照。原生 EventSource 读取 `/api/v1/events` 的 `permissions` 与 `reset`；权限撤回清除可见数据、关闭两个流并取消 REST。合成适配器用于显式回放和测试。[W6 契约差异](#w6-契约差异)
 
 ## 期权视图适配层
 
@@ -38,6 +55,6 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 
 备份与质量接口需要管理员会话。Drive 恢复点年龄使用 web 按当前时刻计算的 `age_seconds`，告警使用 `alert`。`observed_at` 是状态文件修改时间，只用于展示，文件停止更新时服务端年龄仍会增长。web 以精确时长判定严格超过 3600 秒，再返回整秒年龄。返回 3600 秒且告警开启、生产者未降级时，界面显示超时。缺失、降级和停用分别展示。系统页展示 web 的综合告警。历史 `backup_stale` 事件只有在同一水位判定确认超时时才标为持续。仅有降级或缺少恢复点时，历史事件保留在完整列表，并排除在持续告警筛选之外。当前水位未告警、无法核验和 W3 恢复事件分别展示。缺口翻页比较快照时间，变化时回首屏重读。WAL 位置和计数保留十进制文本。
 
-锁定快照中的 `MarketWatermarks` 名称也用于 W2a 包装结构。W4 `/quality/gaps` 的实际响应仍直接嵌入水位，恢复适配器兼容两种形状并保留十进制文本。
+恢复适配器把生成的 `QualityGapsPage` 直接交给系统页。系统页从覆盖项读取 `QualityWatermarks`，逐字展示位置、序号及接收时间。缺少观测时显示「未知」。[离线验收](../../RUNBOOK.md#离线验证设置通知与系统页)
 
 W3 的收件地址和邮件静默策略由 web 配置。主动静默和解除静默等待相应接口。[合成实现](operationsFixture.ts) 只在测试或故事中显式注入。升级契约使用 [生成流程](../../docs/build.md#更新生成客户端)。
