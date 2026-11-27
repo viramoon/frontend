@@ -244,13 +244,17 @@ export function barRows(records: readonly WalRecord[], track: Track) {
   return [...bars.values()].sort((a, b) => a.time.localeCompare(b.time));
 }
 
+export function tradeTime(event: Pick<Event, 'exchange_ts' | 'receive_ts'>) {
+  return wireTime(event.exchange_ts ?? event.receive_ts);
+}
+
 export function tradeRows(records: readonly WalRecord[], track: Track) {
   const trades: Trade[] = [];
   for (const [id, event] of historyRows(records, track, 'trade')) {
     if (event.kind !== 'trade') continue;
     trades.push({
       id,
-      time: wireTime(event.exchange_ts ?? event.receive_ts),
+      time: tradeTime(event),
       price: decimal(event.payload.price),
       quantity: decimal(event.payload.quantity),
     });

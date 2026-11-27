@@ -60,6 +60,7 @@ import {
   matches,
   selectionTracks,
   tradeRows,
+  tradeTime,
   u64,
   wireTime,
   type Track,
@@ -239,7 +240,6 @@ async function readTrades(
   const matching = track.window.records.filter(({ event }) => {
     if (
       !matches(event, track) ||
-      event.exchange_ts === null ||
       (event.kind !== 'trade' &&
         !(
           event.kind === 'correction' &&
@@ -247,7 +247,7 @@ async function readTrades(
         ))
     )
       return false;
-    const time = wireTime(event.exchange_ts);
+    const time = tradeTime(event);
     return (
       (!dates.from || dates.from <= time) &&
       (!dates.until || time < dates.until)
@@ -263,7 +263,13 @@ async function readTrades(
   const through = matching[matching.length - 1].position;
   let after = start;
   let scanned = 0;
-  const records: WalRecord[] = [];
+  // W2a's bounded trade query only matches exchange timestamps. The checked
+  // WAL supplies rows that match the same interval on their receive clock.
+  const records = new Map<bigint, WalRecord>();
+  for (const record of matching) {
+    if (record.event.exchange_ts === null)
+      records.set(u64(record.position), record);
+  }
   while (u64(after) < u64(through)) {
     const { data } = await marketTrades({
       ...http(signal),
@@ -291,11 +297,15 @@ async function readTrades(
     )
       throw new Error('Incomplete trade page');
     scanned += coverage.scanned_records;
-    records.push(...data.records);
+    for (const record of data.records)
+      records.set(u64(record.position), record);
     after = String(end);
   }
+  const ordered = [...records]
+    .sort(([a], [b]) => (a === b ? 0 : a < b ? -1 : 1))
+    .map(([, record]) => record);
   return {
-    rows: tradeRows(records, track),
+    rows: tradeRows(ordered, track),
     coverage: coverageText({
       after: start,
       through,
@@ -307,52 +317,40 @@ async function readTrades(
 
 async function readBook(
   track: Track,
-  dates: HistoryDates,
+  until: string | undefined,
   asOf: string | undefined,
   signal: AbortSignal,
 ) {
-  if (dates.from || dates.until) {
-    const recorded = track.window.records.filter(
-      ({ event }) =>
-        matches(event, track) &&
-        (!dates.until || wireTime(event.first_available_ts) < dates.until),
-    );
-    const seed = recorded
-      .map(({ event }) => event.kind)
-      .lastIndexOf('snapshot');
-    const last = recorded.at(-1);
-    if (seed === -1 || !last)
-      return {
-        event: undefined,
-        coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 区间无盘口快照`,
-      };
-    const first = recorded[seed].position;
-    if (u64(last.position) - u64(first) >= BigInt(historyLimit)) {
-      // The book REST view only folds one page. Carry the verified baseline
-      // through the committed sequence when the selected state spans pages.
-      return {
-        event: foldBook(recorded.slice(seed)),
-        coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 盘口位置 [${first}, ${last.position}]`,
-      };
-    }
-    const { data } = await marketBook({
-      ...http(signal),
-      query: {
-        ...track.partition,
-        after: offset(first, 1),
-        through: last.position,
-        limit: historyLimit,
-        as_of: asOf,
-      },
-    });
+  const recorded = track.window.records.filter(
+    ({ event }) =>
+      matches(event, track) &&
+      (!until || wireTime(event.first_available_ts) < until),
+  );
+  const seed = recorded.map(({ event }) => event.kind).lastIndexOf('snapshot');
+  const last = recorded.at(-1);
+  if (seed === -1 || !last)
     return {
-      event: bookState(data, track),
-      coverage: coverageText(data.coverage),
+      event: undefined,
+      coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 区间无盘口快照`,
+    };
+  const first = recorded[seed].position;
+  if (u64(last.position) - u64(first) >= BigInt(historyLimit)) {
+    // The book REST view only folds one page. Carry the verified baseline
+    // through the committed sequence when the selected state spans pages.
+    return {
+      event: foldBook(recorded.slice(seed)),
+      coverage: `授权 WAL 已核对至位置 ${track.window.durable} · 盘口位置 [${first}, ${last.position}]`,
     };
   }
   const { data } = await marketBook({
     ...http(signal),
-    query: bookWindow(track),
+    query: {
+      ...track.partition,
+      after: offset(first, 1),
+      through: last.position,
+      limit: historyLimit,
+      as_of: asOf,
+    },
   });
   return {
     event: bookState(data, track),
@@ -411,7 +409,7 @@ async function readSelection(
           return { bid, ask, time, state: data.state, event };
         },
       ),
-    book && allowBook ? readBook(book, dates, asOf, signal) : undefined,
+    book && allowBook ? readBook(book, until, asOf, signal) : undefined,
     trade && allowTrades ? readTrades(trade, dates, signal) : undefined,
     bar && period
       ? marketBars({ ...options, query: viewWindow(bar) }).then(

@@ -36,7 +36,7 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 
 ## 验证行情终端
 
-`/dashboard` 和 `/trading` 默认使用同源 W2a。先运行 `pnpm test src/testing/market-web.test.tsx`，用固定 UTC 模拟 WAL、HTTP、WebSocket 和 SSE 验证选择标的、精确读数、截止日期和权限撤回。用例包含交易所时间早于 UTC 采集日的事件，以及 6000 条 WAL 中间页的逐笔和盘口增量。在有获准数据的部署上，通过页面中的管理员会话入口登录，查看标的目录、自选保存、深度焦点和 Web 订阅额度。检查盘口失同步后旧档位消失，直到重新取得快照。仪表盘的系统状态与示例回测继续使用同源 web 接口。人工验收仅保存脱敏结论，数据和画面按[防护规则](docs/data-guard.md)处理。
+`/dashboard` 和 `/trading` 默认使用同源 W2a。先运行 `pnpm test src/testing/market-web.test.tsx`，用固定 UTC 模拟 WAL、HTTP、WebSocket 和 SSE 验证选择标的、精确读数、截止日期和权限撤回。用例包含交易所时间早于 UTC 采集日的事件、缺交易所时间的逐笔、6000 条 WAL 中间页的样本，以及清空日期后从跨页快照及增量恢复默认盘口。在有获准数据的部署上，通过页面中的管理员会话入口登录，查看标的目录、自选保存、深度焦点和 Web 订阅额度。检查盘口失同步后旧档位消失，直到重新取得快照。仪表盘的系统状态与示例回测继续使用同源 web 接口。人工验收仅保存脱敏结论，数据和画面按[防护规则](docs/data-guard.md)处理。
 
 ### 离线合成回放
 

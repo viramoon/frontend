@@ -526,6 +526,52 @@ it('uses first availability across UTC midnight rather than the exchange or rece
   expect(calls.filter(isDetail)).toHaveLength(count);
 });
 
+it('keeps trades without exchange timestamps under the same receive-time boundaries as their display', async () => {
+  const bounds = ['2026-11-18T00:00:00Z', '2026-11-19T00:00:00Z'];
+  const received = bounds.map((date, i) => {
+    const trade = row(i + 2, date, 'trades', {
+      kind: 'trade',
+      payload: {
+        price: i === 0 ? '18.0001' : '19.0001',
+        quantity: size,
+        side: 'unknown',
+      },
+    });
+    return { ...trade, event: { ...trade.event, exchange_ts: null } };
+  });
+  const { calls, unexpected } = mockWeb(true, false, [rows[0], ...received]);
+  mount('/trading');
+  const table = await screen.findByRole('table', { name: '逐笔成交' });
+  expect(table).toHaveTextContent('18.0001');
+  expect(table).toHaveTextContent('19.0001');
+
+  fireEvent.change(screen.getByLabelText('起始日期'), {
+    target: { value: '2026-11-18' },
+  });
+  fireEvent.change(screen.getByLabelText('结束日期（不含）'), {
+    target: { value: '2026-11-19' },
+  });
+  await waitFor(() =>
+    expect(trades().getByText('WAL 已扫描 1 条 · 位置 (1, 2]')).toBeVisible(),
+  );
+  expect(trades().getByRole('table')).toHaveTextContent('18.0001');
+  expect(trades().queryByText('19.0001')).toBeNull();
+  const displayedTime = within(trades().getByRole('table')).getByText(
+    '2026-11-18 00:00:00.000000000 UTC',
+  );
+  expect(displayedTime).toHaveAttribute(
+    'datetime',
+    '2026-11-18T00:00:00.000000000Z',
+  );
+  expect(
+    calls
+      .filter(({ path }) => path === '/api/v1/market/trades')
+      .at(-1)
+      ?.query.get('until'),
+  ).toBe('2026-11-19T00:00:00.000000000Z');
+  expect(unexpected).toEqual([]);
+});
+
 it('discovers late partitions and returns all scoped records in a 6000-record WAL', async () => {
   const middle = '2026-11-18T12:00:00Z';
   const firstTrade = row(4800, middle, 'trades', {
@@ -607,6 +653,67 @@ it('discovers late partitions and returns all scoped records in a 6000-record WA
   expect(new Set(history.map(({ query }) => query.get('through'))).size).toBe(
     1,
   );
+  expect(unexpected).toEqual([]);
+});
+
+it('restores the default book across WAL pages on entry and after clearing dates without a live snapshot', async () => {
+  const middle = '2026-11-18T12:00:00Z';
+  const first = row(1, middle, 'book', { kind: 'snapshot', payload: snapshot });
+  const update: WalRecord = {
+    ...first,
+    position: '200',
+    event: {
+      ...first.event,
+      schema_version: '1.0',
+      kind: 'delta',
+      seq: (BigInt(first.event.seq) + 1n).toString(),
+      payload: {
+        updates: [{ ...snapshot.bids[0], side: 'bid', quantity: '7.22345' }],
+      },
+    },
+  };
+  const wal = Array.from({ length: 600 }, (_, index) => {
+    const position = String(index + 1);
+    if (position === first.position) return first;
+    if (position === update.position) return update;
+    return {
+      ...rows[2],
+      position,
+      event: { ...rows[2].event, channel: 'unselected' },
+    };
+  });
+  const { unexpected } = mockWeb(true, false, wal);
+  mount('/trading');
+  await screen.findByRole('region', { name: '盘口深度' });
+  expect(await depth().findByText('7.22345')).toBeVisible();
+  expect(depth().getByText(/盘口位置 \[1, 200\]/)).toBeVisible();
+  const initial = MockSocket.opened.at(-1)!;
+  act(() => initial.onopen?.());
+  expect(initial.sent).toEqual([
+    {
+      type: 'subscribe',
+      source,
+      product,
+      channel: 'book',
+      instrument_id: instrument,
+      after: '600',
+    },
+  ]);
+
+  fireEvent.change(screen.getByLabelText('结束日期（不含）'), {
+    target: { value: '2026-11-18' },
+  });
+  await waitFor(() =>
+    expect(depth().getByText(beforeCollection)).toBeVisible(),
+  );
+  expect(depth().queryByRole('table')).toBeNull();
+  fireEvent.change(screen.getByLabelText('结束日期（不含）'), {
+    target: { value: '' },
+  });
+  await waitFor(() => expect(depth().getByText('7.22345')).toBeVisible());
+  expect(depth().queryByText(beforeCollection)).toBeNull();
+  expect(initial.closed).toBe(true);
+  expect(MockSocket.opened.at(-1)).not.toBe(initial);
   expect(unexpected).toEqual([]);
 });
 
