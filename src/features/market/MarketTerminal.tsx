@@ -12,7 +12,7 @@ import {
 } from '../../components/PanelDataClass';
 import { DataBadges, DataState } from '../../components/TerminalStates';
 import { binanceReplayAdapter, fixtureAdapter } from './fixtureAdapter';
-import { useMarketDepth } from './MarketDepth';
+import { useMarketDepth, WebSubscriptionBudget } from './MarketDepth';
 import { Change, MarketQuotes, TradePrints, Unavailable } from './MarketQuotes';
 import {
   cryptoMarkets,
@@ -209,11 +209,14 @@ export function MarketTerminal({
     quoted && !trading ? adapter.history(request, prefs.period) : undefined;
   const book = selected?.kind === 'l1-only' ? undefined : quoted?.book;
   const depth = useMarketDepth(book?.availableFrom ? book : undefined);
-  const pinnedDepth = adapter.budget.pinnedDepth;
+  const replayBudget = adapter.replayBudget;
+  const pinnedDepth = replayBudget?.pinnedDepth ?? 0;
   const pinned = prefs.pinned.slice(0, pinnedDepth);
   const eligible = selected?.kind === 'nasdaq' ? selected.id : undefined;
   const follow =
-    eligible && !pinned.includes(eligible) && adapter.budget.followingDepth > 0
+    eligible &&
+    !pinned.includes(eligible) &&
+    (replayBudget?.followingDepth ?? 0) > 0
       ? eligible
       : null;
   const timeZone =
@@ -266,11 +269,15 @@ export function MarketTerminal({
   }
 
   if (!selected) {
-    if (!web || web.catalog === 'ready')
-      return <DataState kind="empty" title="暂无标的" />;
+    const emptyCatalog = <DataState kind="empty" title="暂无标的" />;
+    if (!web) return emptyCatalog;
     return (
       <section aria-label="行情终端" className="market-terminal">
-        <Unavailable kind={web.catalog} />
+        {web.catalog === 'ready' ? (
+          emptyCatalog
+        ) : (
+          <Unavailable kind={web.catalog} />
+        )}
         {web.catalog === 'unavailable' && (
           <button
             type="button"
@@ -279,6 +286,15 @@ export function MarketTerminal({
           >
             重新读取行情
           </button>
+        )}
+        {web.catalog !== 'denied' && (
+          <section className="market-depth" aria-label="订阅额度">
+            <h3>订阅额度</h3>
+            <WebSubscriptionBudget
+              quota={web.quota}
+              brokerBudget={web.brokerBudget}
+            />
+          </section>
         )}
       </section>
     );
@@ -316,26 +332,28 @@ export function MarketTerminal({
       replayTime={adapter.fixture?.replayTime}
       trading={trading}
       web={web}
-      budget={{
-        budget: adapter.budget,
-        pinned,
-        follow,
-        eligible,
-        togglePin: () => {
-          if (!eligible) return;
-          setPreferences((previous) => {
-            const current = previous.pinned;
-            if (current.includes(eligible)) {
-              return {
-                ...previous,
-                pinned: current.filter((id) => id !== eligible),
-              };
-            }
-            if (current.length >= adapter.budget.pinnedDepth) return previous;
-            return { ...previous, pinned: [...current, eligible] };
-          });
-        },
-      }}
+      replayBudget={
+        replayBudget && {
+          budget: replayBudget,
+          pinned,
+          follow,
+          eligible,
+          togglePin: () => {
+            if (!eligible) return;
+            setPreferences((previous) => {
+              const current = previous.pinned;
+              if (current.includes(eligible)) {
+                return {
+                  ...previous,
+                  pinned: current.filter((id) => id !== eligible),
+                };
+              }
+              if (current.length >= pinnedDepth) return previous;
+              return { ...previous, pinned: [...current, eligible] };
+            });
+          },
+        }
+      }
     />
   );
 

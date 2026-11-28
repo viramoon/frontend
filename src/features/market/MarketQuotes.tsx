@@ -12,9 +12,10 @@ import {
 } from '../../components/TerminalStates';
 import {
   DepthTable,
-  MarketBudget,
   MarketDepth,
+  ReplayBudget,
   type useMarketDepth,
+  WebSubscriptionBudget,
 } from './MarketDepth';
 import {
   hasReading,
@@ -65,7 +66,7 @@ export function MarketQuotes({
   reading,
   depth,
   detailRange,
-  budget,
+  replayBudget,
   timeZone,
   replayTime,
   trading,
@@ -75,7 +76,7 @@ export function MarketQuotes({
   reading: MarketReading;
   depth: ReturnType<typeof useMarketDepth>;
   detailRange: DetailDateRange;
-  budget: ComponentProps<typeof MarketBudget>;
+  replayBudget?: ComponentProps<typeof ReplayBudget>;
   timeZone: DisplayTimeZone;
   replayTime?: string;
   trading: boolean;
@@ -174,16 +175,10 @@ export function MarketQuotes({
       {web ? (
         <section className="market-depth" aria-label="订阅额度与深度焦点">
           <h3>订阅额度与深度焦点</h3>
-          {web.quota && (
-            <p>
-              Web 订阅 {web.quota.active}/{web.quota.limit} · 可用{' '}
-              {web.quota.available}
-            </p>
-          )}
-          {!web.quota && <p>暂无 Web 订阅额度读数</p>}
-          {web.financeLines === 'finance_contract_pending' && (
-            <p>券商线路额度待接入</p>
-          )}
+          <WebSubscriptionBudget
+            quota={web.quota}
+            brokerBudget={web.brokerBudget}
+          />
           {web.focus !== undefined && (
             <>
               <p>当前焦点 {web.focus ?? '未设置'}</p>
@@ -208,7 +203,7 @@ export function MarketQuotes({
           {web.message && <p role="status">{web.message}</p>}
         </section>
       ) : (
-        <MarketBudget {...budget} />
+        replayBudget && <ReplayBudget {...replayBudget} />
       )}
       {replayTime && (
         <section className="market-source-note">

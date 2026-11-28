@@ -15,6 +15,7 @@ import {
   marketInstruments,
   marketProducts,
   marketQuotes,
+  marketSubscriptionBudget,
   marketSubscriptions,
   marketTrades,
   marketWal,
@@ -541,7 +542,7 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
   let watchlist: Watchlist | undefined;
   let focus: string | null | undefined;
   let quota: WebMarketControls['quota'];
-  let financeLines: WebMarketControls['financeLines'];
+  let brokerBudget: WebMarketControls['brokerBudget'];
   let busy = false;
   let message: string | undefined;
   let indicators: ('close' | 'volume')[] = [];
@@ -576,7 +577,7 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
     watchlist = undefined;
     focus = undefined;
     quota = undefined;
-    financeLines = undefined;
+    brokerBudget = undefined;
     catalog = 'denied';
     reading = { availability: 'denied' };
     publish();
@@ -591,11 +592,37 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
       const { data } = await marketSubscriptions(http(signal));
       if (signal.aborted || catalog === 'denied') return;
       quota = data.web;
-      financeLines = data.finance_lines;
       publish();
     } catch (error) {
       if (!signal.aborted && denied(error)) revoke();
     }
+  }
+
+  async function updateBrokerBudget(signal: AbortSignal) {
+    try {
+      const { data } = await marketSubscriptionBudget(http(signal));
+      if (signal.aborted || catalog === 'denied') return;
+      const counts = {
+        total: data.account_lines,
+        reserve: data.reserve_lines,
+        stocks: data.stock_lines,
+        hotOptions: data.hot_lines,
+        rotating: data.rotation_lines,
+      };
+      brokerBudget = Object.values(counts).every(
+        (count) => Number.isSafeInteger(count) && count >= 0,
+      )
+        ? counts
+        : 'unavailable';
+    } catch (error) {
+      if (signal.aborted || catalog === 'denied') return;
+      if (denied(error)) {
+        revoke();
+        return;
+      }
+      brokerBudget = 'unavailable';
+    }
+    publish();
   }
 
   async function refreshCatalog() {
@@ -605,6 +632,8 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
     catalogWork = controller;
     const signal = AbortSignal.any([lifecycle.signal, controller.signal]);
     const options = http(signal);
+    void updateQuota(signal);
+    void updateBrokerBudget(signal);
     try {
       const [policies, observed, saved, selectedFocus, indicatorsResult] =
         await Promise.all([
@@ -689,7 +718,6 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
           : 'unavailable';
       publish();
       if (current) void loadCurrent();
-      void updateQuota(signal);
     } catch (error) {
       if (signal.aborted) return;
       if (denied(error)) revoke();
@@ -920,8 +948,8 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
     get quota() {
       return quota;
     },
-    get financeLines() {
-      return financeLines;
+    get brokerBudget() {
+      return brokerBudget;
     },
     get busy() {
       return busy;
@@ -965,15 +993,6 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
       return instruments;
     },
     web,
-    budget: {
-      stocks: 0,
-      hotOptions: 0,
-      rotating: 0,
-      reserve: 0,
-      total: 0,
-      pinnedDepth: 0,
-      followingDepth: 0,
-    },
     revision: () => revision,
     subscribe(listener) {
       listeners.add(listener);
