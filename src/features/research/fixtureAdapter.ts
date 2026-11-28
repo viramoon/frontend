@@ -36,6 +36,19 @@ const strategies: Strategy[] = [
   researchOnly,
 ];
 
+export function fixtureStrategyId(id: string | undefined) {
+  return id === 'example' ? bundles[0].plan.revision.id : id;
+}
+
+export function hasFixtureStrategy(id: string, version: string | null) {
+  const fixtureId = fixtureStrategyId(id);
+  return strategies.some(
+    (strategy) =>
+      strategy.id === fixtureId &&
+      (version === null || strategy.version === version),
+  );
+}
+
 const sameVersion = (left: Version, right: Version) =>
   left.id === right.id && left.version === right.version;
 const invalid = (diagnostic: Diagnostic): Compilation => ({

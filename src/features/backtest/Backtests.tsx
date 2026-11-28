@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { datasetsOptions, type Dataset, type JobStatus } from '../../api';
 import {
-  datasetsOptions,
-  detailOptions,
-  listOptions,
-  type Dataset,
-  type Job,
-  type JobStatus,
-} from '../../api';
+  isJobId,
+  readBacktestJob,
+  readBacktestPage,
+  type WebJob,
+} from '../../api/backtestsWeb';
 import { ResearchResult } from './ResearchResult';
 import { useSubmission } from './useSubmission';
 
@@ -35,7 +34,7 @@ const failures: Record<string, string> = {
   job_timeout: '作业超过执行时限。',
 };
 
-const active = (job: Job | undefined) =>
+const active = (job: WebJob | undefined) =>
   job?.status === 'queued' || job?.status === 'running';
 
 function QueryFailure({ retry }: { retry: () => void }) {
@@ -51,7 +50,7 @@ function QueryFailure({ retry }: { retry: () => void }) {
 
 export function Backtests() {
   const [search, setSearch] = useSearchParams();
-  const [cursor, setCursor] = useState<number>();
+  const [cursor, setCursor] = useState<string>();
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -64,19 +63,21 @@ export function Backtests() {
   }, []);
   const catalog = useQuery(datasetsOptions());
   const list = useQuery({
-    ...listOptions({ query: { limit: 20, cursor } }),
+    queryKey: ['backtests-web', 'page', cursor],
+    queryFn: ({ signal }) => readBacktestPage(cursor, signal),
     refetchInterval: 5_000,
   });
-  const id = Number(search.get('job') ?? 0);
-  const selected = Number.isSafeInteger(id) && id > 0;
+  const id = search.get('job') ?? '';
+  const selected = isJobId(id);
   const detail = useQuery({
-    ...detailOptions({ path: { id } }),
+    queryKey: ['backtests-web', 'job', id],
+    queryFn: ({ signal }) => readBacktestJob(id, signal),
     enabled: selected,
     refetchInterval: (query) => (active(query.state.data) ? 2_000 : false),
   });
 
-  function show(id: number) {
-    setSearch({ job: String(id) });
+  function show(id: string) {
+    setSearch({ job: id });
     void list.refetch();
   }
 
@@ -190,7 +191,7 @@ function BacktestForm({
   onAccepted,
 }: {
   datasets: Dataset[];
-  onAccepted: (id: number) => void;
+  onAccepted: (id: string) => void;
 }) {
   const [instrument, setInstrument] = useState('');
   const [start, setStart] = useState('');
@@ -405,7 +406,7 @@ function BacktestForm({
   );
 }
 
-function JobDetail({ job }: { job: Job }) {
+function JobDetail({ job }: { job: WebJob }) {
   return (
     <>
       <div className="job-detail-status">

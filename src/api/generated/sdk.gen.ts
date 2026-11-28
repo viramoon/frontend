@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, ServerSentEventsResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AckAlertData, AckAlertErrors, AckAlertResponses, ActivateData, ActivateErrors, ActivateResponses, BackupStatusData, BackupStatusErrors, BackupStatusResponses, ByKeyData, ByKeyErrors, ByKeyResponses, CapabilitiesData, CapabilitiesResponses, CatalogData, CatalogErrors, CatalogResponses, CreateData, CreateErrors, CreateResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DeleteAlertSilenceData, DeleteAlertSilenceErrors, DeleteAlertSilenceResponses, DeleteCredentialData, DeleteCredentialErrors, DeleteCredentialResponses, DeleteRuleSilenceData, DeleteRuleSilenceErrors, DeleteRuleSilenceResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DetailData, DetailErrors, DetailResponses, GetAlertData, GetAlertErrors, GetAlertResponses, GetAlertSilenceData, GetAlertSilenceErrors, GetAlertSilenceResponses, GetChannelTestData, GetChannelTestErrors, GetChannelTestResponses, GetIntegrationData, GetIntegrationErrors, GetIntegrationResponses, GetMarketDepthFocusData, GetMarketDepthFocusErrors, GetMarketDepthFocusResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetRuleSilenceData, GetRuleSilenceErrors, GetRuleSilenceResponses, GetScopedTestData, GetScopedTestErrors, GetScopedTestResponses, GetTestData, GetTestErrors, GetTestResponses, GetWatchlistData, GetWatchlistErrors, GetWatchlistResponses, HeadEventsData, HeadEventsErrors, HeadEventsResponses, List2Data, List2Errors, List2Responses, ListAlertsData, ListAlertsErrors, ListAlertsResponses, ListData, ListErrors, ListResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LiveData, LiveResponses, MarketBarsData, MarketBarsErrors, MarketBarsResponses, MarketBookData, MarketBookErrors, MarketBookResponses, MarketDerivativesData, MarketDerivativesErrors, MarketDerivativesResponses, MarketFinanceGapsData, MarketFinanceGapsErrors, MarketFinanceGapsResponses, MarketIndicatorsData, MarketIndicatorsErrors, MarketIndicatorsResponses, MarketIndicatorValuesData, MarketIndicatorValuesErrors, MarketIndicatorValuesResponses, MarketInstrumentsData, MarketInstrumentsErrors, MarketInstrumentsResponses, MarketProductsData, MarketProductsErrors, MarketProductsResponses, MarketProjectedEventData, MarketProjectedEventErrors, MarketProjectedEventResponses, MarketQuotesData, MarketQuotesErrors, MarketQuotesResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, MarketStreamData, MarketStreamErrors, MarketSubscriptionsData, MarketSubscriptionsErrors, MarketSubscriptionsResponses, MarketTradesData, MarketTradesErrors, MarketTradesResponses, MarketWalData, MarketWalErrors, MarketWalResponses, MarketWatermarksData, MarketWatermarksErrors, MarketWatermarksResponses, OptionsChainData, OptionsChainErrors, OptionsExposureData, OptionsExposureErrors, OptionsFlowData, OptionsFlowErrors, PutAlertSilenceData, PutAlertSilenceErrors, PutAlertSilenceResponses, PutCredentialData, PutCredentialErrors, PutCredentialResponses, PutRuleData, PutRuleErrors, PutRuleResponses, PutRuleSilenceData, PutRuleSilenceErrors, PutRuleSilenceResponses, PutWatchlistData, PutWatchlistErrors, PutWatchlistResponses, QualityGapsData, QualityGapsErrors, QualityGapsResponses, ReadEventsData, ReadEventsErrors, ReadEventsResponse, ReadEventsResponses, ReadyData, ReadyErrors, ReadyResponses, RollbackData, RollbackErrors, RollbackResponses, SampleData, SampleErrors, SampleResponses, SetMarketDepthFocusData, SetMarketDepthFocusErrors, SetMarketDepthFocusResponses, StartChannelTestData, StartChannelTestErrors, StartChannelTestResponses, StartTestData, StartTestErrors, StartTestResponses, StatusData, StatusResponses, SubmitData, SubmitErrors, SubmitResponses, UpdateData, UpdateErrors, UpdateResponses } from './types.gen';
+import type { AckAlertData, AckAlertErrors, AckAlertResponses, ActivateData, ActivateErrors, ActivateResponses, BackupStatusData, BackupStatusErrors, BackupStatusResponses, ByKeyData, ByKeyErrors, ByKeyResponses, CapabilitiesData, CapabilitiesResponses, CatalogData, CatalogErrors, CatalogResponses, CreateData, CreateErrors, CreateResponses, CreateSessionData, CreateSessionErrors, CreateSessionResponses, DatasetsData, DatasetsErrors, DatasetsResponses, DeleteAlertSilenceData, DeleteAlertSilenceErrors, DeleteAlertSilenceResponses, DeleteCredentialData, DeleteCredentialErrors, DeleteCredentialResponses, DeleteRuleSilenceData, DeleteRuleSilenceErrors, DeleteRuleSilenceResponses, DeleteSessionData, DeleteSessionErrors, DeleteSessionResponses, DetailData, DetailErrors, DetailResponses, FactorEvaluationData, FactorEvaluationErrors, FactorEvaluationResponses, FactorEvaluationsData, FactorEvaluationsErrors, FactorEvaluationsResponses, FactorListData, FactorListErrors, FactorListResponses, GetAlertData, GetAlertErrors, GetAlertResponses, GetAlertSilenceData, GetAlertSilenceErrors, GetAlertSilenceResponses, GetChannelTestData, GetChannelTestErrors, GetChannelTestResponses, GetIntegrationData, GetIntegrationErrors, GetIntegrationResponses, GetMarketDepthFocusData, GetMarketDepthFocusErrors, GetMarketDepthFocusResponses, GetRuleData, GetRuleErrors, GetRuleResponses, GetRuleSilenceData, GetRuleSilenceErrors, GetRuleSilenceResponses, GetScopedTestData, GetScopedTestErrors, GetScopedTestResponses, GetTestData, GetTestErrors, GetTestResponses, GetWatchlistData, GetWatchlistErrors, GetWatchlistResponses, HeadEventsData, HeadEventsErrors, HeadEventsResponses, List2Data, List2Errors, List2Responses, ListAlertsData, ListAlertsErrors, ListAlertsResponses, ListData, ListErrors, ListResponses, ListRulesData, ListRulesErrors, ListRulesResponses, LiveData, LiveResponses, MarketBarsData, MarketBarsErrors, MarketBarsResponses, MarketBookData, MarketBookErrors, MarketBookResponses, MarketDerivativesData, MarketDerivativesErrors, MarketDerivativesResponses, MarketFinanceGapsData, MarketFinanceGapsErrors, MarketFinanceGapsResponses, MarketIndicatorsData, MarketIndicatorsErrors, MarketIndicatorsResponses, MarketIndicatorValuesData, MarketIndicatorValuesErrors, MarketIndicatorValuesResponses, MarketInstrumentsData, MarketInstrumentsErrors, MarketInstrumentsResponses, MarketProductsData, MarketProductsErrors, MarketProductsResponses, MarketProjectedEventData, MarketProjectedEventErrors, MarketProjectedEventResponses, MarketQuotesData, MarketQuotesErrors, MarketQuotesResponses, MarketStatusData, MarketStatusErrors, MarketStatusResponses, MarketStreamData, MarketStreamErrors, MarketSubscriptionBudgetData, MarketSubscriptionBudgetErrors, MarketSubscriptionBudgetResponses, MarketSubscriptionCoverageData, MarketSubscriptionCoverageErrors, MarketSubscriptionCoverageResponses, MarketSubscriptionsData, MarketSubscriptionsErrors, MarketSubscriptionsResponses, MarketTradesData, MarketTradesErrors, MarketTradesResponses, MarketVenueDepthData, MarketVenueDepthErrors, MarketVenueDepthResponses, MarketWalData, MarketWalErrors, MarketWalResponses, MarketWatermarksData, MarketWatermarksErrors, MarketWatermarksResponses, OptionsChainData, OptionsChainErrors, OptionsChainResponses, OptionsExposureData, OptionsExposureErrors, OptionsExposureResponses, OptionsFlowData, OptionsFlowErrors, OptionsFlowObservationsData, OptionsFlowObservationsErrors, OptionsFlowObservationsResponses, OptionsFlowResponses, OptionsFlowVerificationData, OptionsFlowVerificationErrors, OptionsFlowVerificationResponses, OptionsHistoryData, OptionsHistoryErrors, OptionsHistoryResponses, PutAlertSilenceData, PutAlertSilenceErrors, PutAlertSilenceResponses, PutCredentialData, PutCredentialErrors, PutCredentialResponses, PutRuleData, PutRuleErrors, PutRuleResponses, PutRuleSilenceData, PutRuleSilenceErrors, PutRuleSilenceResponses, PutWatchlistData, PutWatchlistErrors, PutWatchlistResponses, QualityGapsData, QualityGapsErrors, QualityGapsResponses, ReadEventsData, ReadEventsErrors, ReadEventsResponse, ReadEventsResponses, ReadyData, ReadyErrors, ReadyResponses, RegisterData, RegisterErrors, RegisterResponses, RollbackData, RollbackErrors, RollbackResponses, SampleData, SampleErrors, SampleResponses, SetMarketDepthFocusData, SetMarketDepthFocusErrors, SetMarketDepthFocusResponses, StartChannelTestData, StartChannelTestErrors, StartChannelTestResponses, StartTestData, StartTestErrors, StartTestResponses, StatusData, StatusResponses, StrategyVersionData, StrategyVersionErrors, StrategyVersionResponses, StrategyVersionsData, StrategyVersionsErrors, StrategyVersionsResponses, SubmitData, SubmitErrors, SubmitResponses, UpdateData, UpdateErrors, UpdateResponses, ValidateStrategyData, ValidateStrategyErrors, ValidateStrategyResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -107,7 +107,18 @@ export const putAlertSilence = <ThrowOnError extends boolean = false>(options: O
     }
 });
 
-export const list = <ThrowOnError extends boolean = false>(options?: Options<ListData, ThrowOnError>): RequestResult<ListResponses, ListErrors, ThrowOnError> => (options?.client ?? client).get<ListResponses, ListErrors, ThrowOnError>({ url: '/api/v1/backtests', ...options });
+/**
+ * Anonymous readers see DemoStrategy and SmaCrossover jobs. Administrators can read the full queue. A non-null next_cursor is the last returned job id and indicates another visible job.
+ */
+export const list = <ThrowOnError extends boolean = false>(options?: Options<ListData, ThrowOnError>): RequestResult<ListResponses, ListErrors, ThrowOnError> => (options?.client ?? client).get<ListResponses, ListErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/backtests',
+    ...options
+});
 
 export const submit = <ThrowOnError extends boolean = false>(options: Options<SubmitData, ThrowOnError>): RequestResult<SubmitResponses, SubmitErrors, ThrowOnError> => (options.client ?? client).post<SubmitResponses, SubmitErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -137,7 +148,18 @@ export const datasets = <ThrowOnError extends boolean = false>(options?: Options
 
 export const sample = <ThrowOnError extends boolean = false>(options?: Options<SampleData, ThrowOnError>): RequestResult<SampleResponses, SampleErrors, ThrowOnError> => (options?.client ?? client).get<SampleResponses, SampleErrors, ThrowOnError>({ url: '/api/v1/backtests/sample', ...options });
 
-export const detail = <ThrowOnError extends boolean = false>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, DetailErrors, ThrowOnError> => (options.client ?? client).get<DetailResponses, DetailErrors, ThrowOnError>({ url: '/api/v1/backtests/{id}', ...options });
+/**
+ * Legacy jobs are public. StrategyBundle jobs are visible to administrators.
+ */
+export const detail = <ThrowOnError extends boolean = false>(options: Options<DetailData, ThrowOnError>): RequestResult<DetailResponses, DetailErrors, ThrowOnError> => (options.client ?? client).get<DetailResponses, DetailErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/backtests/{id}',
+    ...options
+});
 
 export const backupStatus = <ThrowOnError extends boolean = false>(options?: Options<BackupStatusData, ThrowOnError>): RequestResult<BackupStatusResponses, BackupStatusErrors, ThrowOnError> => (options?.client ?? client).get<BackupStatusResponses, BackupStatusErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
@@ -149,6 +171,9 @@ export const backupStatus = <ThrowOnError extends boolean = false>(options?: Opt
     ...options
 });
 
+/**
+ * Without a configured HTTPS origin, the session cookie requires a matching HTTP loopback Origin, or a loopback Host and Sec-Fetch-Site: same-origin when Origin is omitted.
+ */
 export const readEvents = <ThrowOnError extends boolean = false>(options?: Options<ReadEventsData, ThrowOnError, ReadEventsResponse>): Promise<ServerSentEventsResult<ReadEventsResponses>> => (options?.client ?? client).sse.get<ReadEventsResponses, ReadEventsErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
@@ -166,6 +191,36 @@ export const headEvents = <ThrowOnError extends boolean = false>(options?: Optio
             type: 'apiKey'
         }],
     url: '/api/v1/events',
+    ...options
+});
+
+export const factorList = <ThrowOnError extends boolean = false>(options?: Options<FactorListData, ThrowOnError>): RequestResult<FactorListResponses, FactorListErrors, ThrowOnError> => (options?.client ?? client).get<FactorListResponses, FactorListErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/factors',
+    ...options
+});
+
+export const factorEvaluations = <ThrowOnError extends boolean = false>(options: Options<FactorEvaluationsData, ThrowOnError>): RequestResult<FactorEvaluationsResponses, FactorEvaluationsErrors, ThrowOnError> => (options.client ?? client).get<FactorEvaluationsResponses, FactorEvaluationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/factors/{id}/evaluations',
+    ...options
+});
+
+export const factorEvaluation = <ThrowOnError extends boolean = false>(options: Options<FactorEvaluationData, ThrowOnError>): RequestResult<FactorEvaluationResponses, FactorEvaluationErrors, ThrowOnError> => (options.client ?? client).get<FactorEvaluationResponses, FactorEvaluationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/factors/{id}/evaluations/{evaluation_id}',
     ...options
 });
 
@@ -349,6 +404,16 @@ export const marketBook = <ThrowOnError extends boolean = false>(options: Option
     ...options
 });
 
+export const marketVenueDepth = <ThrowOnError extends boolean = false>(options: Options<MarketVenueDepthData, ThrowOnError>): RequestResult<MarketVenueDepthResponses, MarketVenueDepthErrors, ThrowOnError> => (options.client ?? client).get<MarketVenueDepthResponses, MarketVenueDepthErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/market/depth',
+    ...options
+});
+
 export const getMarketDepthFocus = <ThrowOnError extends boolean = false>(options?: Options<GetMarketDepthFocusData, ThrowOnError>): RequestResult<GetMarketDepthFocusResponses, GetMarketDepthFocusErrors, ThrowOnError> => (options?.client ?? client).get<GetMarketDepthFocusResponses, GetMarketDepthFocusErrors, ThrowOnError>({
     security: [{
             in: 'cookie',
@@ -432,6 +497,26 @@ export const marketSubscriptions = <ThrowOnError extends boolean = false>(option
             type: 'apiKey'
         }, { scheme: 'bearer', type: 'http' }],
     url: '/api/v1/market/subscriptions',
+    ...options
+});
+
+export const marketSubscriptionBudget = <ThrowOnError extends boolean = false>(options?: Options<MarketSubscriptionBudgetData, ThrowOnError>): RequestResult<MarketSubscriptionBudgetResponses, MarketSubscriptionBudgetErrors, ThrowOnError> => (options?.client ?? client).get<MarketSubscriptionBudgetResponses, MarketSubscriptionBudgetErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/market/subscriptions/budget',
+    ...options
+});
+
+export const marketSubscriptionCoverage = <ThrowOnError extends boolean = false>(options: Options<MarketSubscriptionCoverageData, ThrowOnError>): RequestResult<MarketSubscriptionCoverageResponses, MarketSubscriptionCoverageErrors, ThrowOnError> => (options.client ?? client).get<MarketSubscriptionCoverageResponses, MarketSubscriptionCoverageErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/market/subscriptions/coverage',
     ...options
 });
 
@@ -572,33 +657,72 @@ export const putRuleSilence = <ThrowOnError extends boolean = false>(options: Op
     }
 });
 
-export const optionsChain = <ThrowOnError extends boolean = false>(options: Options<OptionsChainData, ThrowOnError>): RequestResult<unknown, OptionsChainErrors, ThrowOnError> => (options.client ?? client).get<unknown, OptionsChainErrors, ThrowOnError>({
-    security: [{
+export const optionsChain = <ThrowOnError extends boolean = false>(options?: Options<OptionsChainData, ThrowOnError>): RequestResult<OptionsChainResponses, OptionsChainErrors, ThrowOnError> => (options?.client ?? client).get<OptionsChainResponses, OptionsChainErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
             name: '__Host-web_admin_session',
             type: 'apiKey'
-        }, { scheme: 'bearer', type: 'http' }],
+        }],
     url: '/api/v1/options/chain',
     ...options
 });
 
-export const optionsExposure = <ThrowOnError extends boolean = false>(options: Options<OptionsExposureData, ThrowOnError>): RequestResult<unknown, OptionsExposureErrors, ThrowOnError> => (options.client ?? client).get<unknown, OptionsExposureErrors, ThrowOnError>({
-    security: [{
+export const optionsExposure = <ThrowOnError extends boolean = false>(options?: Options<OptionsExposureData, ThrowOnError>): RequestResult<OptionsExposureResponses, OptionsExposureErrors, ThrowOnError> => (options?.client ?? client).get<OptionsExposureResponses, OptionsExposureErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
             name: '__Host-web_admin_session',
             type: 'apiKey'
-        }, { scheme: 'bearer', type: 'http' }],
+        }],
     url: '/api/v1/options/exposure',
     ...options
 });
 
-export const optionsFlow = <ThrowOnError extends boolean = false>(options: Options<OptionsFlowData, ThrowOnError>): RequestResult<unknown, OptionsFlowErrors, ThrowOnError> => (options.client ?? client).get<unknown, OptionsFlowErrors, ThrowOnError>({
+/**
+ * Read options flow with the legacy mode and window parameter names.
+ */
+export const optionsFlow = <ThrowOnError extends boolean = false>(options?: Options<OptionsFlowData, ThrowOnError>): RequestResult<OptionsFlowResponses, OptionsFlowErrors, ThrowOnError> => (options?.client ?? client).get<OptionsFlowResponses, OptionsFlowErrors, ThrowOnError>({
     security: [{
             in: 'cookie',
             name: '__Host-web_admin_session',
             type: 'apiKey'
         }, { scheme: 'bearer', type: 'http' }],
     url: '/api/v1/options/flow',
+    ...options
+});
+
+/**
+ * Retained OPRA L1 clues by receipt time in [start, end).
+ */
+export const optionsFlowObservations = <ThrowOnError extends boolean = false>(options: Options<OptionsFlowObservationsData, ThrowOnError>): RequestResult<OptionsFlowObservationsResponses, OptionsFlowObservationsErrors, ThrowOnError> => (options.client ?? client).get<OptionsFlowObservationsResponses, OptionsFlowObservationsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/options/flow/observations',
+    ...options
+});
+
+/**
+ * Existing historical verification for one exact, whole-second trade window.
+ */
+export const optionsFlowVerification = <ThrowOnError extends boolean = false>(options: Options<OptionsFlowVerificationData, ThrowOnError>): RequestResult<OptionsFlowVerificationResponses, OptionsFlowVerificationErrors, ThrowOnError> => (options.client ?? client).get<OptionsFlowVerificationResponses, OptionsFlowVerificationErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/options/flow/verification',
+    ...options
+});
+
+export const optionsHistory = <ThrowOnError extends boolean = false>(options: Options<OptionsHistoryData, ThrowOnError>): RequestResult<OptionsHistoryResponses, OptionsHistoryErrors, ThrowOnError> => (options.client ?? client).get<OptionsHistoryResponses, OptionsHistoryErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/options/history',
     ...options
 });
 
@@ -622,8 +746,62 @@ export const qualityGaps = <ThrowOnError extends boolean = false>(options?: Opti
     ...options
 });
 
+export const strategyVersions = <ThrowOnError extends boolean = false>(options?: Options<StrategyVersionsData, ThrowOnError>): RequestResult<StrategyVersionsResponses, StrategyVersionsErrors, ThrowOnError> => (options?.client ?? client).get<StrategyVersionsResponses, StrategyVersionsErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/strategies',
+    ...options
+});
+
+export const register = <ThrowOnError extends boolean = false>(options: Options<RegisterData, ThrowOnError>): RequestResult<RegisterResponses, RegisterErrors, ThrowOnError> => (options.client ?? client).post<RegisterResponses, RegisterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/strategies',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 /**
- * RFC 6455 upgrade for authorized F10a WAL replay. See MarketStreamCommand and MarketStreamControl.
+ * Compile an upload for preview without registering it or accessing replay data.
+ */
+export const validateStrategy = <ThrowOnError extends boolean = false>(options: Options<ValidateStrategyData, ThrowOnError>): RequestResult<ValidateStrategyResponses, ValidateStrategyErrors, ThrowOnError> => (options.client ?? client).post<ValidateStrategyResponses, ValidateStrategyErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/strategies/validate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Resolve a registered version using its pinned input metadata.
+ */
+export const strategyVersion = <ThrowOnError extends boolean = false>(options: Options<StrategyVersionData, ThrowOnError>): RequestResult<StrategyVersionResponses, StrategyVersionErrors, ThrowOnError> => (options.client ?? client).get<StrategyVersionResponses, StrategyVersionErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }, {
+            in: 'cookie',
+            name: '__Host-web_admin_session',
+            type: 'apiKey'
+        }],
+    url: '/api/v1/strategies/{id}/versions/{version}',
+    ...options
+});
+
+/**
+ * RFC 6455 upgrade for authorized F10a WAL replay. A session cookie requires the configured HTTPS origin or, when unset, an HTTP loopback Origin matching Host. See MarketStreamCommand and MarketStreamControl.
  */
 export const marketStream = <ThrowOnError extends boolean = false>(options?: Options<MarketStreamData, ThrowOnError>): RequestResult<unknown, MarketStreamErrors, ThrowOnError> => (options?.client ?? client).get<unknown, MarketStreamErrors, ThrowOnError>({
     security: [{

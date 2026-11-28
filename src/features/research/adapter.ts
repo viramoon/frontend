@@ -1,5 +1,4 @@
-// View models for the research screens. The W2b adapter will map the generated
-// web contract to these types.
+// View models shared by the web adapter and the synthetic research screens.
 export type Version = { id: string; version: string };
 export type Revision = Version & { contentSha256: string };
 export type DecimalText = string;
@@ -30,7 +29,7 @@ export type CompiledPlan = {
   bars: string;
   universe: string;
   calendar: string;
-  warmupSessions: number;
+  warmupSessions: number | '未提供';
   timing: string;
   dependencies: { name: string; ref: string }[];
   sleeves: { recipe: string; budgetWeight: DecimalText; priority: number }[];
@@ -58,8 +57,9 @@ export type Factor = Version & {
   definition: string;
   dataVersion: string;
   availability: string;
-  warmupSessions: number;
+  warmupSessions: number | string | null;
   state:
+    | 'research_only'
     | 'research'
     | 'out_of_sample_validation'
     | 'observe_only'
@@ -70,9 +70,10 @@ export type FactorReport = {
   costBps: DecimalText;
   windows: (DateWindow & {
     phase: 'train' | 'validation' | 'out_of_sample';
-    coverage: DecimalText;
-    scored: number;
-    eligible: number;
+    coverage: DecimalText | null;
+    factorCoverage?: DecimalText | null;
+    scored?: number;
+    eligible?: number;
     decay: {
       sessions: number;
       observations: number;
@@ -96,7 +97,8 @@ export type RunStatus =
   | 'running'
   | 'succeeded'
   | 'failed'
-  | 'timed_out';
+  | 'timed_out'
+  | 'cancelled';
 export type RunSummary = {
   id: string;
   request: RunRequest;
@@ -111,30 +113,31 @@ export type RunResult = {
     universe: string;
     calendar: string;
     timezone: string;
-    warmupSessions: number;
+    warmupSessions: number | '未提供';
     priceBasis: string;
     commissionBps: DecimalText;
     slippageBps: DecimalText;
   };
   currency: string;
   finalEquity: DecimalText;
-  benchmark: { title: string; finalEquity: DecimalText };
+  benchmark?: { title: string; finalEquity: DecimalText };
   ledger: {
     session: string;
     instrument: string;
-    recipe: string;
+    recipe?: string;
+    side?: string;
     quantity: DecimalText;
     price: DecimalText;
     fee: DecimalText;
-    cashAfter: DecimalText;
+    cashAfter?: DecimalText;
   }[];
 };
 
 export type RunDetail = RunSummary &
   (
     | { status: 'queued' | 'running' }
-    | { status: 'failed' | 'timed_out'; message: string }
-    | { status: 'succeeded'; result: RunResult }
+    | { status: 'failed' | 'timed_out' | 'cancelled'; message: string }
+    | { status: 'succeeded'; result: RunResult | null }
   );
 
 export type RunLookup = { kind: 'found'; id: string } | { kind: 'missing' };
@@ -143,12 +146,14 @@ export interface ResearchAdapter {
   readonly source: 'fixture' | 'web';
   listStrategies(): Promise<Strategy[]>;
   compile(source: StrategySource): Promise<Compilation>;
+  register?(content: string): Promise<Revision>;
   listDatasets(
     input: Pick<CompiledPlan, 'bars' | 'universe'>,
   ): Promise<Dataset[]>;
   listFactors(): Promise<Factor[]>;
   factorReport(selection: Version): Promise<FactorReport | null>;
   listRuns(): Promise<RunSummary[]>;
+  listRunPage?(cursor?: string): Promise<{ runs: RunSummary[]; next?: string }>;
   run(id: string): Promise<RunDetail | null>;
   submit(request: RunRequest, key: string): Promise<{ id: string }>;
   byKey(key: string): Promise<RunLookup>;
@@ -157,4 +162,9 @@ export interface ResearchAdapter {
 // Only the local adapter can resolve queries while the browser is offline.
 export function researchNetworkMode(source: ResearchAdapter['source']) {
   return source === 'fixture' ? 'always' : 'online';
+}
+
+export function researchHref(path: string, search: URLSearchParams) {
+  if (search.get('research') !== 'replay') return path;
+  return path + (path.includes('?') ? '&' : '?') + 'research=replay';
 }

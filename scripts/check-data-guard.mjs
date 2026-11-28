@@ -307,25 +307,33 @@ function marketFields(fields) {
   );
 }
 
+function jsonContainsMarketData(root) {
+  const pending = [root];
+  while (pending.length) {
+    const value = pending.pop();
+    if (!value || typeof value !== 'object') continue;
+    const fields = Array.isArray(value)
+      ? value.filter((item) => typeof item === 'string')
+      : Object.keys(value);
+    if (marketFields(fields)) return true;
+    for (const child of Object.values(value)) {
+      if (child && typeof child === 'object') pending.push(child);
+    }
+  }
+  return false;
+}
+
 function isMarketExport(content) {
   const firstLine = content.trimStart().split(/\r?\n/, 1)[0];
-  if (marketFields(firstLine.replaceAll('"', '').split(/[,\t;|]/))) return true;
-  if (!firstLine.startsWith('[') && !firstLine.startsWith('{')) return false;
-
-  try {
-    const data = JSON.parse(content);
-    const isRecord = (value) =>
-      value && typeof value === 'object' && marketFields(Object.keys(value));
-    if (Array.isArray(data)) return data.some(isRecord);
-    return (
-      isRecord(data) ||
-      Object.values(data).some(
-        (value) => Array.isArray(value) && value.some(isRecord),
-      )
-    );
-  } catch {
-    return false;
+  if (firstLine.startsWith('[') || firstLine.startsWith('{')) {
+    try {
+      // Keep JSON records and header arrays separate even when the file is minified.
+      return jsonContainsMarketData(JSON.parse(content));
+    } catch {
+      // Invalid JSON can still be delimited text.
+    }
   }
+  return marketFields(firstLine.replaceAll('"', '').split(/[,\t;|]/));
 }
 
 function isTextMedia(content) {

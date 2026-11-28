@@ -379,7 +379,7 @@ function mockWeb(admin = true, perpetual = false, wal = rows) {
           revision++;
         }
         return Response.json({ id: 'default', revision, instrument_ids: ids });
-      case '/api/v1/options/flow':
+      case '/api/v1/options/flow/observations':
         return Response.json(
           { error: { code: 'finance_contract_pending' } },
           { status: 503 },
@@ -900,9 +900,19 @@ it('does not open W2a reads or streams for anonymous sessions', async () => {
   expect(unexpected).toEqual([]);
 });
 
-it('shows the W2a option contract pending response and keeps replay explicit', async () => {
+it('shows a web option contract pending response and keeps replay explicit', async () => {
   const { unexpected } = mockWeb();
   const page = mount('/options/flow');
+  fireEvent.change(await screen.findByLabelText('流水合约 IBKR ConId'), {
+    target: { value: '9001' },
+  });
+  fireEvent.change(screen.getByLabelText('开始时间（UTC）'), {
+    target: { value: '2026-11-19T13:30' },
+  });
+  fireEvent.change(screen.getByLabelText('结束时间（UTC，不含）'), {
+    target: { value: '2026-11-19T14:00' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: '读取流水' }));
   expect(await screen.findByText('finance_contract_pending')).toBeVisible();
   expect(screen.queryByText('Fixture · 示例数据')).toBeNull();
   page.unmount();

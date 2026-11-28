@@ -1,5 +1,5 @@
 import { QueryClientContext } from '@tanstack/react-query';
-import { useContext, useState } from 'react';
+import { useContext, useState, type ReactNode } from 'react';
 import {
   Link,
   Navigate,
@@ -7,6 +7,7 @@ import {
   Route,
   Routes,
   useLocation,
+  useMatch,
   useNavigate,
   useParams,
   useSearchParams,
@@ -32,9 +33,16 @@ import {
 import { WebRecovery } from '../../features/system/WebRecovery';
 import { AdminProductAccess } from './AdminProductAccess';
 import { MarketRoute, OptionsMarketRoute } from './MarketRoutes';
-import type { ResearchAdapter } from '../../features/research/adapter';
+import {
+  researchHref,
+  type ResearchAdapter,
+} from '../../features/research/adapter';
+import { webResearch } from '../../api/researchWeb';
 import { FactorCatalog } from '../../features/research/FactorCatalog';
-import { fixtureResearch } from '../../features/research/fixtureAdapter';
+import {
+  fixtureResearch,
+  hasFixtureStrategy,
+} from '../../features/research/fixtureAdapter';
 import { RunWorkbench } from '../../features/research/RunWorkbench';
 import { StrategyWorkbench } from '../../features/research/StrategyWorkbench';
 import '../../features/research/research.css';
@@ -61,15 +69,61 @@ const navigation = [
 
 type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
-function StrategyDetail({ adapter, submission }: ResearchProps) {
-  const { id } = useParams();
+function useResearchSubmission(adapter: ResearchAdapter) {
+  const [search] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useContext(QueryClientContext);
+  return useRunSubmission(adapter, (run) => {
+    void queryClient?.invalidateQueries({
+      queryKey: ['research', adapter.source, 'runs'],
+    });
+    void navigate(
+      researchHref(`/backtests?run=${encodeURIComponent(run)}`, search),
+    );
+  });
+}
+
+function FixtureStrategyDetail({ id }: { id: string }) {
+  const submission = useResearchSubmission(fixtureResearch);
   return (
+    <StrategyWorkbench
+      adapter={fixtureResearch}
+      routeId={id}
+      submission={submission}
+    />
+  );
+}
+
+function StrategyDetail({
+  adapter,
+  submission,
+  guarded,
+}: ResearchProps & { guarded: boolean }) {
+  const { id } = useParams();
+  const [search] = useSearchParams();
+  const fallback =
+    guarded && id && hasFixtureStrategy(id, search.get('version')) ? (
+      <FixtureStrategyDetail key={id} id={id} />
+    ) : undefined;
+  const workbench = (
     <StrategyWorkbench
       key={id}
       adapter={adapter}
       routeId={id}
       submission={submission}
+      missingVersion={fallback}
     />
+  );
+  return guarded ? (
+    <AdminProductAccess
+      title="策略详情"
+      product="strategy_research"
+      deniedFallback={fallback}
+    >
+      {workbench}
+    </AdminProductAccess>
+  ) : (
+    workbench
   );
 }
 
@@ -85,14 +139,20 @@ function BacktestRoute({ adapter, submission }: ResearchProps) {
           历史均线回测
         </Link>
         <Link
-          to="/backtests?view=strategy"
+          to={researchHref('/backtests?view=strategy', search)}
           aria-current={configured ? 'page' : undefined}
         >
           配置策略回测
         </Link>
       </nav>
       {configured ? (
-        <RunWorkbench adapter={adapter} submission={submission} />
+        adapter === webResearch ? (
+          <AdminProductAccess title="配置回测" product="strategy_research">
+            <RunWorkbench adapter={adapter} submission={submission} />
+          </AdminProductAccess>
+        ) : (
+          <RunWorkbench adapter={adapter} submission={submission} />
+        )
       ) : (
         <Backtests />
       )}
@@ -101,7 +161,7 @@ function BacktestRoute({ adapter, submission }: ResearchProps) {
 }
 
 export function AppRoutes({
-  research = fixtureResearch,
+  research,
   operations,
   marketReplay = false,
 }: {
@@ -109,17 +169,47 @@ export function AppRoutes({
   operations?: OperationsAdapter;
   marketReplay?: boolean;
 } = {}) {
+  const [search] = useSearchParams();
+  const example =
+    useMatch('/strategies/:id')?.params.id === 'example' &&
+    !search.has('version');
+  const fixtureRun =
+    useMatch('/backtests') &&
+    !search.has('job') &&
+    /^fixture-[1-9]\d*$/.test(search.get('run') ?? '');
+  const replay =
+    marketReplay ||
+    search.get('research') === 'replay' ||
+    example ||
+    fixtureRun;
+  const adapter = research ?? (replay ? fixtureResearch : webResearch);
+  return (
+    <TerminalRoutes
+      key={adapter.source}
+      research={adapter}
+      guarded={!research && adapter.source === 'web'}
+      operations={operations}
+      marketReplay={marketReplay}
+    />
+  );
+}
+
+function TerminalRoutes({
+  research,
+  operations,
+  marketReplay,
+  guarded,
+}: {
+  research: ResearchAdapter;
+  operations?: OperationsAdapter;
+  marketReplay: boolean;
+  guarded: boolean;
+}) {
   const { pathname, search } = useLocation();
   const replayInUrl = new URLSearchParams(search).get('market') === 'replay';
   const replay = marketReplay || replayInUrl;
-  const navigate = useNavigate();
-  const queryClient = useContext(QueryClientContext);
-  const submission = useRunSubmission(research, (run) => {
-    void queryClient?.invalidateQueries({
-      queryKey: ['research', research.source, 'runs'],
-    });
-    void navigate(`/backtests?run=${encodeURIComponent(run)}`);
-  });
+  const params = new URLSearchParams(search);
+  const submission = useResearchSubmission(research);
   const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
 
   const resetTest = () => setEmailTestKey(null);
@@ -137,6 +227,16 @@ export function AppRoutes({
       setTestKey={setEmailTestKey}
     />
   );
+  function researchAccess(title: string, body: ReactNode) {
+    return guarded ? (
+      <AdminProductAccess title={title} product="strategy_research">
+        {body}
+      </AdminProductAccess>
+    ) : (
+      body
+    );
+  }
+
   const showStatus = /^\/(?:dashboard|system)\/?$/i.test(pathname);
   return (
     <>
@@ -165,7 +265,9 @@ export function AppRoutes({
                   replayInUrl &&
                   /^(?:\/dashboard$|\/trading$|\/options\/)/.test(path)
                     ? path + '?market=replay'
-                    : path
+                    : /^\/(?:strategies|factors)$/.test(path)
+                      ? researchHref(path, params)
+                      : path
                 }
                 className={({ isActive }) =>
                   isActive ? 'nav-link current' : 'nav-link'
@@ -217,19 +319,27 @@ export function AppRoutes({
           />
           <Route
             path="/strategies"
-            element={
-              <StrategyWorkbench adapter={research} submission={submission} />
-            }
+            element={researchAccess(
+              '策略',
+              <StrategyWorkbench adapter={research} submission={submission} />,
+            )}
           />
           <Route
             path="/strategies/:id"
             element={
-              <StrategyDetail adapter={research} submission={submission} />
+              <StrategyDetail
+                adapter={research}
+                submission={submission}
+                guarded={guarded}
+              />
             }
           />
           <Route
             path="/factors"
-            element={<FactorCatalog adapter={research} />}
+            element={researchAccess(
+              '因子',
+              <FactorCatalog adapter={research} />,
+            )}
           />
           <Route
             path="/backtests"

@@ -5,7 +5,7 @@ export type DetailDateRange = { start: string; end: string };
 
 type DataClassProps =
   | { kind: 'price-volume' }
-  | { kind: 'detail'; availableFrom: string };
+  | { kind: 'detail'; availableFrom?: string };
 
 export function DataClassLabel(props: DataClassProps) {
   return (
@@ -15,10 +15,15 @@ export function DataClassLabel(props: DataClassProps) {
       ) : (
         <>
           <span>数据类别 · 订单簿细节</span>
-          （自 <time dateTime={props.availableFrom}>
-            {props.availableFrom}
-          </time>{' '}
-          起）
+          {props.availableFrom ? (
+            <>
+              （自{' '}
+              <time dateTime={props.availableFrom}>{props.availableFrom}</time>{' '}
+              起）
+            </>
+          ) : (
+            '（采集起点未知）'
+          )}
         </>
       )}
     </p>
