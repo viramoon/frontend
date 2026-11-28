@@ -73,13 +73,13 @@ curl -fsS http://127.0.0.1:8090/api/v1/backtests/datasets
 
 运行 `pnpm test src/testing/research-web.test.tsx src/testing/research.test.tsx src/testing/backtests.test.tsx`，通过合成响应复测默认 W2b 路由、显式回放和历史工作台。
 
-1. 建立管理员会话后打开 `/strategies`。选择登记版本预览，或上传 UTF-8 YAML（上限 256 KiB）。校验失败时核对 web 诊断的代码、字段路径、行和列。成功后可显式登记此版本，比较两种预览的内容 SHA-256 与组件。
-2. 核对编译锁定的日线来源与点时股票池，填写 UTC 半开时间窗并提交配置回测。finance 负责校验并锁定回测输入。提交超时后按原键确认，只有明确查无原作业才使用同键同参数重试。刷新 `/backtests?run=<id>` 核对作业状态、可用的运行清单与实际模拟成交。
+1. 建立管理员会话后打开 `/strategies`。选择登记版本预览，或上传 UTF-8 YAML（上限 256 KiB）。校验失败时核对 web 诊断的代码、字段路径、行和列。成功后可显式登记此版本。比较两种预览的内容 SHA-256 与组件，登记返回不同哈希时页面要求重新校验。
+2. 核对编译锁定的日线来源与点时股票池，填写 UTC 半开时间窗。在登记成功后的上传预览或登记版本预览中提交配置回测。finance 负责校验并锁定回测输入。提交超时后按原键确认，只有明确查无原作业才使用同键同参数重试。刷新 `/backtests?run=<id>` 核对作业状态、可用的运行清单与实际模拟成交。
 3. 在 `/factors` 核对实际因子定义、只读研究状态及评价报告。缺失的指标显示「不可用」。无管理员会话时研究页提示登录。`/backtests` 的公开历史列表可匿名翻页，`/backtests?job=<id>` 保留原深链。
 
 ### 研究离线回放
 
-先打开 `/strategies?research=replay`，或在 `/factors` 与配置回测 URL 上追加 `research=replay`。下列操作使用带 Fixture 标记的合成数据。
+先打开 `/strategies?research=replay`，或在 `/factors` 与配置回测 URL 上追加 `research=replay`。旧 `/strategies/example` 会打开合成示例。持有旧作业的同一浏览器会话可直接打开 `/backtests?run=fixture-1` 等旧链接，查看原有合成运行清单。下列操作使用带 Fixture 标记的合成数据。
 
 1. 打开 `/strategies`，选择「日线动量入场与持有期退出 · 1.0.0」并预览。核对策略版本、内容 SHA-256、锁定组件、A1_B2 配方、预热和模拟成交时钟。
 2. 点击「下载示例 YAML」，上传该文件并选择「校验并预览文件」。核对预览与登记版本一致。再上传「下载校验错误示例」中的文件，核对第 11 行、第 13 列、`/spec/data/bars` 与 `FUTURE_DATA`。给错误样例加一行注释后重新上传，诊断仍指向同一字段，行号随文件移动。非字符串键诊断指向所在映射，数值错误诊断指向具体字段。错误状态下没有提交按钮。修正后可重新选择文件。

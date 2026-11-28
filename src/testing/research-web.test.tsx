@@ -18,7 +18,7 @@ import type {
   StrategyBundlePreview,
 } from '../api/generated/types.gen';
 import { AppRoutes } from '../app/routes/AppRoutes';
-import { bundles } from '../features/research/fixtures/catalog';
+import { bundles, datasets } from '../features/research/fixtures/catalog';
 
 const root = '/api/v1';
 const revision = {
@@ -218,13 +218,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it.each([false, true])(
-  'registers YAML and keeps the exact version and job after timeout (same-key retry: %s)',
-  async (retry) => {
+it.each([
+  { entry: 'registered', retry: false },
+  { entry: 'registered', retry: true },
+  { entry: 'upload', retry: false },
+])(
+  'submits from the $entry preview and keeps the exact job after timeout (same-key retry: $retry)',
+  async ({ entry, retry }) => {
     let registered = false;
     let key = '';
     let posts = 0;
     let lookups = 0;
+    let registeredReads = 0;
     const user = userEvent.setup();
     const { unexpected } = mount('/strategies', async (request, url) => {
       switch (url.pathname.slice(root.length)) {
@@ -247,6 +252,7 @@ it.each([false, true])(
           });
           return Response.json(preview);
         case `/strategies/${revision.id}/versions/${revision.version}`:
+          registeredReads += 1;
           return Response.json(preview);
         case '/backtests': {
           if (request.method === 'GET')
@@ -292,9 +298,11 @@ it.each([false, true])(
     expect(screen.queryByRole('button', { name: '提交配置回测' })).toBeNull();
     await user.click(screen.getByRole('button', { name: '登记已校验的版本' }));
     expect(await screen.findByText('策略版本已登记。')).toBeVisible();
-    const select = screen.getByRole('button', { name: '预览登记版本' });
-    await waitFor(() => expect(select).toBeEnabled());
-    await user.click(select);
+    if (entry === 'registered') {
+      const select = screen.getByRole('button', { name: '预览登记版本' });
+      await waitFor(() => expect(select).toBeEnabled());
+      await user.click(select);
+    }
     expect(
       await screen.findByRole('region', { name: '编译预览' }),
     ).toHaveTextContent(plan ?? '');
@@ -319,11 +327,48 @@ it.each([false, true])(
     expect(
       sessionStorage.getItem('fertile.pending-strategy-run.v1.web'),
     ).toBeNull();
+    expect(registeredReads).toBe(entry === 'registered' ? 1 : 0);
     expect(posts).toBe(retry ? 2 : 1);
     expect(lookups).toBe(retry ? 2 : 1);
     expect(unexpected).toEqual([]);
   },
 );
+
+it('blocks submission when registration returns a different hash for the uploaded version', async () => {
+  const user = userEvent.setup();
+  const { fetch, unexpected } = mount('/strategies', async (request, url) => {
+    if (url.pathname === root + '/strategies/validate') {
+      return Response.json(preview);
+    }
+    if (url.pathname === root + '/strategies') {
+      if (request.method === 'GET') return Response.json({ items: [] });
+      expect(await request.json()).toEqual({
+        format: 'yaml',
+        content: bundles[0].yaml,
+      });
+      return Response.json({ ...revision, content_sha256: 'd'.repeat(64) });
+    }
+    throw new Error('Unexpected request after mismatched registration');
+  });
+  await upload(user);
+  const uploaded = await screen.findByRole('region', { name: '编译预览' });
+  expect(uploaded).toHaveTextContent(revision.content_sha256);
+  expect(screen.queryByRole('button', { name: '提交配置回测' })).toBeNull();
+
+  await user.click(screen.getByRole('button', { name: '登记已校验的版本' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    '登记结果与编译预览不一致，请重新校验。',
+  );
+  expect(screen.queryByRole('region', { name: '编译预览' })).toBeNull();
+  expect(screen.queryByRole('button', { name: '提交配置回测' })).toBeNull();
+  expect(screen.getByRole('button', { name: '校验并预览文件' })).toBeEnabled();
+  expect(
+    fetch.mock.calls.some(
+      ([request]) => new URL(request.url).pathname === root + '/backtests',
+    ),
+  ).toBe(false);
+  expect(unexpected).toEqual([]);
+});
 
 it('displays compiler line and column, then separately reports upstream errors and pending', async () => {
   let calls = 0;
@@ -347,7 +392,7 @@ it('displays compiler line and column, then separately reports upstream errors a
         { status: 422 },
       );
     return calls === 2
-      ? failure(502, 'finance_upstream')
+      ? failure(502, 'finance_upstream_error')
       : failure(503, 'finance_contract_pending');
   });
   await upload(user);
@@ -357,7 +402,9 @@ it('displays compiler line and column, then separately reports upstream errors a
   expect(screen.getByText('/spec/data/bars')).toBeVisible();
   expect(screen.queryByRole('button', { name: '提交配置回测' })).toBeNull();
   await user.click(screen.getByRole('button', { name: '校验并预览文件' }));
-  expect(await screen.findByText('HTTP 502 · finance_upstream')).toBeVisible();
+  expect(
+    await screen.findByText('HTTP 502 · finance_upstream_error'),
+  ).toBeVisible();
   await user.click(screen.getByRole('button', { name: '校验并预览文件' }));
   expect(
     await screen.findByText('待接入 · finance_contract_pending'),
@@ -505,4 +552,97 @@ it('keeps anonymous research private and passes the raw int64 cursor into the ne
   ).toBeVisible();
   expect(calls).toContain(jobId);
   expect(screen.queryByRole('button', { name: '下一页' })).toBeNull();
+});
+
+it('opens the original strategy example deep link with the fixture adapter on the default route', async () => {
+  const user = userEvent.setup();
+  const { fetch } = mount(
+    '/strategies/example',
+    () => {
+      throw new Error('The legacy example is a browser fixture');
+    },
+    false,
+  );
+
+  expect(await screen.findByText('Fixture · 合成示例')).toBeVisible();
+  expect(screen.getByRole('heading', { name: '策略详情' })).toBeVisible();
+  await user.click(await screen.findByRole('button', { name: '预览登记版本' }));
+  expect(
+    await screen.findByRole('region', { name: '编译预览' }),
+  ).toHaveTextContent(bundles[0].plan.revision.contentSha256);
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it('restores a prior session fixture job from its original deep link without web requests', async () => {
+  // Match the sessionStorage representation written before W2b became the default.
+  sessionStorage.setItem(
+    'fertile.fixture-strategy-runs.v1',
+    JSON.stringify([
+      {
+        id: 'fixture-1',
+        key: 'synthetic-legacy-job',
+        request: {
+          revision: bundles[0].plan.revision,
+          datasetId: datasets[0].id,
+          ...datasets[0].windows[0],
+        },
+        created: 0,
+      },
+    ]),
+  );
+  const { fetch } = mount(
+    '/backtests?run=fixture-1',
+    () => {
+      throw new Error('The legacy fixture job is local to this session');
+    },
+    false,
+  );
+
+  expect(
+    await screen.findByRole('heading', { name: '配置作业 fixture-1' }),
+  ).toBeVisible();
+  expect(
+    await screen.findByRole('heading', { name: '运行清单' }),
+  ).toBeVisible();
+  const ledger = screen.getByRole('region', { name: '模拟成交账本表' });
+  expect(within(ledger).getAllByText('SYN.XNYS').length).toBeGreaterThan(0);
+  expect(screen.getByText('Fixture · 合成示例')).toBeVisible();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it('gives the historical job deep link precedence over a fixture run parameter', async () => {
+  const { fetch, unexpected } = mount(
+    '/backtests?job=7&run=fixture-1',
+    (request, url) => {
+      const path = url.pathname.slice(root.length);
+      if (path === '/backtests' || path === '/backtests/datasets')
+        return Response.json({ items: [] });
+      if (path === '/backtests/7') {
+        expect(request.credentials).toBe('omit');
+        return Response.json({
+          ...queueJob,
+          id: 7,
+          request: {
+            strategy: 'SmaCrossover',
+            instrument: 'SYN.XNYS',
+            start,
+            end,
+            params: {},
+          },
+        });
+      }
+      throw new Error('Unexpected mixed deep link request');
+    },
+    false,
+  );
+
+  const detail = await screen.findByRole('region', { name: '作业 #7 结果' });
+  expect(
+    await within(detail).findByText(/SYN\.XNYS · SmaCrossover/),
+  ).toBeVisible();
+  expect(
+    fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
+  ).toContain(root + '/backtests/7');
+  expect(screen.queryByText('Fixture · 合成示例')).toBeNull();
+  expect(unexpected).toEqual([]);
 });

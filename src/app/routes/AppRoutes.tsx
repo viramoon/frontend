@@ -7,6 +7,7 @@ import {
   Route,
   Routes,
   useLocation,
+  useMatch,
   useNavigate,
   useParams,
   useSearchParams,
@@ -120,11 +121,17 @@ export function AppRoutes({
   marketReplay?: boolean;
 } = {}) {
   const [search] = useSearchParams();
-  const adapter =
-    research ??
-    (marketReplay || search.get('research') === 'replay'
-      ? fixtureResearch
-      : webResearch);
+  const example = useMatch('/strategies/:id')?.params.id === 'example';
+  const fixtureRun =
+    useMatch('/backtests') &&
+    !search.has('job') &&
+    /^fixture-[1-9]\d*$/.test(search.get('run') ?? '');
+  const replay =
+    marketReplay ||
+    search.get('research') === 'replay' ||
+    example ||
+    fixtureRun;
+  const adapter = research ?? (replay ? fixtureResearch : webResearch);
   return (
     <TerminalRoutes
       key={adapter.source}

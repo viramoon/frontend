@@ -12,17 +12,17 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 
 ## 第 2 批契约差异
 
-[web 来源提交](../../openapi/web.commit) 从 `6e5fd80a56c3ab2fd0634fd69ecec3b7315dcd06` 前移到 `fcfda737d5152518d1d77cd55a5287c7185f3fb7`。锁定 web 的 finance 来源为 `86dcc8604b6881d648418a25e6cd13c24d4a9b01`。两版 [OpenAPI](../../openapi/web.openapi.json) 的 JSON 结构差异如下。路径使用 `/api/v1` 前缀。
+[web 来源提交](../../openapi/web.commit) 从 `6e5fd80a56c3ab2fd0634fd69ecec3b7315dcd06` 前移到 `fcfda737d5152518d1d77cd55a5287c7185f3fb7`。锁定 web 的 finance 来源为 `86dcc8604b6881d648418a25e6cd13c24d4a9b01`。两版 [OpenAPI](../../openapi/web.openapi.json) 的 JSON 结构对比显示新增 12 个路径、更新 17 个既有路径，并新增 110 个 schema。以下路径使用 `/api/v1` 前缀。
 
 | 范围 | 变化 |
 | --- | --- |
 | W2b 策略 | 新增 `GET /strategies`（版本页）、`POST /strategies`（登记）、`POST /strategies/validate`（带计划预览的校验）和 `GET /strategies/{id}/versions/{version}`（固定版本的计划预览）。同源会话写入要求 Origin 和 CSRF。单份源文件 UTF-8 上限 256 KiB。 |
 | W2b 因子 | 新增 `GET /factors`、`GET /factors/{id}/evaluations`、`GET /factors/{id}/evaluations/{evaluation_id}`，分别返回目录、评价分页及指定因子版本的评价详情。鉴权只对管理员开放。 |
-| W2b 回测 | `POST /backtests` 接受 `JobRequest \| BundleSubmission`，新增 404、413 响应及同源会话 Origin 说明。`GET /backtests` 和 `GET /backtests/{id}` 区分公开历史作业与管理会话可见的配置作业。游标保持 int64，指向本页末个可见作业。原按键查询路径与历史深链沿用。 |
-| W8 期权链 | `GET /options/chain` 增加 `underlying_con_id`、`expiry`、`after_con_id`，成功返回 `OptionChainPage`。只有旧 `instrument_id` 的查询仍可收到 `finance_contract_pending`。 |
-| W8 敞口 | `GET /options/exposure` 支持 `underlying_id`、估值时点与四种 `scenario`，成功返回 `OptionExposureResponse`。无法解释的旧情景令牌可返回 `finance_contract_pending`。 |
+| W2b 回测 | `POST /backtests` 接受 `JobRequest \| BundleSubmission`，新增 404，保留原有 413，并更新幂等键、同源会话 Origin 与 CSRF 的参数说明。`GET /backtests` 和 `GET /backtests/{id}` 区分公开历史作业与管理会话可见的配置作业。游标保持 int64，指向本页末个可见作业。原按键查询路径与历史深链沿用。 |
+| W8 期权链 | `GET /options/chain` 增加 `underlying_con_id`、`expiry`、`after_con_id`，新增 200（`OptionChainPage`）、502、504，补充 401、403、429、503 的响应说明。只使用旧 `instrument_id` 的查询仍可收到 `finance_contract_pending`。 |
+| W8 敞口 | `GET /options/exposure` 新增 `underlying_id`，保留 `instrument_id` 别名与 `as_of`，说明四种 `scenario`。新增 200（`OptionExposureResponse`）、404、502、504，并补充 401、403、429、503 的响应说明。未支持的情景仍可返回 `finance_contract_pending`。 |
 | W8 场所、历史与调度 | 新增 `GET /market/depth`（股票场所档位）、`GET /options/history`（采用纳秒字符串表示区间）、`GET /market/subscriptions/budget`（券商额度）、`GET /market/subscriptions/coverage`（合约订阅区间）。上述路由都需授权。 |
-| W9 流水 | `GET /options/flow` 增加合约 ID 与时间窗支持，响应区分观察页与历史核验页；只传旧 `instrument_id` 需升级查询。新增 `GET /options/flow/observations` 和 `GET /options/flow/verification`，使用合约 ID、UTC 半开时间窗和 offset。 |
+| W9 流水 | `GET /options/flow` 为既有时间窗参数增加必需的合约 ID。新增 200（按模式返回观察页或历史核验页）、404、502、504，更新 503 说明。只传旧 `instrument_id` 需升级查询。新增 `GET /options/flow/observations` 和 `GET /options/flow/verification`，使用合约 ID、UTC 半开时间窗和 offset。 |
 | W12 同源鉴权 | 调整 `POST/DELETE /admin/session`、`POST /alerts/{id}/ack`、`PUT/DELETE /alerts/{id}/silence`、`POST /integrations`、`PATCH /integrations/{id}`、`PUT/DELETE /integrations/{id}/credential`、`POST /integrations/{id}/tests`、`POST /notification-channels/{id}/tests`、`PUT /notification-rules/{id}`、`PUT/DELETE /notification-rules/{id}/silence` 的 Origin 参数说明。SSE `GET /events` 和 WS `GET /stream/market` 更新连接鉴权说明。 |
 | 既有 schema | `ErrorDetail` 增加可选 JSON Pointer `path` 和一基 `location`。`Product` 增加 `strategy_research`。`Subscriptions.finance_lines` 注明是旧标记，实际额度从独立接口读取。 |
 | 新增 schema | 110 个新定义覆盖策略源、计划、诊断、因子、配置提交、期权链、W9 证据、历史 bar、场所深度、额度与覆盖，以及 OI、GEX、wall 和过零区间。HTTP 路径、既有 schema 和鉴权方案没有删除。 |
@@ -64,7 +64,7 @@ W2a REST WAL 可返回新事件。永续摘要沿用 `/market/derivatives` 中�
 
 ## 研究工作台适配层
 
-[W2b 适配层](researchWeb.ts) 使用生成 SDK 映射策略计划、因子、作业与报告。配置提交使用已登记引用、半开 UTC 时间窗和幂等键，版本内容由 finance 固定。旧公开均线列表向 web 匿名读取，使用服务提供的 int64 游标。由于 JavaScript `number` 无法精确承载全部 int64，读取作业相关 JSON 时保留游标和作业 ID 的数字原文，并按十进制文本构造同源请求。浏览器需要支持 JSON 解析器的原始数字文本才能读取超出安全整数范围的 ID。[研究工作台接口](../features/research/README.md)
+[W2b 适配层](researchWeb.ts) 使用生成 SDK 映射策略计划、因子、作业与报告。W2b 的 `BundleSubmission.source` 支持 `inline` 和 `registered`。前端发送 `strategy: "StrategyBundle"`、`source: { kind: "registered", id, version }`、`start` 与 `end`，并通过 `Idempotency-Key` 请求头传递作业键。版本内容与回放输入由 finance 固定。旧公开均线列表向 web 匿名读取，使用服务提供的 int64 游标。由于 JavaScript `number` 无法精确承载全部 int64，读取作业相关 JSON 时保留游标和作业 ID 的数字原文，并按十进制文本构造同源请求。浏览器需要支持 JSON 解析器的原始数字文本才能读取超出安全整数范围的 ID。[研究工作台接口](../features/research/README.md)
 
 ## U4 适配层
 

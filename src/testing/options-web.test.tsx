@@ -141,6 +141,7 @@ afterEach(() => {
 
 it('loads W8 paged chains, exact venue depth, and backend GEX scenarios with 0DTE, walls and OI coverage', async () => {
   const user = userEvent.setup();
+  let depthReads = 0;
   const { unexpected } = mount('/options/exposure', (url) => {
     switch (url.pathname) {
       case api + '/options/chain': {
@@ -168,7 +169,9 @@ it('loads W8 paged chains, exact venue depth, and backend GEX scenarios with 0DT
       }
       case api + '/market/depth':
         expect(url.searchParams.get('symbol')).toBe('AAPL');
-        return Response.json(book);
+        return Response.json(
+          ++depthReads === 1 ? book : { ...book, state: 'reset' },
+        );
       case api + '/options/exposure': {
         expect(url.searchParams.get('underlying_id')).toBe('SPY.ARCA');
         const scenario = url.searchParams.get('scenario');
@@ -188,6 +191,17 @@ it('loads W8 paged chains, exact venue depth, and backend GEX scenarios with 0DT
                     ...exposure,
                     flip: { status: 'no_flip' },
                     totals: { absolute: exact, gex: '-0.00000000001' },
+                    walls: {
+                      ...exposure.walls,
+                      largest_positive: {
+                        strike: '125.12500000001',
+                        exposure: '90.000000000001',
+                      },
+                      most_negative: {
+                        strike: '140.87500000001',
+                        exposure: '-100.000000000002',
+                      },
+                    },
                   }
                 : exposure,
             zero_dte: {
@@ -219,9 +233,15 @@ it('loads W8 paged chains, exact venue depth, and backend GEX scenarios with 0DT
   const strike = screen.getByRole('region', { name: '按行权价敞口' });
   expect(within(strike).getByText('130.25000000001')).toBeVisible();
   expect(strike).toHaveAttribute('tabindex', '0');
+  expect(screen.getByText(/绝对集中 wall/)).toHaveTextContent(
+    `绝对集中 wall 130.25000000001（${exact}） · 最大正 wall 未知 · 最大负 wall 未知`,
+  );
   await user.selectOptions(screen.getByLabelText('敞口假设'), 'dealer_short');
   expect(await screen.findByText(/网格内无过零点/)).toBeVisible();
   expect(screen.getByText(/净 GEX -0.00000000001/)).toBeVisible();
+  expect(screen.getByText(/绝对集中 wall/)).toHaveTextContent(
+    `绝对集中 wall 130.25000000001（${exact}） · 最大正 wall 125.12500000001（90.000000000001） · 最大负 wall 140.87500000001（-100.000000000002）`,
+  );
   await user.selectOptions(screen.getByLabelText('到期范围'), 'zero_dte');
   expect(screen.getByText(/120.01–120.02/)).toBeVisible();
 
@@ -240,11 +260,22 @@ it('loads W8 paged chains, exact venue depth, and backend GEX scenarios with 0DT
   expect(screen.getByText(/订单簿细节/).closest('p')).toHaveTextContent(
     '采集起点未知',
   );
+  await user.click(screen.getByRole('button', { name: '刷新场所深度' }));
+  expect(await screen.findByText(/盘口已重置/)).toBeVisible();
+  expect(screen.getByText('当前暂无可展示的深度档位')).toBeVisible();
+  expect(screen.queryByRole('region', { name: '场所深度档位' })).toBeNull();
+  expect(screen.queryByText('12.000000000001')).toBeNull();
+  expect(screen.queryByText('0.000000000123')).toBeNull();
+  expect(depthReads).toBe(2);
   expect(unexpected).toEqual([]);
 });
 
 it('reads W9 observation evidence and independently shows verification errors and retry', async () => {
   let verificationCalls = 0;
+  const quoteTime = '2026-11-19T13:29:59.000Z';
+  const gapStart = '2026-11-19T13:45:00.000Z';
+  const quoteBid = '123.000000000000000001';
+  const quoteAsk = '123.020000000000000001';
   const { unexpected } = mount('/options/flow', (url) => {
     expect(url.searchParams.get('con_id')).toBe('9001');
     expect(url.searchParams.get('start')).toBe(time);
@@ -301,7 +332,8 @@ it('reads W9 observation evidence and independently shows verification errors an
       return Response.json(observation);
     }
     if (url.pathname === api + '/options/flow/verification') {
-      if (++verificationCalls === 1) return failure(502, 'finance_upstream');
+      if (++verificationCalls === 1)
+        return failure(502, 'finance_upstream_error');
       const verified: OptionFlowVerificationPage = {
         access: { ...access, product: 'opra-history' },
         con_id: 9001,
@@ -317,12 +349,20 @@ it('reads W9 observation evidence and independently shows verification errors an
           verified: 1,
         },
         durable_through: null,
-        issues: [],
+        issues: [
+          {
+            kind: 'trades',
+            start: gapStart,
+            end,
+            observed_at: end,
+            reason: 'no_history',
+          },
+        ],
         max_quote_age_ms: 500,
         multiplier: '100',
         next_offset: null,
         observation_coverage: null,
-        quote_start: time,
+        quote_start: quoteTime,
         verified_at: end,
         trades: [
           {
@@ -346,14 +386,33 @@ it('reads W9 observation evidence and independently shows verification errors an
             },
             condition: {
               mapping_version: 'synthetic-condition-v1',
-              meaning: { status: 'unrecognized' },
+              meaning: { status: 'mapped', condition: 'regular' },
             },
             identity: 'unknown',
             inference: {
               confidence: 'unknown',
               direction: 'unknown',
-              reason: 'missing_quote',
+              reason: 'stale_quote',
               rule_version: 'synthetic-direction-v1',
+              quote: {
+                age_ms: 1000,
+                quote: {
+                  batch: {
+                    kind: 'bid_ask',
+                    obtained_at: end,
+                    page: 1,
+                    requested_start: quoteTime,
+                  },
+                  occurrence: 1,
+                  row: {
+                    occurred_at: quoteTime,
+                    bid: quoteBid,
+                    ask: quoteAsk,
+                    bid_past_low: false,
+                    ask_past_high: false,
+                  },
+                },
+              },
             },
             status: 'active',
             suspected_scale: {},
@@ -374,7 +433,9 @@ it('reads W9 observation evidence and independently shows verification errors an
   await user.click(observation);
   expect(screen.getByText(new RegExp(`估计权利金额 ${exact}`))).toBeVisible();
   await user.selectOptions(screen.getByLabelText('流水类型'), 'verified');
-  expect(await screen.findByText('HTTP 502 · finance_upstream')).toBeVisible();
+  expect(
+    await screen.findByText('HTTP 502 · finance_upstream_error'),
+  ).toBeVisible();
   expect(screen.queryByText(/累计放量.*待历史核验/)).toBeNull();
   await user.click(screen.getByRole('button', { name: '重新读取核验流水' }));
   expect(
@@ -384,6 +445,13 @@ it('reads W9 observation evidence and independently shows verification errors an
   expect(
     screen.getByText(/原始条件 SYN · 映射 synthetic-condition-v1/),
   ).toBeVisible();
+  expect(
+    screen.getByText(`报价证据 ${quoteBid} / ${quoteAsk} · 1000 ms`),
+  ).toBeVisible();
+  const gaps = screen.getByRole('list', { name: '核验缺口' });
+  expect(within(gaps).getByRole('listitem')).toHaveTextContent(
+    '2026-11-19 13:45:00.000 UTC 至 2026-11-19 14:00:00.000 UTC · trades · no_history',
+  );
   expect(unexpected).toEqual([]);
 });
 
