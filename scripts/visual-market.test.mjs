@@ -17,6 +17,8 @@ before(async () => {
   };
   responses = new Map([
     ['/dashboard', index],
+    ['/alerts', index],
+    ['/settings/notifications', index],
     ['/options/flow', index],
     ['/options/exposure', index],
     ['/api/v1/system/status', { status: 503 }],
@@ -317,4 +319,103 @@ test('mobile W8 uses the live depth route and keeps the depth table keyboard acc
     },
     { search: '', api },
   );
+});
+
+test('mobile W5 alert and rule silence controls fit and follow keyboard order', async () => {
+  const viewport = { width: 320, height: 640 };
+  const id = '10000000-0000-4000-8000-000000000033';
+  const fixture = { id, condition: 'source_unavailable', severity: 'urgent' };
+  const time = '2000-01-03T12:00:00Z';
+  const api = new Map([
+    [
+      '/api/v1/me/capabilities',
+      { json: { subject: 'admin', products: ['notifications'] } },
+    ],
+    [
+      '/api/v1/alerts',
+      {
+        json: {
+          items: [
+            {
+              ...fixture,
+              phase: 'triggered',
+              disposition: 'pending',
+              observed_at: time,
+              deliveries: [],
+            },
+          ],
+        },
+      },
+    ],
+    [
+      '/api/v1/notification-rules',
+      {
+        json: {
+          items: [
+            {
+              ...fixture,
+              revision: 1,
+              enabled: true,
+              email_enabled: true,
+              min_occurrences: 1,
+            },
+          ],
+        },
+      },
+    ],
+    [
+      `/api/v1/alerts/${id}/silence`,
+      { json: { active: false, silence: null } },
+    ],
+    [
+      `/api/v1/notification-rules/${id}/silence`,
+      { json: { active: false, silence: null } },
+    ],
+  ]);
+
+  for (const path of ['/alerts', '/settings/notifications']) {
+    await withOfflinePage(
+      viewport,
+      path,
+      async (page) => {
+        const card = page.getByRole('region', { name: '采集源不可用' });
+        const deadline = card.getByLabel('静默截止（本地时间）');
+        const reason = card.getByLabel('静默原因');
+        const submit = card.getByRole('button', { name: '设置静默' });
+        await card.getByText('未静默').waitFor();
+        await deadline.focus();
+        // Chromium's native date editor has several internal tab stops.
+        for (
+          let tab = 0;
+          tab < 8 &&
+          !(await reason.evaluate(
+            (element) => element === element.ownerDocument.activeElement,
+          ));
+          tab += 1
+        ) {
+          await page.keyboard.press('Tab');
+        }
+        assert.ok(
+          await reason.evaluate(
+            (element) => element === element.ownerDocument.activeElement,
+          ),
+        );
+        await page.keyboard.press('Tab');
+        assert.ok(
+          await submit.evaluate(
+            (element) => element === element.ownerDocument.activeElement,
+          ),
+        );
+        assert.equal(
+          await page.locator('html').evaluate((element) => element.scrollWidth),
+          viewport.width,
+        );
+        for (const control of [deadline, reason, submit]) {
+          const box = await control.boundingBox();
+          assert.ok(box && box.x >= 0 && box.x + box.width <= viewport.width);
+        }
+      },
+      { search: '', api },
+    );
+  }
 });

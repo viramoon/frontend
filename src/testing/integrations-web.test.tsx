@@ -402,6 +402,8 @@ it.each([
       if (url.pathname === backupPath) return Response.json(backup);
       if (url.pathname === '/api/v1/alerts')
         return Response.json({ items: [triggeredBackupEvent] });
+      if (url.pathname === `/api/v1/alerts/${triggeredBackupEvent.id}/silence`)
+        return Response.json({ active: false, silence: null });
       throw new Error('unexpected W3/W4 route');
     });
     const user = userEvent.setup();
@@ -504,6 +506,8 @@ it('uses web Drive age and alert while the observation stalls, preserves exact w
       return Response.json({}, { status: 404 });
     if (url.pathname === '/api/v1/alerts')
       return Response.json({ items: [triggeredBackupEvent] });
+    if (url.pathname === `/api/v1/alerts/${triggeredBackupEvent.id}/silence`)
+      return Response.json({ active: false, silence: null });
     throw new Error('unexpected W4 route');
   });
   const user = userEvent.setup();

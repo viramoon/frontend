@@ -120,10 +120,17 @@ export type Alert = {
   deliveries: readonly Delivery[];
 };
 
+export type ManualSilenceActions = {
+  silence(id: string, until: string, reason: string): Promise<void>;
+  unsilence(id: string): Promise<void>;
+};
+
 export type AlertsAdapter = {
   list(signal?: AbortSignal): Promise<readonly Alert[]>;
+  detail?(id: string, signal?: AbortSignal): Promise<Alert>;
   acknowledge(id: string): Promise<void>;
   silence?(id: string, durationMinutes: 60 | null): Promise<void>;
+  manualSilence?: ManualSilenceActions;
 };
 
 export type RuleSettings = {
@@ -138,6 +145,7 @@ export type NotificationRule = RuleSettings & {
   revision: number;
   condition: AlertCondition;
   severity: Severity;
+  silencedUntil: string | null;
 };
 
 export type NotificationsAdapter = {
@@ -148,6 +156,8 @@ export type NotificationsAdapter = {
     quietEnd: string | null;
     rules: readonly NotificationRule[];
   }>;
+  detail?(id: string, signal?: AbortSignal): Promise<NotificationRule>;
+  manualSilence?: ManualSilenceActions;
   saveRule(id: string, revision: number, settings: RuleSettings): Promise<void>;
   startEmailTest(idempotencyKey: string): Promise<void>;
   readEmailTest(

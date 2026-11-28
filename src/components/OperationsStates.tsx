@@ -80,7 +80,7 @@ const errors: Record<OperationError['code'], string> = {
   invalid: '配置不符合允许的范围。',
   unavailable: '操作暂不可用，请刷新状态。',
   forbidden: '当前会话没有操作权限。',
-  uncertain: '写入结果待确认。请核对已刷新的配置、活动版本或测试记录。',
+  uncertain: '写入结果待确认。请核对刷新后的状态。',
 };
 
 export function FixtureNotice() {
@@ -131,16 +131,20 @@ export function DeliveryDetails({ delivery }: { delivery: Delivery }) {
 
 export function OperationsReadState({
   failed,
+  error,
   retry,
 }: {
   failed: boolean;
+  error?: Error | null;
   retry: () => void;
 }) {
   if (!failed) return <DataState kind="loading" title="正在读取状态…" />;
   return (
     <div>
       <p className="operations-feedback" role="alert">
-        读取状态失败
+        {error instanceof OperationError && error.code === 'forbidden'
+          ? '当前会话没有读取权限。'
+          : '读取状态失败'}
       </p>
       <button type="button" className="refresh" onClick={retry}>
         重新读取

@@ -201,7 +201,7 @@ export function simulateDriveBackup(
 export function createOperationsFixture(
   clock = Date.now,
   initialRecoveryAgeMs = 72 * minute,
-): OperationsAdapter & { alerts: Required<AlertsAdapter> } {
+): OperationsAdapter & { alerts: Required<Pick<AlertsAdapter, 'silence'>> } {
   const initialized = clock();
   const now = () => start + (clock() - initialized);
   const recoveryPoint = start - initialRecoveryAgeMs;
@@ -283,6 +283,7 @@ export function createOperationsFixture(
           emailEnabled: id === 'backup',
           minOccurrences: 1,
           cooldownSeconds: 900,
+          silencedUntil: null,
         },
       ],
     ),

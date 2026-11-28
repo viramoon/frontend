@@ -76,4 +76,12 @@ W2a REST WAL 可返回新事件。永续摘要沿用 `/market/derivatives` 中�
 
 恢复适配器把生成的 `QualityGapsPage` 直接交给系统页。系统页从覆盖项读取 `QualityWatermarks`，逐字展示位置、序号及接收时间。缺少观测时显示「未知」。[离线验收](../../RUNBOOK.md#离线验证设置通知与系统页)
 
-W3 的收件地址和邮件静默策略由 web 配置。主动静默和解除静默等待相应接口。[合成实现](operationsFixture.ts) 只在测试或故事中显式注入。升级契约使用 [生成流程](../../docs/build.md#更新生成客户端)。
+W3 的收件地址和全局邮件静默时段由 web 配置。[合成实现](operationsFixture.ts) 只在测试或故事中显式注入，并继续提供告警的一小时静默和解除。
+
+### W5 主动静默
+
+U9 使用已锁定的 W5 生成操作。在告警和通知规则的列表及详情中分别读取 `/api/v1/alerts/{id}/silence` 与 `/api/v1/notification-rules/{id}/silence`。两个列表保留 W3 分页，逐项分批读取静默状态。只在 `SilenceStatus.active` 为真时将 `silence.until` 填入 `silencedUntil`。到期或解除后，W5 仍可返回审计记录，卡片显示「未静默」。
+
+在同一路径发 `PUT` 设置静默，JSON 带未来的 RFC 3339 `until` 和去除首尾空白的 `reason`。以无请求体的 `DELETE` 解除。两种写入都要求管理员通知权限、同源会话、`Origin` 和 `X-CSRF-Token`。写入或解除后重新读取状态。连接中断或 HTTP 504 时先向 W5 核对结果，无法确认时提示用户检查最新状态。
+
+现有 `openapi/web.commit` 已锁定含 W5 的 web 提交，升级契约使用[生成流程](../../docs/build.md#更新生成客户端)。[离线验收](../../RUNBOOK.md#离线验证设置通知与系统页)

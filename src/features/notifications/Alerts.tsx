@@ -12,6 +12,7 @@ import {
   useOperation,
 } from '../../components/OperationsStates';
 import { DataState } from '../../components/TerminalStates';
+import { ManualSilence, SilenceStatus } from './ManualSilence';
 
 const inactiveLabels: Record<NonNullable<Alert['inactiveReason']>, string> = {
   backup_disabled: '异地备份已关闭',
@@ -80,14 +81,8 @@ function AlertCard({
         </dd>
         <dt>静默状态</dt>
         <dd>
-          {silence ? (
-            silencedUntil ? (
-              <>
-                静默至 <UtcTime value={silencedUntil} />
-              </>
-            ) : (
-              '未静默'
-            )
+          {silence || adapter.manualSilence ? (
+            <SilenceStatus until={silencedUntil} />
           ) : (
             '主动静默待 web 接口'
           )}
@@ -134,6 +129,15 @@ function AlertCard({
           <Link to="/system#drive-backup">查看恢复水位</Link>
         )}
       </div>
+      {adapter.manualSilence && (
+        <ManualSilence
+          actions={adapter.manualSilence}
+          id={id}
+          until={silencedUntil}
+          pending={pending}
+          run={run}
+        />
+      )}
       {error && (
         <p className="operations-feedback" role="alert">
           {error}
@@ -198,6 +202,7 @@ export function Alerts({
       ) : (
         <OperationsReadState
           failed={alerts.isError}
+          error={alerts.error}
           retry={() => void alerts.refetch()}
         />
       )}
