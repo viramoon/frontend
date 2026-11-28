@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -15,8 +17,11 @@ import type {
   ChannelTest,
   Delivery,
   Rule,
+  SilenceRequest,
+  SilenceStatus,
   SystemStatus,
 } from '../api/generated/types.gen';
+import { webAlerts, webNotifications } from '../api/notificationsWeb';
 import { AppRoutes } from '../app/routes/AppRoutes';
 
 const time = '2000-01-03T12:00:00Z';
@@ -143,6 +148,14 @@ it('loads W3 alerts, follows the exact cursor, and acknowledges through the gene
       );
     }
     if (
+      request.method === 'GET' &&
+      [
+        `${alerts}/${alertId}/silence`,
+        `${alerts}/${history.id}/silence`,
+      ].includes(url.pathname)
+    )
+      return Response.json({ active: false, silence: null });
+    if (
       url.pathname === `${alerts}/${alertId}/ack` &&
       request.method === 'POST'
     ) {
@@ -198,6 +211,11 @@ it('updates a W3 rule with the quoted revision and keeps reminder and condition 
   const { unexpected } = mockWeb(async (url, request) => {
     if (url.pathname === capabilities) return Response.json(admin);
     if (url.pathname === rules) return Response.json({ items: [current] });
+    if (
+      url.pathname === `${rules}/${ruleId}/silence` &&
+      request.method === 'GET'
+    )
+      return Response.json({ active: false, silence: null });
     if (url.pathname === `${rules}/${ruleId}` && request.method === 'GET')
       return Response.json(current);
     if (url.pathname === `${rules}/${ruleId}` && request.method === 'PUT') {
@@ -235,6 +253,198 @@ it('updates a W3 rule with the quoted revision and keeps reminder and condition 
   expect(screen.getByText(/收件人 · 由 web 部署管理/)).toBeVisible();
   expect(unexpected).toEqual([]);
 });
+
+const silenceTargets = [
+  {
+    target: 'alert',
+    route: '/alerts',
+    collection: alerts,
+    entry: alert,
+    detail: webAlerts.detail,
+  },
+  {
+    target: 'rule',
+    route: '/settings/notifications',
+    collection: rules,
+    entry: rule,
+    detail: webNotifications.detail,
+  },
+];
+const existingSilence = {
+  until: '2000-01-03T13:00:00Z',
+  reason: '合成维护',
+  started_at: time,
+  started_by: 'admin',
+};
+const localDeadline = '2099-01-03T13:12';
+
+async function submitSilence(
+  item: ReturnType<typeof within>,
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  fireEvent.change(item.getByLabelText('静默截止（本地时间）'), {
+    target: { value: localDeadline },
+  });
+  const reason = item.getByLabelText('静默原因');
+  await user.type(reason, '  合成巡检  ');
+  await user.tab();
+  expect(item.getByRole('button', { name: '设置静默' })).toHaveFocus();
+  await user.keyboard('{Enter}');
+}
+
+it.each(silenceTargets)(
+  'reads W5 $target silence in lists and details, displays expiry and updates through PUT and DELETE',
+  async ({ target, route, collection, entry, detail }) => {
+    const entryPath = `${collection}/${entry.id}`;
+    const silencePath = `${entryPath}/silence`;
+    let silence: SilenceStatus = { active: true, silence: existingSilence };
+    const writes: Request[] = [];
+    let putBody: SilenceRequest | undefined;
+    const { unexpected } = mockWeb(async (url, request) => {
+      if (url.pathname === capabilities) return Response.json(admin);
+      if (url.pathname === collection && request.method === 'GET')
+        return Response.json({ items: [entry] });
+      if (url.pathname === entryPath && request.method === 'GET')
+        return Response.json(entry);
+      if (url.pathname === silencePath) {
+        if (request.method === 'GET') {
+          expect(request.credentials).toBe('same-origin');
+          return Response.json(silence);
+        }
+        expectWrite(request);
+        writes.push(request);
+        if (request.method === 'PUT') {
+          expect(request.headers.get('Content-Type')).toBe('application/json');
+          const body: SilenceRequest = await request.json();
+          putBody = body;
+          silence = { active: true, silence: { ...existingSilence, ...body } };
+          // The alert write committed even though the gateway timed out.
+          if (target === 'alert') return Response.json({}, { status: 504 });
+          return Response.json(silence);
+        }
+        if (request.method === 'DELETE') {
+          expect(await request.text()).toBe('');
+          silence = {
+            active: false,
+            silence: {
+              ...silence.silence!,
+              ended_at: time,
+              end_action: 'released',
+            },
+          };
+          return Response.json(silence);
+        }
+      }
+      throw new Error('unexpected W5 request');
+    });
+    const user = userEvent.setup();
+    mount(route);
+    const item = within(
+      await screen.findByRole('region', { name: '采集源不可用' }),
+    );
+    expect(item.getByText('2000-01-03 13:00:00 UTC')).toHaveAttribute(
+      'datetime',
+      existingSilence.until,
+    );
+    expect(item.getByRole('button', { name: '解除静默' })).toBeEnabled();
+    await expect(detail(entry.id)).resolves.toMatchObject({
+      id: entry.id,
+      silencedUntil: existingSilence.until,
+    });
+
+    // W5 keeps the latest audit record after expiry and changes its active flag.
+    silence = { ...silence, active: false };
+    await act(() => client.invalidateQueries({ queryKey: ['u4', 'web'] }));
+    expect(await item.findByText('未静默')).toBeVisible();
+    expect(item.queryByRole('button', { name: '解除静默' })).toBeNull();
+    await expect(detail(entry.id)).resolves.toMatchObject({
+      silencedUntil: null,
+    });
+
+    await submitSilence(item, user);
+    const deadline = new Date(localDeadline).toISOString();
+    expect(await item.findByText('已设置静默。')).toBeVisible();
+    const release = await item.findByRole('button', { name: '解除静默' });
+    expect(
+      item.getByText(deadline.replace('T', ' ').replace('.000Z', ' UTC')),
+    ).toHaveAttribute('datetime', deadline);
+    expect(putBody).toEqual({ until: deadline, reason: '合成巡检' });
+    await waitFor(() => expect(release).toBeEnabled());
+    release.focus();
+    await user.keyboard('{Enter}');
+    expect(await item.findByText('未静默')).toBeVisible();
+    expect(item.getByText('已解除静默。')).toBeVisible();
+    expect(writes.map(({ method }) => method)).toEqual(['PUT', 'DELETE']);
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it.each(silenceTargets)(
+  'shows W5 $target permission denial on writes and reads',
+  async ({ route, collection, entry, detail }) => {
+    const entryPath = `${collection}/${entry.id}`;
+    let deniedRead = false;
+    let active = false;
+    const rejected: string[] = [];
+    const { unexpected } = mockWeb((url, request) => {
+      if (url.pathname === capabilities) return Response.json(admin);
+      if (url.pathname === collection && request.method === 'GET')
+        return Response.json({ items: [entry] });
+      if (url.pathname === entryPath && request.method === 'GET')
+        return Response.json(entry);
+      if (url.pathname === `${entryPath}/silence`) {
+        if (request.method === 'GET') {
+          if (!deniedRead)
+            return Response.json({ active, silence: existingSilence });
+        } else {
+          expectWrite(request);
+          rejected.push(request.method);
+        }
+        return Response.json(
+          { error: { code: 'permission_denied' } },
+          { status: 403 },
+        );
+      }
+      throw new Error('unexpected W5 request');
+    });
+    const user = userEvent.setup();
+    mount(route);
+    const item = within(
+      await screen.findByRole('region', { name: '采集源不可用' }),
+    );
+
+    await submitSilence(item, user);
+    expect(await item.findByRole('alert')).toHaveTextContent(
+      '当前会话没有操作权限。',
+    );
+    expect(item.getByText('未静默')).toBeVisible();
+    expect(item.queryByText('已设置静默。')).toBeNull();
+
+    active = true;
+    await act(() => client.invalidateQueries({ queryKey: ['u4', 'web'] }));
+    const release = await item.findByRole('button', { name: '解除静默' });
+    await waitFor(() => expect(release).toBeEnabled());
+    await user.click(release);
+    expect(await item.findByRole('alert')).toHaveTextContent(
+      '当前会话没有操作权限。',
+    );
+    expect(item.getByText('2000-01-03 13:00:00 UTC')).toBeVisible();
+    expect(item.queryByText('已解除静默。')).toBeNull();
+    expect(rejected).toEqual(['PUT', 'DELETE']);
+
+    await waitFor(() => expect(release).toBeEnabled());
+    deniedRead = true;
+    await act(() => client.invalidateQueries({ queryKey: ['u4', 'web'] }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        '当前会话没有读取权限。',
+      ),
+    );
+    expect(screen.queryByRole('button', { name: '解除静默' })).toBeNull();
+    await expect(detail(entry.id)).rejects.toMatchObject({ code: 'forbidden' });
+    expect(unexpected).toEqual([]);
+  },
+);
 
 it('starts a W3 test without a body, reconciles its original UUID and renders the delivery failure', async () => {
   const posted: Request[] = [];

@@ -4,6 +4,8 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/dashboard` 通过同源 web 的 W2a 接口提供自选、价量历史、报价与场所盘口。`/trading` 另提供逐笔、永续摘要、深度焦点及 Web 订阅额度。行情读取需要管理员会话。附加 `?market=replay` 可显式进入带 Fixture 标记的合成回放。系统状态和示例回测也可在 `/system` 查看。`/backtests` 可从已导入的日线数据中选择标的，填写日期、均线周期和股数，提交后查看作业状态、覆盖区间和成交审计。告警和通知设置通过 web 管理邮件和投递。接口设置支持草稿、候选测试、启用和回滚；系统页展示 Drive 已验证恢复点和采集缺口。其余入口和后续接入计划见 [页面地图](docs/architecture.md#页面与功能)，操作与异常恢复见 [运行手册](RUNBOOK.md)，开发流程见 [AGENTS.md](AGENTS.md)。
 
+管理员可在 `/alerts` 和 `/settings/notifications` 通过 W5 对单条告警或通知规则设置静默截止时间和原因，也可提前解除。页面展示服务端确认的有效截止时间。[离线验证设置、通知与系统页](RUNBOOK.md#离线验证设置通知与系统页)
+
 `/options/flow` 通过 W9 读取合约观察与历史核验，`/options/exposure` 通过 W8 读取 GEX、OI、期权链与标的的 Nasdaq 场所深度。管理员使用同源会话。服务明确返回 `finance_contract_pending` 时，页面提示「待接入」。`?market=replay` 可浏览带 Fixture 标记的合成数据。[期权页验收](RUNBOOK.md#验证期权页)
 
 `/strategies`、`/factors` 和 `/backtests?view=strategy` 通过 W2b 读取管理员研究数据。上传 YAML 可校验并登记不可变版本，也可直接选择登记版本，再提交配置回测。作业可按原键找回，`?run=<id>` 显示运行清单与模拟成交。`/backtests?job=<id>` 保留历史均线深链，匿名列表按 web 返回的整数游标翻页。`?research=replay` 可使用完整的合成工作流。旧 `/strategies/example` 与 `/backtests?run=fixture-<序号>` 链接继续访问本地合成记录。旧目录的版本深链优先使用可访问的 W2b 登记版本，也可在缺少登记时打开对应合成示例。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)

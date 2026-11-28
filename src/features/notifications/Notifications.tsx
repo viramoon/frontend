@@ -12,6 +12,7 @@ import {
   severityLabels,
   useOperation,
 } from '../../components/OperationsStates';
+import { ManualSilence, SilenceStatus } from './ManualSilence';
 
 function RuleCard({
   rule,
@@ -93,12 +94,29 @@ function RuleCard({
           </button>
         </fieldset>
       </form>
+      {adapter.manualSilence && (
+        <>
+          <dl className="operations-fields">
+            <dt>静默状态</dt>
+            <dd>
+              <SilenceStatus until={rule.silencedUntil} />
+            </dd>
+          </dl>
+          <ManualSilence
+            actions={adapter.manualSilence}
+            id={rule.id}
+            until={rule.silencedUntil}
+            pending={pending}
+            run={run}
+          />
+        </>
+      )}
       {error && (
         <p className="operations-feedback" role="alert">
           {error}
         </p>
       )}
-      <div role="status">{pending ? '正在保存…' : message}</div>
+      <div role="status">{pending ? '正在更新…' : message}</div>
     </section>
   );
 }
@@ -235,6 +253,7 @@ export function Notifications({
   const config = useQuery({
     queryKey: ['u4', fixture ? 'fixture' : 'web', 'notifications'],
     queryFn: ({ signal }) => adapter.read(signal),
+    refetchInterval: adapter.manualSilence ? 30_000 : false,
   });
   return (
     <section className="operations-page" aria-labelledby="notifications-title">
@@ -278,6 +297,7 @@ export function Notifications({
       ) : (
         <OperationsReadState
           failed={config.isError}
+          error={config.error}
           retry={() => void config.refetch()}
         />
       )}

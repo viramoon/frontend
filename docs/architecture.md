@@ -14,8 +14,8 @@
 | `/factors` | W2b 因子定义、阶段、训练、验证、样本外覆盖、IC 衰减和费前费后报告。 | 评价报告依赖已发布的研究快照 |
 | `/backtests` | 历史工作台通过 `?job=` 查看均线作业，公开列表支持续页。配置工作台使用 `?view=strategy` 查看作业及按键找回，用 `?run=` 读运行清单和模拟成交。 | 配置作业依赖 W2b 与 finance 固定的回放输入 |
 | `/settings/integrations` | 通过 W4 目录和版本接口管理草稿、凭据、候选测试、启用和回滚。 | 实际探测以生产者可用性、权限与证据为准 |
-| `/alerts` | 通过 W3 展示告警、投递与确认。Drive 持续告警由 W4 恢复水位核验。 | 主动静默待 web 契约 |
-| `/settings/notifications` | 使用 W3 `/notification-rules` 与 `/notification-channels/email/tests` 读取、更新已有规则并测试邮件。 | 收件地址与 SMTP 配置由 web 部署管理 |
+| `/alerts` | 通过 W3 展示告警、投递与确认，通过 W5 设置或解除单条告警的静默。 | Drive 持续告警由 W4 恢复水位核验 |
+| `/settings/notifications` | 通过 W3 读取和更新规则并测试邮件，通过 W5 设置或解除通知规则的静默。 | 收件地址与 SMTP 配置由 web 部署管理 |
 | `/system` | 保留系统、行情采集状态及示例回测，显示 W3 通知健康。管理员可通过 W4 查看 Drive 恢复点、采集水位与缺口。 | 备份与 F3 质量数据由部署发布 |
 | `/blog` | 保留文章列表入口及空态。 | 博客后续 issue 待排期，当前契约草案未定义博客接口。 |
 
@@ -34,7 +34,7 @@ web 行情和合成回放都保留十进制源字符串。图表仅在传入 Lig
 
 ## 请求、状态与刷新
 
-src/api 配置唯一的同源 web client。Hey API 与 TanStack Query 插件从 `openapi/web.commit` 锁定的 OpenAPI 生成客户端。U4 通过同一客户端接入 W3 通知与 W4 集成和恢复状态，U4 合成适配器仅用于显式注入的离线用例。[U4 适配层](../src/api/README.md#u4-适配层)
+src/api 配置唯一的同源 web client。Hey API 与 TanStack Query 插件从 `openapi/web.commit` 锁定的 OpenAPI 生成客户端。U4 通过同一客户端接入 W3 通知与 W4 集成和恢复状态，U9 使用该客户端接入 W5 主动静默。U4 合成适配器仅用于显式注入的离线用例。[U4 适配层](../src/api/README.md#u4-适配层) · [W5 主动静默](../src/api/README.md#w5-主动静默)
 
 查询结果默认在 15 秒内视为新鲜。系统状态每 30 秒刷新，作业列表每 5 秒刷新，排队或运行中的详情每 2 秒刷新。行情新鲜度由 web 根据采集器的时间和阈值报告。
 
