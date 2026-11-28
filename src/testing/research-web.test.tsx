@@ -646,3 +646,119 @@ it('gives the historical job deep link precedence over a fixture run parameter',
   expect(screen.queryByText('Fixture · 合成示例')).toBeNull();
   expect(unexpected).toEqual([]);
 });
+
+it('opens the old top-five version when the web catalog contains only a different version, and runs it locally', async () => {
+  const user = userEvent.setup();
+  const { fetch, unexpected } = mount(
+    '/strategies/example.equity-top-five?version=1.0.0',
+    (_request, url) => {
+      if (url.pathname !== root + '/strategies')
+        throw new Error('Unexpected private request from the legacy fixture');
+      return Response.json({
+        items: [
+          { ...revision, id: 'example.equity-top-five', version: '2.0.0' },
+        ],
+      });
+    },
+  );
+
+  expect(await screen.findByText('Fixture · 合成示例')).toBeVisible();
+  await user.click(await screen.findByRole('button', { name: '预览登记版本' }));
+  expect(
+    await screen.findByRole('region', { name: '编译预览' }),
+  ).toHaveTextContent(bundles[1].plan.revision.contentSha256);
+  const submit = await screen.findByRole('button', { name: '运行示例回测' });
+  await waitFor(() => expect(submit).toBeEnabled());
+  await user.click(submit);
+  expect(
+    await screen.findByRole('heading', { name: '配置作业 fixture-1' }),
+  ).toBeVisible();
+  expect(
+    fetch.mock.calls.map(([request]) => [
+      request.method,
+      new URL(request.url).pathname,
+    ]),
+  ).toEqual([
+    ['GET', root + '/me/capabilities'],
+    ['GET', root + '/strategies'],
+  ]);
+  expect(unexpected).toEqual([]);
+});
+
+it.each([false, true])(
+  'opens the original read-only research version with a local fixture (admin: %s)',
+  async (admin) => {
+    const { fetch, unexpected } = mount(
+      '/strategies/research.factor-momentum?version=1.0.0',
+      (_request, url) => {
+        if (url.pathname === root + '/strategies')
+          return Response.json({ items: [] });
+        throw new Error('Unexpected research request');
+      },
+      admin,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: '月频因子动量' }),
+    ).toBeVisible();
+    expect(screen.getByText('Fixture · 合成示例')).toBeVisible();
+    expect(screen.getByText('研究专用 · 只读')).toBeVisible();
+    expect(screen.queryByRole('button', { name: '预览登记版本' })).toBeNull();
+    expect(
+      fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
+    ).toEqual(
+      admin
+        ? [root + '/me/capabilities', root + '/strategies']
+        : [root + '/me/capabilities'],
+    );
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it.each([
+  ['example', '2.0.0'],
+  ['example.equity-top-five', '1.0.0'],
+])('opens registered %s@%s from the web catalog link', async (id, version) => {
+  const user = userEvent.setup();
+  const registered = { ...revision, id, version };
+  const versionPath = `/strategies/${id}/versions/${version}`;
+  const { fetch, unexpected } = mount('/strategies', (_request, url) => {
+    if (url.pathname === root + '/strategies')
+      return Response.json({ items: [registered] });
+    if (url.pathname === root + versionPath)
+      return Response.json({ ...preview, strategy: registered });
+    throw new Error('Unexpected registered strategy request');
+  });
+
+  const link = await screen.findByRole('link', { name: id });
+  expect(link).toHaveAttribute('href', `/strategies/${id}?version=${version}`);
+  await user.click(link);
+  expect(
+    await screen.findByRole('heading', { name: '策略详情' }),
+  ).toBeVisible();
+  await user.click(await screen.findByRole('button', { name: '预览登记版本' }));
+  const plan = await screen.findByRole('region', { name: '编译预览' });
+  expect(plan).toHaveTextContent(`${id}@${version}`);
+  expect(plan).toHaveTextContent(revision.content_sha256);
+  expect(screen.queryByText('Fixture · 合成示例')).toBeNull();
+  expect(
+    fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
+  ).toContain(root + versionPath);
+  expect(unexpected).toEqual([]);
+});
+
+it('reports a web catalog failure for a legacy link while registration is unknown', async () => {
+  const { unexpected } = mount(
+    '/strategies/example.equity-top-five?version=1.0.0',
+    (_request, url) => {
+      if (url.pathname === root + '/strategies')
+        return failure(502, 'finance_upstream_error');
+      throw new Error('Unexpected research request');
+    },
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'HTTP 502 · finance_upstream_error',
+  );
+  expect(screen.queryByText('Fixture · 合成示例')).toBeNull();
+  expect(unexpected).toEqual([]);
+});

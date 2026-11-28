@@ -2,7 +2,7 @@
 
 [index.ts](index.ts) 配置唯一的 Hey API 客户端，baseUrl 取页面 origin。replay 或 paper 等运行模式由服务端决定。生成文件位于 [generated](generated/README.md)，来源和校验方法见 [构建说明](../../docs/build.md#更新生成客户端)。
 
-离线浏览器用例只从本地构建和模拟的系统状态及示例回测响应取数。[浏览器测试边界](../../docs/data-guard.md#浏览器测试)
+离线浏览器用例读取本地构建，并拦截模拟的系统状态、示例回测、管理员能力检查、W8 敞口和场所深度响应。[浏览器测试边界](../../docs/data-guard.md#浏览器测试)
 
 仪表盘使用 `statusOptions` 和 `sampleOptions` 获取系统与示例摘要。历史回测工作台读取公共目录、列表与详情。历史提交与原键确认携带临时 Bearer 令牌，配置回测使用管理会话。两种工作台都用同一 `Idempotency-Key` 提交和确认。[作业请求](backtestsWeb.ts)
 
@@ -18,7 +18,7 @@ TanStack Query 默认在 15 秒内将读取结果视为新鲜，读取失败由�
 | --- | --- |
 | W2b 策略 | 新增 `GET /strategies`（版本页）、`POST /strategies`（登记）、`POST /strategies/validate`（带计划预览的校验）和 `GET /strategies/{id}/versions/{version}`（固定版本的计划预览）。同源会话写入要求 Origin 和 CSRF。单份源文件 UTF-8 上限 256 KiB。 |
 | W2b 因子 | 新增 `GET /factors`、`GET /factors/{id}/evaluations`、`GET /factors/{id}/evaluations/{evaluation_id}`，分别返回目录、评价分页及指定因子版本的评价详情。鉴权只对管理员开放。 |
-| W2b 回测 | `POST /backtests` 接受 `JobRequest \| BundleSubmission`，新增 404，保留原有 413，并更新幂等键、同源会话 Origin 与 CSRF 的参数说明。`GET /backtests` 和 `GET /backtests/{id}` 区分公开历史作业与管理会话可见的配置作业。游标保持 int64，指向本页末个可见作业。原按键查询路径与历史深链沿用。 |
+| W2b 回测 | `POST /backtests` 接受 `JobRequest \| BundleSubmission`，新增 404，保留原有 413，并更新同源会话的 `Origin` 参数说明。`GET /backtests` 和 `GET /backtests/{id}` 区分公开历史作业与管理会话可见的配置作业。游标保持 int64，指向本页末个可见作业。原按键查询路径与历史深链沿用。 |
 | W8 期权链 | `GET /options/chain` 增加 `underlying_con_id`、`expiry`、`after_con_id`，新增 200（`OptionChainPage`）、502、504，补充 401、403、429、503 的响应说明。只使用旧 `instrument_id` 的查询仍可收到 `finance_contract_pending`。 |
 | W8 敞口 | `GET /options/exposure` 新增 `underlying_id`，保留 `instrument_id` 别名与 `as_of`，说明四种 `scenario`。新增 200（`OptionExposureResponse`）、404、502、504，并补充 401、403、429、503 的响应说明。未支持的情景仍可返回 `finance_contract_pending`。 |
 | W8 场所、历史与调度 | 新增 `GET /market/depth`（股票场所档位）、`GET /options/history`（采用纳秒字符串表示区间）、`GET /market/subscriptions/budget`（券商额度）、`GET /market/subscriptions/coverage`（合约订阅区间）。上述路由都需授权。 |
@@ -60,7 +60,7 @@ W2a REST WAL 可返回新事件。永续摘要沿用 `/market/derivatives` 中�
 
 [OptionsDataAdapter](../features/options/optionsData.ts) 定义浏览器内部视图接口。两页通过 `underlyings` 获取可选标的，用 `read(underlying, signal)` 读取含来源、流水与敞口的快照。切换标的或卸载时取消读取并丢弃迟到结果。允许两块内容独立为空，区分读取失败、确认无数据、未知分母和未评估 flip。十进制读数用经过验证的普通十进制字符串，时间以 UTC 字符串传入，交易业务日和 OI 基准日用独立日期。当前快照完整提供可浏览的合成结果，筛选在浏览器内进行。
 
-[实时期权页](../features/options/WebOptions.tsx) 使用生成 SDK 读取 W8 链、标的场所深度和敞口，以及 W9 两类流水。选定 W8 合约后可直接填入 W9 流水查询。页面保留来源、产品许可、实测覆盖、后端情景与原始十进制值。发生 `finance_contract_pending` 时显示「待接入」。授权拒绝、上游错误和成功空数据各自呈现。历史期权链、独立额度和覆盖接口随契约生成，当前页面使用链、深度、敞口与流水的返回值。[合成数据与回放](../features/options/README.md)
+[实时期权页](../features/options/WebOptions.tsx) 使用生成 SDK 读取 W8 链、标的场所深度和敞口，以及 W9 两类流水。选定 W8 合约后可直接填入 W9 流水查询。页面保留来源、产品许可、实测覆盖、后端情景与原始十进制值。发生 `finance_contract_pending` 时显示「待接入」。返回 `404 market_read_not_found` 时提示暂无数据。授权拒绝、上游错误和成功空结果各自呈现。历史期权链、独立额度和覆盖接口随契约生成，当前页面使用链、深度、敞口与流水的返回值。[合成数据与回放](../features/options/README.md)
 
 ## 研究工作台适配层
 

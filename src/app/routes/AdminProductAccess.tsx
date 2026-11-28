@@ -11,12 +11,14 @@ import {
 export function AdminProductAccess({
   title,
   children,
+  deniedFallback,
   resetTest,
   product,
   heading: Heading = 'h1',
 }: {
   title: string;
   children: ReactNode;
+  deniedFallback?: ReactNode;
   resetTest?: () => void;
   product: Product;
   heading?: 'h1' | 'h2';
@@ -49,7 +51,10 @@ export function AdminProductAccess({
     }, '会话请求已完成，请核对权限。');
   }
 
-  if (access.data && !access.isError) return children;
+  if (access.isSuccess) {
+    if (access.data) return children;
+    if (deniedFallback) return deniedFallback;
+  }
   return (
     <section
       className="operations-page"

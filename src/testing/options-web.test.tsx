@@ -468,3 +468,60 @@ it('denies private W8 reads to an anonymous browser', async () => {
     fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
   ).toEqual([api + '/me/capabilities']);
 });
+
+it.each([
+  { read: 'exposure', mode: null, title: '暂无敞口数据' },
+  { read: 'flow/observations', mode: 'observed', title: '暂无观察流水数据' },
+  { read: 'flow/verification', mode: 'verified', title: '暂无核验流水数据' },
+])(
+  'renders market_read_not_found from $read as a no-data state',
+  async ({ read, mode, title }) => {
+    const path = api + '/options/' + read;
+    const { unexpected, fetch } = mount(
+      mode ? '/options/flow' : '/options/exposure',
+      (url) => {
+        if (url.pathname !== path)
+          throw new Error('Unexpected empty-state request');
+        if (mode) {
+          expect(url.searchParams.get('con_id')).toBe('9001');
+          expect(url.searchParams.get('start')).toBe(time);
+          expect(url.searchParams.get('end')).toBe(end);
+        } else {
+          expect(url.searchParams.get('underlying_id')).toBe('SPY.ARCA');
+        }
+        return failure(404, 'market_read_not_found');
+      },
+    );
+    if (mode) {
+      const user = userEvent.setup();
+      await user.selectOptions(await screen.findByLabelText('流水类型'), mode);
+      typeInput('流水合约 IBKR ConId', '9001');
+      typeInput('开始时间（UTC）', '2026-11-19T13:30');
+      typeInput('结束时间（UTC，不含）', '2026-11-19T14:00');
+      await user.click(screen.getByRole('button', { name: '读取流水' }));
+    }
+
+    const empty = await screen.findByText(title);
+    expect(empty).toBeVisible();
+    expect(empty.closest('[role="status"]')).toBeVisible();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(/待接入|读取失败/)).toBeNull();
+    expect(
+      fetch.mock.calls.map(([request]) => new URL(request.url).pathname),
+    ).toEqual([api + '/me/capabilities', path]);
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it('continues to report a different exposure 404 as a read failure', async () => {
+  const { unexpected } = mount('/options/exposure', (url) => {
+    if (url.pathname === api + '/options/exposure')
+      return failure(404, 'route_not_found');
+    throw new Error('Unexpected failing exposure request');
+  });
+  const alert = await screen.findByRole('alert');
+  expect(within(alert).getByText('敞口读取失败')).toBeVisible();
+  expect(within(alert).getByText('HTTP 404 · route_not_found')).toBeVisible();
+  expect(screen.queryByText('暂无敞口数据')).toBeNull();
+  expect(unexpected).toEqual([]);
+});

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { WebRequestError } from '../../api';
 import { validationDiagnostic } from '../../api/researchWeb';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -12,6 +12,7 @@ import {
   type Strategy,
   type StrategySource,
 } from './adapter';
+import { fixtureStrategyId } from './fixtureAdapter';
 import { bundles, errorFile } from './fixtures/catalog';
 import { InvalidYaml, maxYamlBytes } from './fixtureYaml';
 import {
@@ -21,7 +22,6 @@ import {
 } from './ResearchStates';
 import type { RunSubmission } from './useRunSubmission';
 
-const exampleId = bundles[0].plan.revision.id;
 const versionKey = ({ id, version }: Strategy) => `${id}@${version}`;
 const versionHref = (strategy: Strategy) =>
   `/strategies/${encodeURIComponent(strategy.id)}?version=${encodeURIComponent(strategy.version)}`;
@@ -72,9 +72,11 @@ export function StrategyWorkbench({
   adapter,
   routeId,
   submission,
+  missingVersion,
 }: {
   adapter: ResearchAdapter;
   routeId?: string;
+  missingVersion?: ReactNode;
   submission: RunSubmission;
 }) {
   const [search] = useSearchParams();
@@ -86,7 +88,7 @@ export function StrategyWorkbench({
     queryFn: () => adapter.listStrategies(),
   });
   const id =
-    routeId === 'example' && adapter.source === 'fixture' ? exampleId : routeId;
+    adapter.source === 'fixture' ? fixtureStrategyId(routeId) : routeId;
   const versions = (catalog.data ?? []).filter(
     (strategy) => strategy.id === id,
   );
@@ -94,6 +96,9 @@ export function StrategyWorkbench({
     version === null
       ? versions[0]
       : versions.find((strategy) => strategy.version === version);
+
+  if (missingVersion && catalog.isSuccess && !catalog.isFetching && !selected)
+    return missingVersion;
 
   return (
     <section className="research-page">

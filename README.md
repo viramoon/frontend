@@ -6,7 +6,7 @@ fertile 的前端界面与 submodule。采用 React + TypeScript + Vite SPA，�
 
 `/options/flow` 通过 W9 读取合约观察与历史核验，`/options/exposure` 通过 W8 读取 GEX、OI、期权链与标的的 Nasdaq 场所深度。管理员使用同源会话。服务明确返回 `finance_contract_pending` 时，页面提示「待接入」。`?market=replay` 可浏览带 Fixture 标记的合成数据。[期权页验收](RUNBOOK.md#验证期权页)
 
-`/strategies`、`/factors` 和 `/backtests?view=strategy` 通过 W2b 读取管理员研究数据。上传 YAML 可校验并登记不可变版本，也可直接选择登记版本，再提交配置回测。作业可按原键找回，`?run=<id>` 显示运行清单与模拟成交。`/backtests?job=<id>` 保留历史均线深链，匿名列表按 web 返回的整数游标翻页。`?research=replay` 可使用完整的合成工作流。旧 `/strategies/example` 与 `/backtests?run=fixture-<序号>` 链接继续访问本地合成记录。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)
+`/strategies`、`/factors` 和 `/backtests?view=strategy` 通过 W2b 读取管理员研究数据。上传 YAML 可校验并登记不可变版本，也可直接选择登记版本，再提交配置回测。作业可按原键找回，`?run=<id>` 显示运行清单与模拟成交。`/backtests?job=<id>` 保留历史均线深链，匿名列表按 web 返回的整数游标翻页。`?research=replay` 可使用完整的合成工作流。旧 `/strategies/example` 与 `/backtests?run=fixture-<序号>` 链接继续访问本地合成记录。旧目录的版本深链优先使用可访问的 W2b 登记版本，也可在缺少登记时打开对应合成示例。[研究工作台操作](RUNBOOK.md#验证策略因子与配置回测)
 
 行情面板标注「价量历史」或「订单簿细节」。已提供采集起点的盘口和逐笔显示授权 WAL 中 `first_available_ts` 确认的 UTC 采集日期及返回的样本覆盖，可按 UTC 日期查看。所选区间含采集前日期时显示「采集开始前无细节数据」，跨起点的区间同时显示返回样本。[数据类别与覆盖](src/features/market/README.md#数据类别与覆盖)
 

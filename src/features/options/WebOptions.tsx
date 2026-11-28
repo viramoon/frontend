@@ -56,28 +56,23 @@ function ReadState({
   if (read.isPending)
     return <DataState kind="loading" title={`正在读取${title}`} />;
   if (!read.isError) return null;
-  const error = read.error;
-  if (
-    error instanceof WebRequestError &&
-    (error.status === 401 || error.status === 403)
-  )
+  const error = read.error instanceof WebRequestError ? read.error : undefined;
+  if (error?.status === 401 || error?.status === 403)
     return <DataState kind="denied" title={`无权查看${title}`} />;
 
-  const pending =
-    error instanceof WebRequestError &&
-    error.code === 'finance_contract_pending';
+  const pending = error?.code === 'finance_contract_pending';
+  const noData =
+    error?.status === 404 && error.code === 'market_read_not_found';
   return (
-    <div role={pending ? 'status' : 'alert'}>
+    <div role={pending || noData ? 'status' : 'alert'}>
       <DataState
         kind="empty"
-        title={`${title}${pending ? '待接入' : '读取失败'}`}
-        detail={
-          pending
-            ? 'finance_contract_pending'
-            : error instanceof WebRequestError
-              ? error.message
-              : undefined
+        title={
+          noData
+            ? `暂无${title}数据`
+            : `${title}${pending ? '待接入' : '读取失败'}`
         }
+        detail={pending ? error.code : noData ? undefined : error?.message}
       />
       <button
         type="button"

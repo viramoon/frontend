@@ -39,7 +39,10 @@ import {
 } from '../../features/research/adapter';
 import { webResearch } from '../../api/researchWeb';
 import { FactorCatalog } from '../../features/research/FactorCatalog';
-import { fixtureResearch } from '../../features/research/fixtureAdapter';
+import {
+  fixtureResearch,
+  hasFixtureStrategy,
+} from '../../features/research/fixtureAdapter';
 import { RunWorkbench } from '../../features/research/RunWorkbench';
 import { StrategyWorkbench } from '../../features/research/StrategyWorkbench';
 import '../../features/research/research.css';
@@ -66,15 +69,61 @@ const navigation = [
 
 type ResearchProps = { adapter: ResearchAdapter; submission: RunSubmission };
 
-function StrategyDetail({ adapter, submission }: ResearchProps) {
-  const { id } = useParams();
+function useResearchSubmission(adapter: ResearchAdapter) {
+  const [search] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useContext(QueryClientContext);
+  return useRunSubmission(adapter, (run) => {
+    void queryClient?.invalidateQueries({
+      queryKey: ['research', adapter.source, 'runs'],
+    });
+    void navigate(
+      researchHref(`/backtests?run=${encodeURIComponent(run)}`, search),
+    );
+  });
+}
+
+function FixtureStrategyDetail({ id }: { id: string }) {
+  const submission = useResearchSubmission(fixtureResearch);
   return (
+    <StrategyWorkbench
+      adapter={fixtureResearch}
+      routeId={id}
+      submission={submission}
+    />
+  );
+}
+
+function StrategyDetail({
+  adapter,
+  submission,
+  guarded,
+}: ResearchProps & { guarded: boolean }) {
+  const { id } = useParams();
+  const [search] = useSearchParams();
+  const fallback =
+    guarded && id && hasFixtureStrategy(id, search.get('version')) ? (
+      <FixtureStrategyDetail key={id} id={id} />
+    ) : undefined;
+  const workbench = (
     <StrategyWorkbench
       key={id}
       adapter={adapter}
       routeId={id}
       submission={submission}
+      missingVersion={fallback}
     />
+  );
+  return guarded ? (
+    <AdminProductAccess
+      title="策略详情"
+      product="strategy_research"
+      deniedFallback={fallback}
+    >
+      {workbench}
+    </AdminProductAccess>
+  ) : (
+    workbench
   );
 }
 
@@ -121,7 +170,9 @@ export function AppRoutes({
   marketReplay?: boolean;
 } = {}) {
   const [search] = useSearchParams();
-  const example = useMatch('/strategies/:id')?.params.id === 'example';
+  const example =
+    useMatch('/strategies/:id')?.params.id === 'example' &&
+    !search.has('version');
   const fixtureRun =
     useMatch('/backtests') &&
     !search.has('job') &&
@@ -158,16 +209,7 @@ function TerminalRoutes({
   const replayInUrl = new URLSearchParams(search).get('market') === 'replay';
   const replay = marketReplay || replayInUrl;
   const params = new URLSearchParams(search);
-  const navigate = useNavigate();
-  const queryClient = useContext(QueryClientContext);
-  const submission = useRunSubmission(research, (run) => {
-    void queryClient?.invalidateQueries({
-      queryKey: ['research', research.source, 'runs'],
-    });
-    void navigate(
-      researchHref(`/backtests?run=${encodeURIComponent(run)}`, params),
-    );
-  });
+  const submission = useResearchSubmission(research);
   const [emailTestKey, setEmailTestKey] = useState<string | null>(null);
 
   const resetTest = () => setEmailTestKey(null);
@@ -284,10 +326,13 @@ function TerminalRoutes({
           />
           <Route
             path="/strategies/:id"
-            element={researchAccess(
-              '策略详情',
-              <StrategyDetail adapter={research} submission={submission} />,
-            )}
+            element={
+              <StrategyDetail
+                adapter={research}
+                submission={submission}
+                guarded={guarded}
+              />
+            }
           />
           <Route
             path="/factors"

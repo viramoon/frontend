@@ -4,7 +4,7 @@
 
 ## 前端适配层
 
-[ResearchAdapter](adapter.ts) 是页面侧的 TypeScript 接口。app 默认注入 [W2b 适配层](../../api/researchWeb.ts)，使用 `?research=replay` 时注入 [合成适配层](fixtureAdapter.ts)。配置回测走 `/backtests?view=strategy` 和 `/backtests?run=<id>`。原有 `/strategies/example` 示例链接和 `/backtests?run=fixture-<序号>` 作业链接直接使用合成适配层，可读取当前会话已有的作业。历史均线回测使用已有 web 客户端和 `/backtests?job=<id>`。
+[ResearchAdapter](adapter.ts) 是页面侧的 TypeScript 接口。app 默认注入 [W2b 适配层](../../api/researchWeb.ts)，使用 `?research=replay` 时注入 [合成适配层](fixtureAdapter.ts)。配置回测走 `/backtests?view=strategy` 和 `/backtests?run=<id>`。无 `version` 参数的旧 `/strategies/example` 示例链接和 `/backtests?run=fixture-<序号>` 作业链接直接使用合成适配层，可读取当前会话已有的作业。旧目录生成的版本链接优先匹配 W2b 登记。在无研究访问权限或已确认无匹配登记时，如果 ID 与版本存在于合成目录，则显示标有 Fixture 的示例。使用 `?research=replay` 可在离线环境直接查看示例。历史均线回测使用已有 web 客户端和 `/backtests?job=<id>`。
 
 | 操作 | 前端所需语义 |
 | --- | --- |
