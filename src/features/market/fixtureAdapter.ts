@@ -268,7 +268,7 @@ function createFixtureAdapter(binanceDemo = false): MarketDataAdapter {
   return {
     instruments,
     fixture: { seed: marketFixtureSeed, replayTime },
-    budget: {
+    replayBudget: {
       stocks: 9,
       hotOptions: 16,
       rotating: 45,

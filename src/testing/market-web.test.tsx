@@ -14,6 +14,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type {
   BookSnapshot,
   Event,
+  MarketSubscriptionBudgetResponse,
   MarketWatermarks,
   WalRecord,
 } from '../api/generated/types.gen';
@@ -40,6 +41,21 @@ const access = {
   derive_non_display: false,
   backup_personal_drive: false,
 };
+const budgetPath = '/api/v1/market/subscriptions/budget';
+// Hand-picked synthetic counts, distinct from the replay allocation and Web slots.
+const brokerBudget = {
+  access,
+  as_of: asOf,
+  account_lines: 123,
+  reserve_lines: 19,
+  stock_lines: 7,
+  hot_lines: 13,
+  rotation_lines: 28,
+  phase: 'online',
+  confirmed_options: 35,
+  observed_options: 28,
+  discovery_complete: true,
+} satisfies MarketSubscriptionBudgetResponse;
 
 function nanos(iso: string) {
   return (BigInt(Date.parse(iso)) * 1_000_000n).toString();
@@ -158,7 +174,13 @@ class MockEvents extends EventTarget {
 
 type Call = { path: string; query: URLSearchParams; request: Request };
 
-function mockWeb(admin = true, perpetual = false, wal = rows) {
+function mockWeb(
+  admin = true,
+  perpetual = false,
+  wal = rows,
+  readBudget: () => Response | Promise<Response> = () =>
+    Response.json({}, { status: 503 }),
+) {
   let ids: string[] = [];
   let revision = 3;
   let focus: string | null = null;
@@ -364,6 +386,8 @@ function mockWeb(admin = true, perpetual = false, wal = rows) {
           web: { limit: 8, active: 1, available: 7 },
           finance_lines: 'finance_contract_pending',
         });
+      case budgetPath:
+        return readBudget();
       case '/api/v1/market/depth-focus':
         if (request.method === 'PUT') {
           const body = await request.json();
@@ -457,6 +481,99 @@ it('defaults dashboard to the W2a catalog, bars, indicators and policy-approved 
       'no-store',
     );
   }
+  expect(unexpected).toEqual([]);
+});
+
+it.each([
+  { route: '/dashboard', hotLines: brokerBudget.hot_lines },
+  { route: '/trading', hotLines: 0 },
+])(
+  'shows actual broker line counts and Web slots despite the legacy pending marker on $route',
+  async ({ route, hotLines }) => {
+    let deliverBudget!: (response: Response) => void;
+    const response = new Promise<Response>((resolve) => {
+      deliverBudget = resolve;
+    });
+    const { calls, unexpected } = mockWeb(true, false, rows, () => response);
+    mount(route);
+
+    expect(await screen.findByText('Web 订阅 1/8 · 可用 7')).toBeVisible();
+    expect(screen.getByText('正在读取券商线路额度')).toBeVisible();
+    expect(screen.queryByText('券商线路额度待接入')).toBeNull();
+
+    deliverBudget(Response.json({ ...brokerBudget, hot_lines: hotLines }));
+    expect(await screen.findByText('IBKR L1 预算 123 行')).toBeVisible();
+    expect(
+      screen.getByText(
+        `股票常驻 7 · 热点期权 ${hotLines} · 期权轮换 28 · 余量 19`,
+      ),
+    ).toBeVisible();
+    expect(screen.getByText('Web 订阅 1/8 · 可用 7')).toBeVisible();
+    expect(screen.queryByText('券商线路额度待接入')).toBeNull();
+    expect(screen.queryByRole('region', { name: '模拟额度' })).toBeNull();
+    const request = calls.find(({ path }) => path === budgetPath)?.request;
+    expect(request?.method).toBe('GET');
+    expect(request?.cache).toBe('no-store');
+    expect(request?.credentials).toBe('same-origin');
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it.each([
+  { name: 'upstream failure', status: 502, code: 'market_upstream_error' },
+  { name: 'product access denied', status: 403, code: 'forbidden' },
+  { name: 'explicit pending', status: 503, code: 'finance_contract_pending' },
+])(
+  'keeps Web slots when the broker budget reports $name',
+  async ({ status, code }) => {
+    const { unexpected } = mockWeb(true, false, rows, () =>
+      Response.json({ error: { code } }, { status }),
+    );
+    mount('/trading');
+
+    expect(await screen.findByText('券商线路额度待接入')).toBeVisible();
+    expect(await screen.findByText('Web 订阅 1/8 · 可用 7')).toBeVisible();
+    expect(screen.queryByText(/IBKR L1 预算/)).toBeNull();
+    expect(
+      await screen.findByRole('table', { name: '场所订单簿' }),
+    ).toBeVisible();
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it('clears the last broker counts when a refresh returns an incomplete budget', async () => {
+  const readBudget = vi
+    .fn(() => Response.json(brokerBudget))
+    .mockImplementationOnce(() => Response.json(brokerBudget))
+    .mockImplementationOnce(() => Response.json({ account_lines: 123 }));
+  const { unexpected } = mockWeb(true, false, rows, readBudget);
+  mount('/trading');
+  expect(await screen.findByText('IBKR L1 预算 123 行')).toBeVisible();
+
+  act(() =>
+    MockEvents.opened.at(-1)?.frame('reset', {
+      schema_version: '1.0',
+      kind: 'reset',
+      reason: 'cursor_unavailable',
+    }),
+  );
+  expect(await screen.findByText('券商线路额度待接入')).toBeVisible();
+  expect(screen.queryByText(/IBKR L1 预算/)).toBeNull();
+  expect(screen.getByText('Web 订阅 1/8 · 可用 7')).toBeVisible();
+  expect(unexpected).toEqual([]);
+});
+
+it('revokes the restricted market view when the broker budget reports an expired session', async () => {
+  const { unexpected } = mockWeb(true, false, rows, () =>
+    Response.json({}, { status: 401 }),
+  );
+  mount('/trading');
+
+  expect(await screen.findByText('无权读取行情')).toBeVisible();
+  expect(
+    screen.queryByRole('region', { name: '订阅额度与深度焦点' }),
+  ).toBeNull();
+  expect(MockEvents.opened[0]?.closed).toBe(true);
   expect(unexpected).toEqual([]);
 });
 

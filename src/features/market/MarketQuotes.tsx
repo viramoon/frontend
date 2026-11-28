@@ -14,6 +14,7 @@ import {
   DepthTable,
   MarketBudget,
   MarketDepth,
+  ReplayBudget,
   type useMarketDepth,
 } from './MarketDepth';
 import {
@@ -65,7 +66,7 @@ export function MarketQuotes({
   reading,
   depth,
   detailRange,
-  budget,
+  replayBudget,
   timeZone,
   replayTime,
   trading,
@@ -75,7 +76,7 @@ export function MarketQuotes({
   reading: MarketReading;
   depth: ReturnType<typeof useMarketDepth>;
   detailRange: DetailDateRange;
-  budget: ComponentProps<typeof MarketBudget>;
+  replayBudget?: ComponentProps<typeof ReplayBudget>;
   timeZone: DisplayTimeZone;
   replayTime?: string;
   trading: boolean;
@@ -181,9 +182,7 @@ export function MarketQuotes({
             </p>
           )}
           {!web.quota && <p>暂无 Web 订阅额度读数</p>}
-          {web.financeLines === 'finance_contract_pending' && (
-            <p>券商线路额度待接入</p>
-          )}
+          <MarketBudget budget={web.brokerBudget} />
           {web.focus !== undefined && (
             <>
               <p>当前焦点 {web.focus ?? '未设置'}</p>
@@ -208,7 +207,7 @@ export function MarketQuotes({
           {web.message && <p role="status">{web.message}</p>}
         </section>
       ) : (
-        <MarketBudget {...budget} />
+        replayBudget && <ReplayBudget {...replayBudget} />
       )}
       {replayTime && (
         <section className="market-source-note">

@@ -209,11 +209,14 @@ export function MarketTerminal({
     quoted && !trading ? adapter.history(request, prefs.period) : undefined;
   const book = selected?.kind === 'l1-only' ? undefined : quoted?.book;
   const depth = useMarketDepth(book?.availableFrom ? book : undefined);
-  const pinnedDepth = adapter.budget.pinnedDepth;
+  const replayBudget = adapter.replayBudget;
+  const pinnedDepth = replayBudget?.pinnedDepth ?? 0;
   const pinned = prefs.pinned.slice(0, pinnedDepth);
   const eligible = selected?.kind === 'nasdaq' ? selected.id : undefined;
   const follow =
-    eligible && !pinned.includes(eligible) && adapter.budget.followingDepth > 0
+    eligible &&
+    !pinned.includes(eligible) &&
+    (replayBudget?.followingDepth ?? 0) > 0
       ? eligible
       : null;
   const timeZone =
@@ -316,26 +319,28 @@ export function MarketTerminal({
       replayTime={adapter.fixture?.replayTime}
       trading={trading}
       web={web}
-      budget={{
-        budget: adapter.budget,
-        pinned,
-        follow,
-        eligible,
-        togglePin: () => {
-          if (!eligible) return;
-          setPreferences((previous) => {
-            const current = previous.pinned;
-            if (current.includes(eligible)) {
-              return {
-                ...previous,
-                pinned: current.filter((id) => id !== eligible),
-              };
-            }
-            if (current.length >= adapter.budget.pinnedDepth) return previous;
-            return { ...previous, pinned: [...current, eligible] };
-          });
-        },
-      }}
+      replayBudget={
+        replayBudget && {
+          budget: replayBudget,
+          pinned,
+          follow,
+          eligible,
+          togglePin: () => {
+            if (!eligible) return;
+            setPreferences((previous) => {
+              const current = previous.pinned;
+              if (current.includes(eligible)) {
+                return {
+                  ...previous,
+                  pinned: current.filter((id) => id !== eligible),
+                };
+              }
+              if (current.length >= pinnedDepth) return previous;
+              return { ...previous, pinned: [...current, eligible] };
+            });
+          },
+        }
+      }
     />
   );
 

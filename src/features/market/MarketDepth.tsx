@@ -9,7 +9,12 @@ import {
   displayDataTime,
   type DisplayTimeZone,
 } from '../../components/TerminalStates';
-import type { BookSource, Level, SubscriptionBudget } from './marketData';
+import type {
+  BookSource,
+  BrokerLineBudget,
+  Level,
+  ReplaySubscriptionBudget,
+} from './marketData';
 import {
   applyBookEvent,
   waitingForBook,
@@ -183,12 +188,30 @@ export function MarketDepth({
 
 export function MarketBudget({
   budget,
+}: {
+  budget?: BrokerLineBudget | 'unavailable';
+}) {
+  if (budget === undefined) return <p>正在读取券商线路额度</p>;
+  if (budget === 'unavailable') return <p>券商线路额度待接入</p>;
+  return (
+    <>
+      <p>IBKR L1 预算 {budget.total} 行</p>
+      <p>
+        股票常驻 {budget.stocks} · 热点期权 {budget.hotOptions} · 期权轮换{' '}
+        {budget.rotating} · 余量 {budget.reserve}
+      </p>
+    </>
+  );
+}
+
+export function ReplayBudget({
+  budget,
   pinned,
   follow,
   eligible,
   togglePin,
 }: {
-  budget: SubscriptionBudget;
+  budget: ReplaySubscriptionBudget;
   pinned: readonly string[];
   follow: string | null;
   eligible?: string;
@@ -199,11 +222,7 @@ export function MarketBudget({
   return (
     <section className="market-depth" aria-label="模拟额度">
       <h3>模拟额度</h3>
-      <p>IBKR L1 预算 {budget.total} 行</p>
-      <p>
-        股票常驻 {budget.stocks} · 热点期权 {budget.hotOptions} · 期权轮换{' '}
-        {budget.rotating} · 余量 {budget.reserve}
-      </p>
+      <MarketBudget budget={budget} />
       <p>
         Nasdaq 固定 {pinned.length}/{budget.pinnedDepth} ·{' '}
         {pinned.join('、') || '空闲'}

@@ -108,12 +108,15 @@ export type MarketHistory = {
 
 export type MarketRequest = { id: string; cryptoMarket: CryptoMarket };
 
-export type SubscriptionBudget = {
+export type BrokerLineBudget = {
   stocks: number;
   hotOptions: number;
   rotating: number;
   reserve: number;
   total: number;
+};
+
+export type ReplaySubscriptionBudget = BrokerLineBudget & {
   pinnedDepth: number;
   followingDepth: number;
 };
@@ -123,7 +126,7 @@ export type WebMarketControls = {
   saved?: readonly string[];
   focus?: string | null;
   quota?: { active: number; available: number; limit: number };
-  financeLines?: 'finance_contract_pending';
+  brokerBudget?: BrokerLineBudget | 'unavailable';
   busy: boolean;
   message?: string;
   save(instrumentIds: readonly string[]): Promise<void>;
@@ -137,7 +140,7 @@ export interface MarketDataAdapter {
   instruments: readonly MarketInstrument[];
   fixture?: { seed: string; replayTime: string };
   web?: WebMarketControls;
-  budget: SubscriptionBudget;
+  replayBudget?: ReplaySubscriptionBudget;
   subscribe(listener: () => void): () => void;
   revision(): number;
   watch?(
