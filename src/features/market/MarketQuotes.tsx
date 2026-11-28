@@ -12,10 +12,10 @@ import {
 } from '../../components/TerminalStates';
 import {
   DepthTable,
-  MarketBudget,
   MarketDepth,
   ReplayBudget,
   type useMarketDepth,
+  WebSubscriptionBudget,
 } from './MarketDepth';
 import {
   hasReading,
@@ -175,14 +175,10 @@ export function MarketQuotes({
       {web ? (
         <section className="market-depth" aria-label="订阅额度与深度焦点">
           <h3>订阅额度与深度焦点</h3>
-          {web.quota && (
-            <p>
-              Web 订阅 {web.quota.active}/{web.quota.limit} · 可用{' '}
-              {web.quota.available}
-            </p>
-          )}
-          {!web.quota && <p>暂无 Web 订阅额度读数</p>}
-          <MarketBudget budget={web.brokerBudget} />
+          <WebSubscriptionBudget
+            quota={web.quota}
+            brokerBudget={web.brokerBudget}
+          />
           {web.focus !== undefined && (
             <>
               <p>当前焦点 {web.focus ?? '未设置'}</p>

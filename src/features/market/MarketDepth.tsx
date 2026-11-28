@@ -14,6 +14,7 @@ import type {
   BrokerLineBudget,
   Level,
   ReplaySubscriptionBudget,
+  WebMarketControls,
 } from './marketData';
 import {
   applyBookEvent,
@@ -200,6 +201,24 @@ export function MarketBudget({
         股票常驻 {budget.stocks} · 热点期权 {budget.hotOptions} · 期权轮换{' '}
         {budget.rotating} · 余量 {budget.reserve}
       </p>
+    </>
+  );
+}
+
+export function WebSubscriptionBudget({
+  quota,
+  brokerBudget,
+}: Pick<WebMarketControls, 'quota' | 'brokerBudget'>) {
+  return (
+    <>
+      {quota ? (
+        <p>
+          Web 订阅 {quota.active}/{quota.limit} · 可用 {quota.available}
+        </p>
+      ) : (
+        <p>暂无 Web 订阅额度读数</p>
+      )}
+      <MarketBudget budget={brokerBudget} />
     </>
   );
 }

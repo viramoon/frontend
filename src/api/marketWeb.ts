@@ -632,6 +632,8 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
     catalogWork = controller;
     const signal = AbortSignal.any([lifecycle.signal, controller.signal]);
     const options = http(signal);
+    void updateQuota(signal);
+    void updateBrokerBudget(signal);
     try {
       const [policies, observed, saved, selectedFocus, indicatorsResult] =
         await Promise.all([
@@ -716,8 +718,6 @@ export function createWebMarketAdapter(): MarketDataAdapter & {
           : 'unavailable';
       publish();
       if (current) void loadCurrent();
-      void updateQuota(signal);
-      void updateBrokerBudget(signal);
     } catch (error) {
       if (signal.aborted) return;
       if (denied(error)) revoke();

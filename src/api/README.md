@@ -50,7 +50,7 @@ W2a REST WAL 可返回新事件。永续摘要沿用 `/market/derivatives` 中�
 
 [W2a web 适配器](marketWeb.ts) 实现 [MarketDataAdapter](../features/market/marketData.ts)。正式行情路由先检查 `restricted_market_data` 管理员会话，再经唯一生成客户端读取标的和产品、WAL 与水位、K 线、指标列、最优报价、盘口、逐笔和永续上下文。读取使用 `no-store`。自选 GET/PUT 使用 `default` 自选 ID 和服务端 revision，409 后读回服务器状态。深度焦点可设置或清除，写入带 Origin 和 CSRF。
 
-券商线路预算通过 W8 的 `GET /api/v1/market/subscriptions/budget` 读取。页面显示 `account_lines` 上限、`reserve_lines` 预留、`stock_lines` 常驻、`hot_lines` 热点及 `rotation_lines` 轮换行数。预算接口明确返回 `finance_contract_pending` 或无法提供有效预算时显示「券商线路额度待接入」。Web 订阅槽位独立读取 `GET /api/v1/market/subscriptions` 的 `web.active`、`web.limit` 与 `web.available`。其中 `finance_lines` 是兼容字段，券商状态以 W8 响应为准。
+券商线路预算通过 W8 的 `GET /api/v1/market/subscriptions/budget` 读取。页面显示 `account_lines` 上限、`reserve_lines` 预留、`stock_lines` 常驻、`hot_lines` 热点及 `rotation_lines` 轮换行数。预算接口明确返回 `finance_contract_pending` 或无法提供有效预算时显示「券商线路额度待接入」。Web 订阅槽位独立读取 `GET /api/v1/market/subscriptions` 的 `web.active`、`web.limit` 与 `web.available`。其中 `finance_lines` 是兼容字段，券商状态以 W8 响应为准。管理员权限确认后同时发起目录和两项额度读取，空目录或目录读取失败时仍展示取得的额度。HTTP 401 触发会话撤回流程。
 
 `BookSource.availableFrom` 和 `MarketReading.tradesAvailableFrom` 取同一分区可用的首个快照或逐笔 `first_available_ts` 的 UTC 日期。样本时间以交易所时间为准，缺少交易所时间时按接收时间显示。适配器以产品持久水位为固定截止位置，从零开始沿 `next_after` 校验授权 WAL 的连续页。已验证检查点和数据仅驻留在当前授权视图内存中，刷新从该位置续读，撤权或离开页面时清除。
 

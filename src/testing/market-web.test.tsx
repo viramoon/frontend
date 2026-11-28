@@ -13,7 +13,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type {
   BookSnapshot,
+  ErrorBody,
   Event,
+  MarketInstrumentsResponse,
   MarketSubscriptionBudgetResponse,
   MarketWatermarks,
   WalRecord,
@@ -180,6 +182,7 @@ function mockWeb(
   wal = rows,
   readBudget: () => Response | Promise<Response> = () =>
     Response.json({}, { status: 503 }),
+  readCatalog?: () => Response,
 ) {
   let ids: string[] = [];
   let revision = 3;
@@ -278,11 +281,14 @@ function mockWeb(
       case '/api/v1/market/products':
         return Response.json({ as_of: asOf, items: [access] });
       case '/api/v1/market/instruments':
-        return Response.json({
-          state: 'ready',
-          source,
-          items: [{ instrument, stale: false }],
-        });
+        return (
+          readCatalog?.() ??
+          Response.json({
+            state: 'ready',
+            source,
+            items: [{ instrument, stale: false }],
+          })
+        );
       case '/api/v1/market/watermarks':
         return Response.json({
           access,
@@ -520,6 +526,68 @@ it.each([
 );
 
 it.each([
+  { route: '/dashboard', catalogStatus: 200, title: '暂无标的' },
+  { route: '/trading', catalogStatus: 200, title: '暂无标的' },
+  { route: '/dashboard', catalogStatus: 502, title: '行情暂不可用' },
+  { route: '/trading', catalogStatus: 502, title: '行情暂不可用' },
+])(
+  'shows broker budget and Web slots with an empty or failed catalog ($catalogStatus) on $route',
+  async ({ route, catalogStatus, title }) => {
+    const emptyCatalog: MarketInstrumentsResponse = {
+      state: 'ready',
+      source,
+      items: [],
+    };
+    const catalogError: ErrorBody = {
+      error: {
+        code: 'market_upstream_error',
+        message: 'Synthetic instrument catalog unavailable',
+      },
+    };
+    const { calls, unexpected } = mockWeb(
+      true,
+      false,
+      [],
+      () => Response.json(brokerBudget),
+      () =>
+        Response.json(catalogStatus === 200 ? emptyCatalog : catalogError, {
+          status: catalogStatus,
+        }),
+    );
+    mount(route);
+
+    expect(await screen.findByText(title)).toBeVisible();
+    if (catalogStatus === 502)
+      expect(
+        screen.getByRole('button', { name: '重新读取行情' }),
+      ).toBeVisible();
+    await waitFor(() =>
+      expect(
+        calls
+          .map(({ path }) => path)
+          .filter(
+            (path) =>
+              path === budgetPath || path === '/api/v1/market/subscriptions',
+          )
+          .sort(),
+      ).toEqual(['/api/v1/market/subscriptions', budgetPath]),
+    );
+    const budget = within(
+      await screen.findByRole('region', { name: '订阅额度' }),
+    );
+    expect(await budget.findByText('IBKR L1 预算 123 行')).toBeVisible();
+    expect(
+      budget.getByText('股票常驻 7 · 热点期权 13 · 期权轮换 28 · 余量 19'),
+    ).toBeVisible();
+    expect(await budget.findByText('Web 订阅 1/8 · 可用 7')).toBeVisible();
+    expect(budget.queryByText('券商线路额度待接入')).toBeNull();
+    expect(budget.queryByRole('button')).toBeNull();
+    expect(MockSocket.opened).toEqual([]);
+    expect(unexpected).toEqual([]);
+  },
+);
+
+it.each([
   { name: 'upstream failure', status: 502, code: 'market_upstream_error' },
   { name: 'product access denied', status: 403, code: 'forbidden' },
   { name: 'explicit pending', status: 503, code: 'finance_contract_pending' },
@@ -573,6 +641,7 @@ it('revokes the restricted market view when the broker budget reports an expired
   expect(
     screen.queryByRole('region', { name: '订阅额度与深度焦点' }),
   ).toBeNull();
+  expect(screen.queryByRole('region', { name: '订阅额度' })).toBeNull();
   expect(MockEvents.opened[0]?.closed).toBe(true);
   expect(unexpected).toEqual([]);
 });
